@@ -29,7 +29,7 @@ OUTPUT:
 %}
 
 function session = extract_session_data(fullFileName, isVerticalTest)
-  [pathStr, fileName, ~] = fileparts(fullFileName) 
+  [pathStr, fileName, ~] = fileparts(fullFileName); 
 
   matFilename = [pathStr '\\' fileName '.mat'];
   if exist(matFilename, 'file')
@@ -39,7 +39,7 @@ function session = extract_session_data(fullFileName, isVerticalTest)
     save(matFilename, 'logData'); 
   end  
   
-  OUTCOME_REWARD = getValue(logData.Enums.Outcomes.EnumStruct, 'REWARD');
+  %OUTCOME_REWARD = getValue(logData.Enums.Outcomes.EnumStruct, 'REWARD');
   [numTrial, ~] = size(logData.data); %first dimension corresponds to number of trials
 
   
@@ -70,7 +70,6 @@ function session = extract_session_data(fullFileName, isVerticalTest)
                    'nPlayer', nSubject, ...
                    'nTrial', numTrial, ...
                    'name', ' ', ... 
-                   'playerName', {cell(nSubject, 1)}, ...
                    'decisionTime', zeros(nSubject, numTrial),...                    
                    'moveTime', zeros(nSubject, numTrial), ...                    
                    'reward', zeros(nSubject, numTrial), ...
@@ -78,6 +77,8 @@ function session = extract_session_data(fullFileName, isVerticalTest)
                    'chosenPos', zeros(nSubject, numTrial),...
                    'trialType', zeros(1, numTrial), ...                   
                    'trialStatus', zeros(1, numTrial));     
+  session.playerName = cell(nSubject, 1);
+                 
   %fill TRIAL_TYPES with actual values
   session.TRIAL_TYPE.NONE = getValue(logData.Enums.TrialTypes.EnumStruct, 'None'); 
   session.TRIAL_TYPE.INSTRUCTED = getValue(logData.Enums.TrialTypes.EnumStruct, 'DirectFreeGazeReaches');
@@ -90,14 +91,14 @@ function session = extract_session_data(fullFileName, isVerticalTest)
   playerPrefix = {'A', 'B'};
   iPlayer = 1;
   for i = indexPlayer1:indexPlayer2
-    session.playerName{iPlayer} = subject(i);
+    session.playerName{iPlayer} = subject{i};
 
     prefix = playerPrefix{i};
       
     tTargetAppear = getValue(logData, [prefix '_TargetOnsetTime_ms']);
     tInitRelease = getValue(logData, [prefix '_InitialFixationReleaseTime_ms']); 
     tReach = getValue(logData, [prefix '_TargetTouchTime_ms']);
-    session.reactionTime(iPlayer, :) = tInitRelease - tTargetAppear;
+    session.decisionTime(iPlayer, :) = tInitRelease - tTargetAppear;
     session.moveTime(iPlayer, :) = tReach - tInitRelease;
     
     session.reward(iPlayer, :) = getValue(logData, [prefix '_NumberRewardPulsesDelivered_HIT']);
@@ -106,9 +107,15 @@ function session = extract_session_data(fullFileName, isVerticalTest)
       session.TARGET_POS = struct('TOP', 219, 'BOTTOM', 782, 'ALL', [219, 782]);
     else  
       targetXvalues = getValue(logData, [prefix '_TouchSelectedTargetPosition_X']);    
-      initXvalues = getValue(logData, [prefix '_TouchInitialFixationPosition_X']);  
-      session.chosenPos(iPlayer, targetXvalues > initXvalues) = 1;
-      session.TARGET_POS = struct('LEFT', 0, 'RIGHT', 1, 'ALL', [0, 1]);
+      initXvalues = getValue(logData, [prefix '_TouchInitialFixationPosition_X']); 
+      if (i == 1) %player A has basic orientation
+        session.chosenPos(iPlayer, targetXvalues < initXvalues) = -1;
+        session.chosenPos(iPlayer, targetXvalues > initXvalues) = 1;
+      else        %player B has inversed orientation  
+        session.chosenPos(iPlayer, targetXvalues < initXvalues) = 1;
+        session.chosenPos(iPlayer, targetXvalues > initXvalues) = -1;
+      end  
+      session.TARGET_POS = struct('LEFT', -1, 'RIGHT', 1, 'ALL', [-1, 1]);
     end  
     
     %NO_OUTCOME, REWARD, ABORT, ABORT_BY_OTHER
