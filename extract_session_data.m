@@ -19,7 +19,7 @@ OUTPUT:
     nTrial - number of trials 
               corresponds to the length of the 1st dimension for the arrays below
     playerName - initially entered names of players;       
-    decisionTime - array of times from presentation of the target till fixation point release
+    releaseTime - array of times from presentation of the target till fixation point release
     moveTime - array of times from fixation point release till target reach
     reward - array of Rewards for trials
     chosenTarget - array of chosen target type indices (temporally is not used)
@@ -70,7 +70,7 @@ function session = extract_session_data(fullFileName, isVerticalTest)
                    'nPlayer', nSubject, ...
                    'nTrial', numTrial, ...
                    'name', ' ', ... 
-                   'decisionTime', zeros(nSubject, numTrial),...                    
+                   'releaseTime', zeros(nSubject, numTrial),...                    
                    'moveTime', zeros(nSubject, numTrial), ...                    
                    'reward', zeros(nSubject, numTrial), ...
                    'chosenTarget', zeros(nSubject, numTrial), ...
@@ -98,7 +98,7 @@ function session = extract_session_data(fullFileName, isVerticalTest)
     tTargetAppear = getValue(logData, [prefix '_TargetOnsetTime_ms']);
     tInitRelease = getValue(logData, [prefix '_InitialFixationReleaseTime_ms']); 
     tReach = getValue(logData, [prefix '_TargetTouchTime_ms']);
-    session.decisionTime(iPlayer, :) = tInitRelease - tTargetAppear;
+    session.releaseTime(iPlayer, :) = tInitRelease - tTargetAppear;
     session.moveTime(iPlayer, :) = tReach - tInitRelease;
     
     session.reward(iPlayer, :) = getValue(logData, [prefix '_NumberRewardPulsesDelivered_HIT']);

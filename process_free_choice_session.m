@@ -18,7 +18,7 @@ INPUT:
     nTrial - number of trials 
               corresponds to the length of the 1st dimension for the arrays below
     playerName - initially entered names of players;       
-    decisionTime - array of times from presentation of the target till fixation point release
+    releaseTime - array of times from presentation of the target till fixation point release
     moveTime - array of times from fixation point release till target reach
     reward - array of Rewards for trials
     chosenTarget - array of chosen target type indices
@@ -37,9 +37,9 @@ OUTPUT:
   (the following fields contain info on successful free choice or informed trials only)
     'ownChoice' - whether own (more benefitial target) was selected;
     'reactionTime' - time from target onset to reaching the target;
-    'decisionTime' - time from target onset to fixation release;
+    'releaseTime' - time from target onset to fixation release;
     'dltReactionTime' - reactionTime of Player 1 - reactionTime of Player 2
-    'dltDecisionTime' - decisionTime of Player 1 - decisionTime of Player 2
+    'dltReleaseTime' - releaseTime of Player 1 - releaseTime of Player 2
     'jointChoice' - whether the same target was selected;
    
     'jointChoiceAverage' - rate of selecting the same target,
@@ -51,23 +51,25 @@ OUTPUT:
     'numChoiceOfPosEnd'  - number of choices of target in a given position (for statistical analysis);
     'shareChoiceOfPos'
     'shareChoiceOfPosEnd'  - share number of choices of target in a given position;
+    'medianReactionTime' - median time from target onset to reaching the target
+    'medianReleaseTime' - median time from target onset to fixation release
     'numJointChoice' 
     'numJointChoiceEnd' - number of joint choices                     
     'shareFirstChoices'
     'shareFirstChoicesEnd',  - share of trials where Player 1 reached the target earlier;       
     'corrReactionTimes', 
     'corrReactionTimesEnd' - correlation of reaction times
-    'corrDecisionTimes', 
-    'corrDecisionTimesEnd' - correlation of sum of reaction times and move times    
+    'corrReleaseTimes', 
+    'corrReleaseTimesEnd' - correlation of sum of reaction times and move times    
    (correlations of jount choices with ...) 
     'corrJointChoiceWithReactionTime' 
     'corrJointChoiceWithReactionTimeEnd' - ... reaction times for each player
-    'corrJointChoiceWithDecisionTime', 
-    'corrJointChoiceWithDecisionTimeEnd'  - total reach times for each player
+    'corrJointChoiceWithReleaseTime', 
+    'corrJointChoiceWithReleaseTimeEnd'  - total reach times for each player
     'corrJointChoiceWithDeltaReactionTime', 
     'corrJointChoiceWithDeltaReactionTimeEnd'  - ... Player 1 reaction time - Player 2 reaction time     
-    'corrJointChoiceWithDeltaDecisionTime', 
-    'corrJointChoiceWithDeltaDecisionTimeEnd'  - Player 1 total reach time - Player 2 total reach time    
+    'corrJointChoiceWithDeltaReleaseTime', 
+    'corrJointChoiceWithDeltaReleaseTimeEnd'  - Player 1 total reach time - Player 2 total reach time    
  
 !!!Please, note that some of the fields are defined only for 2 players 
 %}
@@ -89,42 +91,49 @@ function res = process_free_choice_session(session, endSize, w)
   res = struct('nTrial',nCorrectTrial, ...
                'endSize', endSize, ... 
                'reactionTime', zeros(session.nPlayer, nCorrectTrial), ...
-               'decisionTime', zeros(session.nPlayer, nCorrectTrial), ...
+               'releaseTime', zeros(session.nPlayer, nCorrectTrial), ...             
                'dltReactionTime', zeros(1, nCorrectTrial), ...
-               'dltDecisionTime', zeros(1, nCorrectTrial), ...               
+               'dltReleaseTime', zeros(1, nCorrectTrial), ...               
                'jointChoice', zeros(1, nCorrectTrial),...     
                'jointChoiceAverage', zeros(1, nAveragedTrial),... 
                'numChoiceOfPos', zeros(session.nPlayer, nTarget), ...               
                'numChoiceOfPosEnd', zeros(session.nPlayer, nTarget), ...
                'shareChoiceOfPos', zeros(session.nPlayer, nTarget), ...
                'shareChoiceOfPosEnd', zeros(session.nPlayer, nTarget), ...           
+               'medianReactionTime', zeros(session.nPlayer, nTarget), ...                 
+               'medianReleaseTime', zeros(session.nPlayer, nTarget), ...
                'numJointChoice', 0, ... 
                'numJointChoiceEnd', 0, ... 
                'shareFirstChoice', 0, ... 
                'shareFirstChoiceEnd', 0, ...                 
                'corrReactionTimes', 0, ... 
                'corrReactionTimesEnd', 0, ... 
-               'corrDecisionTimes', 0, ...                                
-               'corrDecisionTimesEnd', 0, ...                                
+               'corrReleaseTimes', 0, ...                                
+               'corrReleaseTimesEnd', 0, ...  
+               'corrJointReactionTimes', 0, ...                  
+               'corrJointReleaseTimes', 0, ...                                             
                'corrJointChoiceWithReactionTime', zeros(session.nPlayer, 1), ... 
                'corrJointChoiceWithReactionTimeEnd', zeros(session.nPlayer, 1), ... 
-               'corrJointChoiceWithDecisionTime', zeros(session.nPlayer, 1), ... 
-               'corrJointChoiceWithDecisionTimeEnd', zeros(session.nPlayer, 1), ... 
+               'corrJointChoiceWithReleaseTime', zeros(session.nPlayer, 1), ... 
+               'corrJointChoiceWithReleaseTimeEnd', zeros(session.nPlayer, 1), ... 
                'corrJointChoiceWithDeltaReactionTime', 0,...       
                'corrJointChoiceWithDeltaReactionTimeEnd', 0,...       
-               'corrJointChoiceWithDeltaDecisionTime', 0,...       
-               'corrJointChoiceWithDeltaDecisionTimeEnd', 0);       
+               'corrJointChoiceWithDeltaReleaseTime', 0,...       
+               'corrJointChoiceWithDeltaReleaseTimeEnd', 0);       
   
   % compute reaction times in sec
-  res.reactionTime = (session.moveTime(:, correctIndices) + session.decisionTime(:, correctIndices))/1000;
-  res.decisionTime = session.decisionTime(:, correctIndices)/1000;
+  res.reactionTime = (session.moveTime(:, correctIndices) + session.releaseTime(:, correctIndices))/1000;
+  res.releaseTime = session.releaseTime(:, correctIndices)/1000;
   
   endIndices = nCorrectTrial-endSize+1:nCorrectTrial;
   pos = session.chosenPos(:, correctIndices);
   for iPlayer = 1:session.nPlayer
     for iPos = 1:length(session.TARGET_POS.ALL)
-      res.numChoiceOfPos(iPlayer, iPos) = nnz(pos(iPlayer, :) == session.TARGET_POS.ALL(iPos));
-      res.numChoiceOfPosEnd(iPlayer, iPos) = nnz(pos(iPlayer, endIndices) == session.TARGET_POS.ALL(iPos));
+      posIndices = (pos(iPlayer, :) == session.TARGET_POS.ALL(iPos));
+      res.numChoiceOfPos(iPlayer, iPos) = nnz(posIndices);
+      res.numChoiceOfPosEnd(iPlayer, iPos) = nnz(posIndices(endIndices));
+      res.medianReactionTime(iPlayer, iPos) = median(res.reactionTime(iPlayer, posIndices));
+      res.medianReleaseTime(iPlayer, iPos) = median(res.releaseTime(iPlayer, posIndices));
     end
   end
   res.shareChoiceOfPos = res.numChoiceOfPos/nCorrectTrial;
@@ -140,7 +149,7 @@ function res = process_free_choice_session(session, endSize, w)
     
     % compute reaction times differences  
     res.dltReactionTime = res.reactionTime(1,:) - res.reactionTime(2,:);
-    res.dltDecisionTime = res.decisionTime(1,:) - res.decisionTime(2,:);
+    res.dltReleaseTime = res.releaseTime(1,:) - res.releaseTime(2,:);
   
     %compute share of cases when first playe was first, i.e. his total RT was lower
     firstChoice = zeros(1, nCorrectTrial);
@@ -150,20 +159,22 @@ function res = process_free_choice_session(session, endSize, w)
 
     res.corrReactionTimes = corr(res.reactionTime(1, :)', res.reactionTime(2, :)');
     res.corrReactionTimesEnd = corr(res.reactionTime(1, endIndices)', res.reactionTime(2, endIndices)');
-    res.corrDecisionTimes = corr(res.decisionTime(1, :)', res.decisionTime(2, :)');                               
-    res.corrDecisionTimesEnd = corr(res.decisionTime(1, endIndices)', res.decisionTime(2, endIndices)');                                
+    res.corrReleaseTimes = corr(res.releaseTime(1, :)', res.releaseTime(2, :)');                               
+    res.corrReleaseTimesEnd = corr(res.releaseTime(1, endIndices)', res.releaseTime(2, endIndices)');                                
+    res.corrJointReactionTimes = corr(res.reactionTime(1, res.jointChoice > 0)', res.reactionTime(2, res.jointChoice > 0));
+    res.corrJointReleaseTimes = corr(res.releaseTime(1, res.jointChoice > 0)', res.releaseTime(2, res.jointChoice > 0)');                               
     res.corrJointChoiceWithReactionTime(1) = corr(res.reactionTime(1, :)', res.jointChoice');                               
     res.corrJointChoiceWithReactionTime(2) = corr(res.reactionTime(2, :)', res.jointChoice');                               
     res.corrJointChoiceWithReactionTimeEnd(1) = corr(res.reactionTime(1, endIndices)', res.jointChoice(endIndices)');                               
     res.corrJointChoiceWithReactionTimeEnd(2) = corr(res.reactionTime(2, endIndices)', res.jointChoice(endIndices)');                               
-    res.corrJointChoiceWithDecisionTime(1) = corr(res.decisionTime(1, :)', res.jointChoice');                               
-    res.corrJointChoiceWithDecisionTime(2) = corr(res.decisionTime(2, :)', res.jointChoice');                               
-    res.corrJointChoiceWithDecisionTimeEnd(1) = corr(res.decisionTime(1, endIndices)', res.jointChoice(endIndices)');                               
-    res.corrJointChoiceWithDecisionTimeEnd(2) = corr(res.decisionTime(2, endIndices)', res.jointChoice(endIndices)');                               
+    res.corrJointChoiceWithReleaseTime(1) = corr(res.releaseTime(1, :)', res.jointChoice');                               
+    res.corrJointChoiceWithReleaseTime(2) = corr(res.releaseTime(2, :)', res.jointChoice');                               
+    res.corrJointChoiceWithReleaseTimeEnd(1) = corr(res.releaseTime(1, endIndices)', res.jointChoice(endIndices)');                               
+    res.corrJointChoiceWithReleaseTimeEnd(2) = corr(res.releaseTime(2, endIndices)', res.jointChoice(endIndices)');                               
     res.corrJointChoiceWithDeltaReactionTime = corr(res.dltReactionTime', res.jointChoice');                               
     res.corrJointChoiceWithDeltaReactionTimeEnd = corr(res.dltReactionTime(endIndices)', res.jointChoice(endIndices)');                               
-    res.corrJointChoiceWithDeltaDecisionTime = corr(res.dltDecisionTime', res.jointChoice');                               
-    res.corrJointChoiceWithDeltaDecisionTimeEnd = corr(res.dltDecisionTime(endIndices)', res.jointChoice(endIndices)');                                   
+    res.corrJointChoiceWithDeltaReleaseTime = corr(res.dltReleaseTime', res.jointChoice');                               
+    res.corrJointChoiceWithDeltaReleaseTimeEnd = corr(res.dltReleaseTime(endIndices)', res.jointChoice(endIndices)');                                   
     
     %plot joint choice rates
     xt = w:nCorrectTrial;
@@ -184,13 +195,13 @@ function res = process_free_choice_session(session, endSize, w)
     figure
     set( axes,'fontsize', FontSize, 'FontName', 'Times');
     hold on;
-    plot (1:nCorrectTrial, res.decisionTime(1,:), 'r--', 'linewidth', LineWidth); 
-    plot (1:nCorrectTrial, res.decisionTime(2,:), 'b--', 'linewidth', LineWidth); 
+    plot (1:nCorrectTrial, res.releaseTime(1,:), 'r--', 'linewidth', LineWidth); 
+    plot (1:nCorrectTrial, res.releaseTime(2,:), 'b--', 'linewidth', LineWidth); 
     plot (1:nCorrectTrial, res.reactionTime(1,:), 'r', 'linewidth', LineWidth); 
     plot (1:nCorrectTrial, res.reactionTime(2,:), 'b', 'linewidth', LineWidth); 
     hold off;  
     axis( [0, nCorrectTrial, 0.15, max(max(res.reactionTime))-0.15]);
-    legend([session.playerName{1} ' decision time'], [session.playerName{2} ' decision time'], [session.playerName{1} ' total reaction time'], [session.playerName{2} ' total reaction time'], 'location', 'NorthWest');    
+    legend([session.playerName{1} ' release time'], [session.playerName{2} ' release time'], [session.playerName{1} ' total reaction time'], [session.playerName{2} ' total reaction time'], 'location', 'NorthWest');    
     title('Reaction times', 'fontsize', FontSize, 'FontName', 'Times'); 
     set( gca, 'fontsize', FontSize, 'FontName', 'Times');
     xlabel( ' Number of trial ', 'fontsize', FontSize, 'FontName', 'Times');
@@ -219,9 +230,9 @@ function res = process_free_choice_session(session, endSize, w)
     subplot(3, 1, 2);
     hold on;
     plot (1:nCorrectTrial, zeros(1, nCorrectTrial), 'k--', 'linewidth', 1);  
-    plot (1:nCorrectTrial, res.dltDecisionTime, 'b', 'linewidth', LineWidth);
+    plot (1:nCorrectTrial, res.dltReleaseTime, 'b', 'linewidth', LineWidth);
     hold off;  
-    title(['\Delta Decision time: ' session.playerName{1} ' - ' session.playerName{2}], 'fontsize', FontSize, 'FontName', 'Times');;
+    title(['\Delta Release time: ' session.playerName{1} ' - ' session.playerName{2}], 'fontsize', FontSize, 'FontName', 'Times');;
     axis tight;
     set( gca, 'fontsize', FontSize, 'FontName', 'Times');
     xlabel( ' Number of trial ', 'fontsize', FontSize, 'FontName', 'Times');
@@ -230,7 +241,7 @@ function res = process_free_choice_session(session, endSize, w)
     subplot(3, 1, 3);
     hold on;
     plot (1:nCorrectTrial, zeros(1, nCorrectTrial), 'k--', 'linewidth', 1);  
-    plot (1:nCorrectTrial, res.dltReactionTime - res.dltDecisionTime, 'b', 'linewidth', LineWidth);
+    plot (1:nCorrectTrial, res.dltReactionTime - res.dltReleaseTime, 'b', 'linewidth', LineWidth);
     hold off;
     title(['\Delta Movement time: ' session.playerName{1} ' - ' session.playerName{2}], 'fontsize', FontSize, 'FontName', 'Times');;
     axis tight;
