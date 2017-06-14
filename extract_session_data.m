@@ -109,11 +109,11 @@ function session = extract_session_data(fullFileName, isVerticalTest)
       targetXvalues = getValue(logData, [prefix '_TouchSelectedTargetPosition_X']);    
       initXvalues = getValue(logData, [prefix '_TouchInitialFixationPosition_X']); 
       if (i == 1) %player A has basic orientation
-        session.chosenPos(iPlayer, targetXvalues < initXvalues) = -1;
-        session.chosenPos(iPlayer, targetXvalues > initXvalues) = 1;
+        session.chosenPos(iPlayer, (targetXvalues - initXvalues) < -3) = -1;
+        session.chosenPos(iPlayer, (targetXvalues - initXvalues) > 3) = 1;
       else        %player B has inversed orientation  
-        session.chosenPos(iPlayer, targetXvalues < initXvalues) = 1;
-        session.chosenPos(iPlayer, targetXvalues > initXvalues) = -1;
+        session.chosenPos(iPlayer, (targetXvalues - initXvalues) < -3) = 1;
+        session.chosenPos(iPlayer, (targetXvalues - initXvalues) > 3) = -1;
       end  
       session.TARGET_POS = struct('LEFT', -1, 'RIGHT', 1, 'ALL', [-1, 1]);
     end  
