@@ -5,7 +5,7 @@ function fileList = find_all_files(folder, filePattern)
   remain = allSubFolders;
   folderNameList = {};
   while true
-    [singleSubFolder, remain] = strtok(remain, ';');
+    [singleSubFolder, remain] = strtok(remain, ';:');
     if isempty(singleSubFolder)
       break;
     end
@@ -21,7 +21,7 @@ function fileList = find_all_files(folder, filePattern)
     fprintf('Processing folder %s\n', thisFolder);
 	
     % Get ALL files.
-    currentPattern = [thisFolder, '\\', filePattern];
+    currentPattern = [thisFolder, filesep, filePattern];
     baseFileNames = dir(currentPattern);	
     nFile = length(baseFileNames);
     if nFile >= 1
