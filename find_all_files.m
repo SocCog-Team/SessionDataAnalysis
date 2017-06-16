@@ -5,7 +5,7 @@ function fileList = find_all_files(folder, filePattern)
   remain = allSubFolders;
   folderNameList = {};
   while true
-    [singleSubFolder, remain] = strtok(remain, ';:');
+    [singleSubFolder, remain] = strtok(remain, ';:'); % or use pathsep
     if isempty(singleSubFolder)
       break;
     end
