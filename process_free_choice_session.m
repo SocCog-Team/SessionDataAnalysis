@@ -211,7 +211,7 @@ function res = process_free_choice_session(session, endSize, w)
     xSize = 24; ySize = 12;
     xLeft = 0; yTop = 0;
     set( gcf,'PaperPosition', [ xLeft yTop xSize ySize ] );
-	write_out_figure(f, fullfile(SCPDirs.OutputDir, [currSubject.name, '_choices', Options.OutFormat]));
+	write_out_figure(figh, fullfile(SCPDirs.OutputDir, [session.name, '_choices', Options.OutFormat]));
     %print ( '-depsc', '-r300', [session.name '_choices.eps']); 
 
     %plot reaction times 
@@ -233,7 +233,7 @@ function res = process_free_choice_session(session, endSize, w)
     xSize = 24; ySize = 20;
     xLeft = 0; yTop = 0;
     set( gcf,'PaperPosition', [ xLeft yTop xSize ySize ] );
-	write_out_figure(f, fullfile(SCPDirs.OutputDir, [currSubject.name, '_RT', Options.OutFormat]));
+	write_out_figure(figh, fullfile(SCPDirs.OutputDir, [session.name, '_RT', Options.OutFormat]));
     %print ( '-depsc', '-r300', [session.name '_RT.eps']); 
 
 
@@ -277,7 +277,7 @@ function res = process_free_choice_session(session, endSize, w)
     xSize = 24; ySize = 30;
     xLeft = 0; yTop = 0;
     set( gcf,'PaperPosition', [ xLeft yTop xSize ySize ] );
-	write_out_figure(f, fullfile(SCPDirs.OutputDir, [currSubject.name, '_deltaRT', Options.OutFormat]));
+	write_out_figure(figh, fullfile(SCPDirs.OutputDir, [session.name, '_deltaRT', Options.OutFormat]));
     %print ( '-depsc', '-r300', [session.name '_deltaRT.eps']); 
  end
 end
