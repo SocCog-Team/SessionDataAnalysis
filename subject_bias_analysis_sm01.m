@@ -12,6 +12,23 @@ SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES', SCPDirs.CurrentHostNa
 Options.OutFormat = '.pdf';
 
 experimentFile = find_all_files(experimentFolder, '*SCP_01.log');
+
+% allow to ignore some sessions
+%TODO fix up the parser to deal with older well-formed report files, switch
+%to selective exclusion of individual days instead of whole months...
+ExcludeWildCardList = {'_TESTVERSIONS', '20170106', '201701', '201702', '201703', '201704', 'A_SM-InactiveVirusScanner'};
+IncludedFilesIdx = [];
+for iFile = 1 : length(experimentFile)
+	TmpIdx = [];
+	for iExcludeWildCard = 1 : length(ExcludeWildCardList)
+		TmpIdx = [TmpIdx, strfind(experimentFile{iFile}, ExcludeWildCardList{iExcludeWildCard})];
+	end
+	if isempty(TmpIdx)
+		IncludedFilesIdx(end+1) = iFile;
+	end
+end
+experimentFile = experimentFile(IncludedFilesIdx);
+
 nFiles = length(experimentFile);
 
 w = 8;
