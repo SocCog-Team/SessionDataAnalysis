@@ -8,7 +8,7 @@ experimentFolder = fullfile('201705ReachBiasData', 'SCP-CTRL-01', 'SESSIONLOGS')
 SCPDirs = GetDirectoriesByHostName();
 experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
 
-SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES');
+SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES', SCPDirs.CurrentHostName);
 Options.OutFormat = '.eps';
 
 experimentFile = find_all_files(experimentFolder, '*SCP_01.log');
