@@ -540,7 +540,7 @@ for iSubject = 1:nSubject
 	
 	textHeight = 30;
 	f = figure('Name', '_OtherParameters');
-	t = uitable(f, 'Name', '_OtherParameters', 'Data',dataTable,  'ColumnName', currSubject.partner(subject(iSubject).sessionType > 0), 'RowName', tableRowsName);
+	t = uitable(f, 'Data',dataTable,  'ColumnName', currSubject.partner(subject(iSubject).sessionType > 0), 'RowName', tableRowsName);
 	t.Position = [0, 10, t.Extent(3), t.Extent(4)];
 	tableTitle = ['Parameters for the dual sessions of ', currSubject.name, ' sessions'];
 	uicontrol('Style', 'text', 'Position', [0 t.Extent(4) + 10 t.Extent(3) textHeight], 'String', tableTitle, 'fontsize', FontSize, 'FontName', 'Times');
