@@ -32,7 +32,7 @@ experimentFile = experimentFile(IncludedFilesIdx);
 nFiles = length(experimentFile);
 
 w = 8;
-endSize = 100;
+endSize = 45;
 
 iSubject = 0;
 nSubject = 0;
@@ -168,8 +168,8 @@ for iSubject = 1:nSubject
 		end
 	end
 	textHeight = 30;
-	f = figure;
-	t2 = uitable(f,'Data',isAssociationEnd, 'RowName',currSubject.partner, 'ColumnName', currSubject.partner);
+	f = figure('Name', [currSubject.name, '_ChoiceDifferenceTables']);
+	t2 = uitable(f, 'Data',isAssociationEnd, 'RowName',currSubject.partner, 'ColumnName', currSubject.partner);
 	t2.Position = [0, 10, t2.Extent(3), t2.Extent(4)];
 	tableTitle = ['Association table for last ', num2str(endSize), ' trials of ', currSubject.name, ' sessions'];
 	uicontrol('Style', 'text', 'Position', [0 t2.Extent(4) + 10 t2.Extent(3) textHeight], 'String', tableTitle, 'fontsize', FontSize, 'FontName', 'Times');
@@ -247,7 +247,7 @@ for iSubject = 1:nSubject
 	end
 	windowWidth = 5200;
 	textHeight = 30;
-	f = figure;
+	f = figure('Name', [currSubject.name, '_ReactionTimeDistribDifferenceTables']);
 	t = uitable(f,'Data',reactionTimeEquidistrib, 'RowName',subjectPosName, 'ColumnName', subjectPosName, 'fontsize', FontSize/2, 'FontName', 'Times', 'ColumnWidth', tableColumnWidth);
 	t.Position = [0, 10, t.Extent(3), t.Extent(4)];
 	tableTitle = ['KS test oucomes for reaction times in ', currSubject.name, ' sessions'];
@@ -273,7 +273,7 @@ for iSubject = 1:nSubject
 	write_out_figure(f, fullfile(SCPDirs.OutputDir, [currSubject.name, '_ReactionTimeDistribDifferenceTables', Options.OutFormat]));
 	%print ( '-depsc', '-r300', [currSubject.name '_ReactionTimeDistribDifferenceTables.eps']);
 	
-	f = figure;
+	f = figure('Name', [currSubject.name, '_ReleaseTimeDistribDifferenceTables']);
 	t = uitable(f,'Data',releaseTimeEquidistrib, 'RowName', subjectPosName, 'ColumnName',subjectPosName, 'fontsize', FontSize/2, 'FontName', 'Times', 'ColumnWidth', tableColumnWidth);
 	t.Position = [0, 10, t.Extent(3), t.Extent(4)];
 	tableTitle = ['KS test oucomes for release times in ', currSubject.name, ' sessions'];
@@ -307,7 +307,7 @@ for iSubject = 1:nSubject
 	releaseTimeEquidistribDual(:, :) = {'same'};
 	releaseTimeEquidistribDual(releaseTimeEquidistrib(dualSectionPos, dualSectionPos) == 1) = {'diff'};
 	
-	f = figure;
+	f = figure('Name', [currSubject.name, 'RTdualDistribDifferenceTables']);
 	t2 = uitable(f,'Data',reactionTimeEquidistribDual, 'RowName',subjectPosName(dualSectionPos), 'ColumnName', subjectPosName(dualSectionPos));
 	t2.Position = [0, 10, t2.Extent(3), t2.Extent(4)];
 	tableTitle = ['KS test oucomes for reaction times in ', currSubject.name, ' dual sessions'];
@@ -330,7 +330,7 @@ end
 %% plot running mean of RT for left and right targets
 for iSubject = 1:nSubject
 	currSubject = subject(iSubject);
-	f = figure;
+	f = figure('Name', [currSubject.name, 'average_RTbias']);
 	set( axes,'fontsize', FontSize, 'FontName', 'Times');
 	nDualSection = length(currSubject.dualSession);
 	for iSession = 1:nDualSection
@@ -375,7 +375,7 @@ end
 
 
 %% plot share of choices
-f = figure;
+f = figure('Name', [currSubject.name, 'subjectBias_shareOfChoices']);
 set( axes,'fontsize', FontSize, 'FontName', 'Times');
 for iSubject = 1:nSubject
 	xLabels = strcat(subject(iSubject).date, '\newline', subject(iSubject).partner);
@@ -540,7 +540,7 @@ for iSubject = 1:nSubject
 	
 	textHeight = 30;
 	f = figure('Name', '_OtherParameters');
-	t = uitable(f,'Data',dataTable,  'ColumnName', currSubject.partner(subject(iSubject).sessionType > 0), 'RowName', tableRowsName);
+	t = uitable(f, 'Name', '_OtherParameters', 'Data',dataTable,  'ColumnName', currSubject.partner(subject(iSubject).sessionType > 0), 'RowName', tableRowsName);
 	t.Position = [0, 10, t.Extent(3), t.Extent(4)];
 	tableTitle = ['Parameters for the dual sessions of ', currSubject.name, ' sessions'];
 	uicontrol('Style', 'text', 'Position', [0 t.Extent(4) + 10 t.Extent(3) textHeight], 'String', tableTitle, 'fontsize', FontSize, 'FontName', 'Times');
