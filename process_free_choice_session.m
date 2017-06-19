@@ -80,7 +80,7 @@ function res = process_free_choice_session(session, endSize, w)
 	
 	SCPDirs = GetDirectoriesByHostName();
 	SCPDirs.OutputDir = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS', 'ANALYSES', SCPDirs.CurrentHostName);	
-	Options.OutFormat = '.eps';
+	Options.OutFormat = '.pdf';
 
 
   MA_filter = ones(1, w);
