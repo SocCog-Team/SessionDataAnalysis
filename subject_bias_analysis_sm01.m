@@ -169,7 +169,7 @@ for iSubject = 1:nSubject
 	set( gcf,'PaperPosition', [ xLeft yTop xSize ySize ], 'PaperPositionMode', 'auto' );
 	
 	write_out_figure(f, fullfile(SCPDirs.OutputDir, [currSubject.name, '_ChoiceDifferenceTables', Options.OutFormat]));
-	%print ( '-depsc', '-r300', [currSubject.name '_ChoiceDifferenceTables.eps']);
+	%print ( '-d c', '-r300', [currSubject.name '_ChoiceDifferenceTables.eps']);
 end
 
 
