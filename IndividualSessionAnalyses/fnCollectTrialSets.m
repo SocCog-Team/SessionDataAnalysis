@@ -5,6 +5,13 @@ function [ TrialSets ] = fnCollectTrialSets( LogStruct )
 % interesting combinations
 TrialSets = [];
 TrialSets.All = (1:1:size(LogStruct.data, 1))';
+
+if (length(TrialSets.All) == 0) || (LogStruct.first_empty_row_idx == 1)
+	disp(['Logfile ', LogStruct.LoggingInfo.SessionFQN, ' does not contain any (valid trial) returning...']);
+	TrialSets = [];
+	return
+end
+
 % TrialTypesList = fnUnsortedUnique([LogStruct.unique_lists.A_TrialTypeENUM; LogStruct.unique_lists.B_TrialTypeENUM]);
 % for iTrialType = 1 : length(TrialTypesList)
 % 	CurrentTrialTypeName = TrialTypesList{iTrialType};
@@ -22,24 +29,33 @@ for iTrialType = 1 : length(TrialTypesList)
 	CurrentTrialTypeName = TrialTypesList{iTrialType};
 	CurrentTrialTypeIdx = iTrialType;
 	if ~isempty(CurrentTrialTypeIdx)
-		A_TrialsOfCurentTypeIdx = find(LogStruct.data(:, LogStruct.cn.A_TrialTypeENUM_idx) == CurrentTrialTypeIdx);
+		A_TrialsOfCurrentTypeIdx = find(LogStruct.data(:, LogStruct.cn.A_TrialTypeENUM_idx) == CurrentTrialTypeIdx);
 	else
-		A_TrialsOfCurentTypeIdx = [];
+		A_TrialsOfCurrentTypeIdx = [];
 	end
 	if ~isempty(CurrentTrialTypeIdx)
-		B_TrialsOfCurentTypeIdx = find(LogStruct.data(:, LogStruct.cn.B_TrialTypeENUM_idx) == CurrentTrialTypeIdx);
+		B_TrialsOfCurrentTypeIdx = find(LogStruct.data(:, LogStruct.cn.B_TrialTypeENUM_idx) == CurrentTrialTypeIdx);
 	else
-		B_TrialsOfCurentTypeIdx = [];
+		B_TrialsOfCurrentTypeIdx = [];
 	end
-	TrialSets.ByTrialType.SideA.(CurrentTrialTypeName) = A_TrialsOfCurentTypeIdx;
-	TrialSets.ByTrialType.SideB.(CurrentTrialTypeName) = B_TrialsOfCurentTypeIdx;	
-	TrialSets.ByTrialType.(CurrentTrialTypeName) = union(A_TrialsOfCurentTypeIdx, B_TrialsOfCurentTypeIdx);
+	TrialSets.ByTrialType.SideA.(CurrentTrialTypeName) = A_TrialsOfCurrentTypeIdx;
+	TrialSets.ByTrialType.SideB.(CurrentTrialTypeName) = B_TrialsOfCurrentTypeIdx;
+	TrialSets.ByTrialType.(CurrentTrialTypeName) = union(A_TrialsOfCurrentTypeIdx, B_TrialsOfCurrentTypeIdx);
 end
+
+if ~isfield(TrialSets.ByTrialType, 'InformedDirectedReach')
+	TrialSets.ByTrialType.InformedDirectedReach = [];
+end	
+if ~isfield(TrialSets.ByTrialType, 'InformedChoice')
+	TrialSets.ByTrialType.InformedChoice = [];
+end
+	
+TrialSets.ByTrialType.InformedTrials = union(TrialSets.ByTrialType.InformedChoice, TrialSets.ByTrialType.InformedDirectedReach);
+
 
 % create the list of choice trials
 TrialSets.ByChoices.NumChoices01 = union(TrialSets.ByTrialType.DirectFreeGazeFreeChoice, TrialSets.ByTrialType.InformedDirectedReach);
 TrialSets.ByChoices.NumChoices02 = union(TrialSets.ByTrialType.DirectFreeGazeFreeChoice, TrialSets.ByTrialType.InformedChoice);
-
 
 
 OutcomesList = fnUnsortedUnique([LogStruct.unique_lists.A_OutcomeENUM; LogStruct.unique_lists.B_OutcomeENUM]);
@@ -48,18 +64,18 @@ for iOutcome = 1 : length(OutcomesList)
 	CurrentOutcomeIdx = iOutcome;
 	
 	if ~isempty(CurrentOutcomeIdx)
-		A_TrialsOfCurentOutcomeIdx = find(LogStruct.data(:, LogStruct.cn.A_OutcomeENUM_idx) == CurrentOutcomeIdx);
+		A_TrialsOfCurrentOutcomeIdx = find(LogStruct.data(:, LogStruct.cn.A_OutcomeENUM_idx) == CurrentOutcomeIdx);
 	else
-		A_TrialsOfCurentOutcomeIdx = [];
+		A_TrialsOfCurrentOutcomeIdx = [];
 	end
 	if ~isempty(CurrentOutcomeIdx)
-		B_TrialsOfCurentOutcomeIdx = find(LogStruct.data(:, LogStruct.cn.B_OutcomeENUM_idx) == CurrentOutcomeIdx);
+		B_TrialsOfCurrentOutcomeIdx = find(LogStruct.data(:, LogStruct.cn.B_OutcomeENUM_idx) == CurrentOutcomeIdx);
 	else
-		B_TrialsOfCurentOutcomeIdx = [];
+		B_TrialsOfCurrentOutcomeIdx = [];
 	end
-	TrialSets.ByOutcome.SideA.(CurrentOutcomeName) = A_TrialsOfCurentOutcomeIdx;
-	TrialSets.ByOutcome.SideB.(CurrentOutcomeName) = B_TrialsOfCurentOutcomeIdx;	
-	TrialSets.ByOutcome.(CurrentOutcomeName) = union(A_TrialsOfCurentOutcomeIdx, A_TrialsOfCurentOutcomeIdx);
+	TrialSets.ByOutcome.SideA.(CurrentOutcomeName) = A_TrialsOfCurrentOutcomeIdx;
+	TrialSets.ByOutcome.SideB.(CurrentOutcomeName) = B_TrialsOfCurrentOutcomeIdx;
+	TrialSets.ByOutcome.(CurrentOutcomeName) = union(A_TrialsOfCurrentOutcomeIdx, B_TrialsOfCurrentOutcomeIdx);
 end
 
 
@@ -71,18 +87,18 @@ for iEffector = 1 : length(ReachEffectorsList)
 	CurrentEffectorIdx = iEffector;
 	
 	if ~isempty(CurrentEffectorIdx)
-		A_TrialsOfCurentEffectorIdx = find(LogStruct.data(:, LogStruct.cn.A_ReachEffectorENUM_idx) == CurrentEffectorIdx);
+		A_TrialsOfCurrentEffectorIdx = find(LogStruct.data(:, LogStruct.cn.A_ReachEffectorENUM_idx) == CurrentEffectorIdx);
 	else
-		A_TrialsOfCurentEffectorIdx = [];
+		A_TrialsOfCurrentEffectorIdx = [];
 	end
 	if ~isempty(CurrentEffectorIdx)
-		B_TrialsOfCurentEffectorIdx = find(LogStruct.data(:, LogStruct.cn.B_ReachEffectorENUM_idx) == CurrentEffectorIdx);
+		B_TrialsOfCurrentEffectorIdx = find(LogStruct.data(:, LogStruct.cn.B_ReachEffectorENUM_idx) == CurrentEffectorIdx);
 	else
-		B_TrialsOfCurentEffectorIdx = [];
+		B_TrialsOfCurrentEffectorIdx = [];
 	end
-	TrialSets.ByEffector.SideA.(CurrentEffectorName) = A_TrialsOfCurentEffectorIdx;
-	TrialSets.ByEffector.SideB.(CurrentEffectorName) = B_TrialsOfCurentEffectorIdx;	
-	TrialSets.ByEffector.(CurrentEffectorName) = union(A_TrialsOfCurentEffectorIdx, B_TrialsOfCurentEffectorIdx);
+	TrialSets.ByEffector.SideA.(CurrentEffectorName) = A_TrialsOfCurrentEffectorIdx;
+	TrialSets.ByEffector.SideB.(CurrentEffectorName) = B_TrialsOfCurrentEffectorIdx;
+	TrialSets.ByEffector.(CurrentEffectorName) = union(A_TrialsOfCurrentEffectorIdx, B_TrialsOfCurrentEffectorIdx);
 end
 
 RewardFunctionsList = fnUnsortedUnique([LogStruct.unique_lists.A_RewardFunctionENUM; LogStruct.unique_lists.B_RewardFunctionENUM]);
@@ -91,18 +107,18 @@ for iRewardFunction = 1 : length(RewardFunctionsList)
 	CurrentRewardFunctionIdx = iRewardFunction;
 	
 	if ~isempty(CurrentRewardFunctionIdx)
-		A_TrialsOfCurentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.A_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
+		A_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.A_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
 	else
-		A_TrialsOfCurentRewardFunctionIdx = [];
+		A_TrialsOfCurrentRewardFunctionIdx = [];
 	end
 	if ~isempty(CurrentRewardFunctionIdx)
-		B_TrialsOfCurentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.A_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
+		B_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.A_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
 	else
-		B_TrialsOfCurentRewardFunctionIdx = [];
+		B_TrialsOfCurrentRewardFunctionIdx = [];
 	end
-	TrialSets.ByRewardFunction.SideA.(CurrentRewardFunctionName) = A_TrialsOfCurentRewardFunctionIdx;
-	TrialSets.ByRewardFunction.SideB.(CurrentRewardFunctionName) = B_TrialsOfCurentRewardFunctionIdx;	
-	TrialSets.ByRewardFunction.(CurrentRewardFunctionName) = union(A_TrialsOfCurentRewardFunctionIdx, B_TrialsOfCurentRewardFunctionIdx);
+	TrialSets.ByRewardFunction.SideA.(CurrentRewardFunctionName) = A_TrialsOfCurrentRewardFunctionIdx;
+	TrialSets.ByRewardFunction.SideB.(CurrentRewardFunctionName) = B_TrialsOfCurrentRewardFunctionIdx;
+	TrialSets.ByRewardFunction.(CurrentRewardFunctionName) = union(A_TrialsOfCurrentRewardFunctionIdx, B_TrialsOfCurrentRewardFunctionIdx);
 end
 
 
@@ -110,7 +126,7 @@ end
 %ActiveSubjectsList = fnGetActiveSubjects(LogStruct);
 
 % get the names, create a subset per name (exclude None)
-NamesList = fnUnsortedUnique([LogStruct.unique_lists.A_Name; LogStruct.unique_lists.B_Name]);
+NamesList = fnUnsortedUnique([LogStruct.unique_lists.A_Name, LogStruct.unique_lists.B_Name]);
 for iName = 1: length(NamesList)
 	% ignore None
 	if (strcmp(NamesList{iName}, 'None'))
@@ -121,18 +137,18 @@ for iName = 1: length(NamesList)
 	B_CurrentNameIdx = find(ismember(LogStruct.unique_lists.B_Name, CurrentName));
 	
 	if ~isempty(A_CurrentNameIdx)
-		A_TrialsOfCurentNameIdx = find(LogStruct.data(:, LogStruct.cn.A_Name_idx) == A_CurrentNameIdx);
+		A_TrialsOfCurrentNameIdx = find(LogStruct.data(:, LogStruct.cn.A_Name_idx) == A_CurrentNameIdx);
 	else
-		A_TrialsOfCurentNameIdx = [];
+		A_TrialsOfCurrentNameIdx = [];
 	end
 	if ~isempty(B_CurrentNameIdx)
-		B_TrialsOfCurentNameIdx = find(LogStruct.data(:, LogStruct.cn.B_Name_idx) == B_CurrentNameIdx);
+		B_TrialsOfCurrentNameIdx = find(LogStruct.data(:, LogStruct.cn.B_Name_idx) == B_CurrentNameIdx);
 	else
-		B_TrialsOfCurentNameIdx = [];
+		B_TrialsOfCurrentNameIdx = [];
 	end
-	TrialSets.ByName.SideA.(CurrentName) = A_TrialsOfCurentNameIdx;
-	TrialSets.ByName.SideB.(CurrentName) = B_TrialsOfCurentNameIdx;
-	TrialSets.ByName.(CurrentName) = union(A_TrialsOfCurentNameIdx, B_TrialsOfCurentNameIdx);
+	TrialSets.ByName.SideA.(CurrentName) = A_TrialsOfCurrentNameIdx;
+	TrialSets.ByName.SideB.(CurrentName) = B_TrialsOfCurrentNameIdx;
+	TrialSets.ByName.(CurrentName) = union(A_TrialsOfCurrentNameIdx, B_TrialsOfCurrentNameIdx);
 end
 
 % activity (was a side active during a given trial)
@@ -158,8 +174,8 @@ TrialSets.ByChoice.SideA.ChoiceScreenFromARight = A_RightChoiceIdx;
 B_LeftChoiceIdx = find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_X) < LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X));
 B_RightChoiceIdx = find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_X) > LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X));
 
-TrialSets.ByChoice.SideB.SubjectiveLeft = B_LeftChoiceIdx;
-TrialSets.ByChoice.SideB.SubjectiveRight = B_RightChoiceIdx;
+TrialSets.ByChoice.SideB.ChoiceLeft = B_LeftChoiceIdx;
+TrialSets.ByChoice.SideB.ChoiceRight = B_RightChoiceIdx;
 % allow some slack for improper rounding errors
 TrialSets.ByChoice.SideB.ChoiceCenterX = find(abs(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_X) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels);
 
@@ -179,7 +195,7 @@ TrialSets.ByChoice.SideB.ChoiceCenterY = find(abs(LogStruct.data(:, LogStruct.cn
 % Extract information about the selected target reward value (assume only two values for now)
 
 DifferentialRewardedTrialsIdx = TrialSets.ByRewardFunction.BOSMATRIXV01;
-InformedTrialsIdx = union(TrialSets.ByTrialType.InformedChoice, TrialSets.ByTrialType.InformedDirectedReach);
+
 % note that for the DirectFreeGazeReaches trials we store the randomised
 % position as the selected.
 A_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_Y) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels) & (abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_X) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels));
@@ -188,12 +204,22 @@ B_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, Log
 A_SelectedTargetEqualsRandomizedTargetTrialIdx = intersect(A_SelectedTargetEqualsRandomizedTargetTrialIdx, find(LogStruct.data(:, LogStruct.cn.A_TargetTouchTime_ms) > 0.0));
 B_SelectedTargetEqualsRandomizedTargetTrialIdx = intersect(B_SelectedTargetEqualsRandomizedTargetTrialIdx, find(LogStruct.data(:, LogStruct.cn.B_TargetTouchTime_ms) > 0.0));
 
-TrialSets.ByChoice.SideA.TargetValueHigh = intersect(InformedTrialsIdx, A_SelectedTargetEqualsRandomizedTargetTrialIdx); % here the randomized position equals higher payoff
-TrialSets.ByChoice.SideA.TargetValueLow = intersect(InformedTrialsIdx, setdiff(TrialSets.All, A_SelectedTargetEqualsRandomizedTargetTrialIdx));
-TrialSets.ByChoice.SideB.TargetValueHigh = intersect(InformedTrialsIdx, setdiff(TrialSets.All, B_SelectedTargetEqualsRandomizedTargetTrialIdx));
-TrialSets.ByChoice.SideB.TargetValueLow = intersect(InformedTrialsIdx, B_SelectedTargetEqualsRandomizedTargetTrialIdx); % here the randomized position equals lower payoff
+% keep the randomisation information, to allow fake by value analysus for
+% freecgoice trials to compare agains left right and against informed
+% trials
+TrialSets.ByChoice.SideA.ProtoTargetValueHigh = A_SelectedTargetEqualsRandomizedTargetTrialIdx; % here the randomized position equals higher payoff
+TrialSets.ByChoice.SideA.ProtoTargetValueLow = setdiff(TrialSets.All, A_SelectedTargetEqualsRandomizedTargetTrialIdx);
+TrialSets.ByChoice.SideB.ProtoTargetValueHigh = setdiff(TrialSets.All, B_SelectedTargetEqualsRandomizedTargetTrialIdx);
+TrialSets.ByChoice.SideB.ProtoTargetValueLow = B_SelectedTargetEqualsRandomizedTargetTrialIdx; % here the randomized position equals lower payoff
 
+% here only add trials that are used a target value indicator
+TrialSets.ByChoice.SideA.TargetValueHigh = intersect(TrialSets.ByTrialType.InformedTrials, A_SelectedTargetEqualsRandomizedTargetTrialIdx); % here the randomized position equals higher payoff
+TrialSets.ByChoice.SideA.TargetValueLow = intersect(TrialSets.ByTrialType.InformedTrials, setdiff(TrialSets.All, A_SelectedTargetEqualsRandomizedTargetTrialIdx));
+TrialSets.ByChoice.SideB.TargetValueHigh = intersect(TrialSets.ByTrialType.InformedTrials, setdiff(TrialSets.All, B_SelectedTargetEqualsRandomizedTargetTrialIdx));
+TrialSets.ByChoice.SideB.TargetValueLow = intersect(TrialSets.ByTrialType.InformedTrials, B_SelectedTargetEqualsRandomizedTargetTrialIdx); % here the randomized position equals lower payoff
 
+%TODO make sure that the higher rewarded trials are truely from trials
+%using a differential RewardFunction.
 
 
 
