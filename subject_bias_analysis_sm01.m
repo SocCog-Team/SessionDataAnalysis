@@ -2,9 +2,11 @@ clear variables;
 N_PLAYERS = 2;
 FontSize = 18;
 LineWidth = 1.2;
+ProcessNewestFirst = 1;
+RunSingleSessionAnalysis = 1;
 
 %experimentFolder = '201705ReachBiasData\\SCP-CTRL-01\\SESSIONLOGS\\';
-experimentFolder = fullfile('201705ReachBiasData', 'SCP-CTRL-01', 'SESSIONLOGS');
+%experimentFolder = fullfile('201705ReachBiasData', 'SCP-CTRL-01', 'SESSIONLOGS');
 SCPDirs = GetDirectoriesByHostName();
 experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
 
@@ -16,7 +18,7 @@ experimentFile = find_all_files(experimentFolder, '*SCP_01.log');
 % allow to ignore some sessions
 %TODO fix up the parser to deal with older well-formed report files, switch
 %to selective exclusion of individual days instead of whole months...
-ExcludeWildCardList = {'_TESTVERSIONS', '20170106', '201701', '201702', '201703', '201704', 'A_SM-InactiveVirusScanner'};
+ExcludeWildCardList = {'_TESTVERSIONS', '20170106', '201701', '201702', '201703', '201704', 'A_SM-InactiveVirusScanner', 'A_Test'};
 IncludedFilesIdx = [];
 for iFile = 1 : length(experimentFile)
 	TmpIdx = [];
@@ -30,6 +32,18 @@ end
 experimentFile = experimentFile(IncludedFilesIdx);
 
 nFiles = length(experimentFile);
+
+% the newest sessions might of most interest
+if (ProcessNewestFirst)
+	experimentFile = experimentFile(end:-1:1);
+end
+
+if (RunSingleSessionAnalysis)
+	for iSession = 1 : length(experimentFile)
+		CurentSessionLogFQN = experimentFile{iSession};
+		[] = AnalyseIndividualSCPSession(CurentSessionLogFQN);
+	end
+end
 
 w = 8;
 endSize = 45;
