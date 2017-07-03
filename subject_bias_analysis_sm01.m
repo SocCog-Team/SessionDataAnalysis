@@ -41,7 +41,7 @@ end
 if (RunSingleSessionAnalysis)
 	for iSession = 1 : length(experimentFile)
 		CurentSessionLogFQN = experimentFile{iSession};
-		[] = AnalyseIndividualSCPSession(CurentSessionLogFQN);
+		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN);
 	end
 end
 
