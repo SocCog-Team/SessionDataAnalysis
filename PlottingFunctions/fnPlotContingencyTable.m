@@ -23,7 +23,8 @@ end
 
 % if the last column is just chance, exclude it from the plots?
 show_chance = 0;
-show_xlabels = 0;
+show_xlabels = 1;
+ReplaceGroupNamesByGroupNumbers = 0;
 %stacked_bars = 0;
 bar_type = 'norm'; % norm, stacked, grouped
 
@@ -141,6 +142,9 @@ for i_group = 1 : length(group_names)
 	cur_group_names{i_group} = [num2str(i_group, '%02d'), '_', group_names{i_group}];
 end
 
+if ~(ReplaceGroupNamesByGroupNumbers)
+    cur_x_group_names = cur_group_names;
+end
 
 %group_names_and_n = cur_x_group_names;
 % for i_group = 1 : size(group_totals, 1)
@@ -151,12 +155,19 @@ end
 %TODO put the staggerer into its own function, taking in an already
 %multilined label set
 % only go multiline, if required...
-if (length(group_names) > 10)
+MaxXLabelChars = 0;
+for iGroup = 1 : length(cur_group_names)
+    MaxXLabelChars = max([MaxXLabelChars, length(cur_group_names{iGroup})]);
+end
+
+if (length(group_names) > 10) || (MaxXLabelChars >= 20)
 	lines_per_label = 2;
 	lines_per_label = 1;	% for sfn13
 	n_staggered_label_groups = 2;
 	%n_staggered_label_groups = ceil(length(group_names) / 6);	% to keep things readable
-	for i_group = 1 : size(table, 1)
+	%for i_group = 1 : size(table, 1)
+    % make this work for columns and rows...
+    for i_group = 1 : length(group_totals)
 		cur_group_mod = mod(i_group, n_staggered_label_groups);
 		if ~cur_group_mod
 			cur_group_mod = n_staggered_label_groups;	% we want to cycle through n_staggered_label_groups
@@ -253,15 +264,15 @@ if (show_xlabels)
 		otherwise
 			multiline_axisticks_fontsize = 6;
 	end
-	xVerticalOffset = abs(y_limits(1)) + diff(y_limits)/100 * 1.2;	% sm needs to be smarter
-	if size(group_names_and_n, 1) > 1
+	xVerticalOffset = abs(y_limits(1)) + diff(y_limits)/100 * 3;	% sm needs to be smarter
+	if (size(group_names_and_n, 1)) > 1 && (ReplaceGroupNamesByGroupNumbers)
 		center_col = floor(median(1:1:size(group_names_and_n, 2)));
 		group_names_and_n{end + 1, center_col} = 'Group Numbers';
 	end
 	% for the paper keep font sizes the same
 	multiline_axisticks_fontsize = 12;
 	
-	multiline_axisticks2( gca(), 'X', group_names_and_n, multiline_axisticks_fontsize, xVerticalOffset, -0.0);	% 0.1, 0.6
+	fnMultiLineAxisTicks2( gca(), 'X', group_names_and_n, multiline_axisticks_fontsize, xVerticalOffset, -0.0);	% 0.1, 0.6
 end
 %multiline_axisticks( gca(), 'X', group_names_and_n, multiline_axisticks_fontsize, 0.1, 0.6);
 
@@ -369,6 +380,29 @@ if ~isempty(Psymbol_by_group)
 	%title(title_string, 'Interpreter', 'None', 'FontSize', 18, 'FontWeight', 'bold');
 end
 
+% show the contingency table data for the current percentage column
+if (strcmp(plot_type, 'DPZContTable'))
+    xs_lists = bar_xpos_list;
+    y_lim = get(gca(), 'YLim');
+	y_range = diff(y_lim);
+    ys_list = ones(size(xs_lists)) * 0.05 * y_range;
+    symbol_font_size = 12;
+    switch group_by_string
+        case 'row'
+            for iBar = 1 : length(xs_lists)
+                text(xs_lists(iBar), ys_list(iBar), {num2str(table(iBar, 2)), num2str(table(iBar, 1))}, ...
+                    'HorizontalAlignment','center','VerticalAlignment','middle', ...
+                    'Interpreter', 'None', 'FontSize', symbol_font_size, 'FontWeight', 'bold', 'Color', symbol_color);
+            end
+        case 'column'
+            for iBar = 1 : length(xs_lists)
+                text(xs_lists(iBar), ys_list(iBar), {num2str(table(2, iBar)), num2str(table(1, iBar))}, ...
+                    'HorizontalAlignment','center','VerticalAlignment','middle', ...
+                    'Interpreter', 'None', 'FontSize', symbol_font_size, 'FontWeight', 'bold', 'Color', symbol_color);
+            end           
+    end
+end
+
 set(gca(), 'YTick', [0 50 100]);
 set(gca(),'FontSize', 16);
 
@@ -383,7 +417,10 @@ end
 %set(gca, 'XLim', cur_xlim);		% and now we are back at equal segments (needed for images)
 hold off;
 
-set(gca(), 'XTick', []);
+% the following will remove the x labels...
+if ~(show_xlabels)
+    set(gca(), 'XTick', []);
+end
 
 % potentially use images as labels...
 if ~isempty(img_fqn_by_group_list)
