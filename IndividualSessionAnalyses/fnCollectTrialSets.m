@@ -7,7 +7,14 @@ TrialSets = [];
 TrialSets.All = (1:1:size(LogStruct.data, 1))';
 
 if (length(TrialSets.All) == 0) || (LogStruct.first_empty_row_idx == 1)
-	disp(['Logfile ', LogStruct.LoggingInfo.SessionFQN, ' does not contain any (valid trial) returning...']);
+    CurrentSessionFQN = LogStruct.info.logfile_FQN;  
+    if isfield(LogStruct, 'LoggingInfo')
+       if isfield(LogStruct.LoggingInfo, 'SessionFQN')
+           CurrentSessionFQN = LogStruct.LoggingInfo.SessionFQN;
+       end
+    end
+    
+	disp(['Logfile ', CurrentSessionFQN, ' does not contain any (valid trial) returning...']);
 	TrialSets = [];
 	return
 end
@@ -22,6 +29,13 @@ end
 % 	TrialSets.ByTrialType.(['B_', CurrentTrialTypeName]) = B_TrialsOfCurentTypeIdx;
 % 	TrialSets.ByTrialType.(CurrentTrialTypeName) = union(A_TrialsOfCurentTypeIdx, B_TrialsOfCurentTypeIdx);
 % end
+
+
+% activity (was a side active during a given trial)
+TrialSets.ByActivity.SideA = find(LogStruct.data(:, LogStruct.cn.A_IsActive));
+TrialSets.ByActivity.SideB = find(LogStruct.data(:, LogStruct.cn.B_IsActive));
+TrialSets.ByActivity.DualSubjectTrials = intersect(TrialSets.ByActivity.SideA, TrialSets.ByActivity.SideB);
+TrialSets.ByActivity.SingleSubjectTrials = setdiff(TrialSets.All, TrialSets.ByActivity.DualSubjectTrials);
 
 
 TrialTypesList = fnUnsortedUnique([LogStruct.unique_lists.A_TrialTypeENUM; LogStruct.unique_lists.B_TrialTypeENUM]);
@@ -43,6 +57,7 @@ for iTrialType = 1 : length(TrialTypesList)
 	TrialSets.ByTrialType.(CurrentTrialTypeName) = union(A_TrialsOfCurrentTypeIdx, B_TrialsOfCurrentTypeIdx);
 end
 
+% older log files do not contain the informed choice fields
 if ~isfield(TrialSets.ByTrialType, 'InformedDirectedReach')
 	TrialSets.ByTrialType.InformedDirectedReach = [];
 end	
@@ -96,8 +111,8 @@ for iEffector = 1 : length(ReachEffectorsList)
 	else
 		B_TrialsOfCurrentEffectorIdx = [];
 	end
-	TrialSets.ByEffector.SideA.(CurrentEffectorName) = A_TrialsOfCurrentEffectorIdx;
-	TrialSets.ByEffector.SideB.(CurrentEffectorName) = B_TrialsOfCurrentEffectorIdx;
+	TrialSets.ByEffector.SideA.(CurrentEffectorName) = intersect(A_TrialsOfCurrentEffectorIdx, TrialSets.ByActivity.SideA);
+	TrialSets.ByEffector.SideB.(CurrentEffectorName) = intersect(B_TrialsOfCurrentEffectorIdx, TrialSets.ByActivity.SideB);
 	TrialSets.ByEffector.(CurrentEffectorName) = union(A_TrialsOfCurrentEffectorIdx, B_TrialsOfCurrentEffectorIdx);
 end
 
@@ -112,7 +127,7 @@ for iRewardFunction = 1 : length(RewardFunctionsList)
 		A_TrialsOfCurrentRewardFunctionIdx = [];
 	end
 	if ~isempty(CurrentRewardFunctionIdx)
-		B_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.A_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
+		B_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.B_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
 	else
 		B_TrialsOfCurrentRewardFunctionIdx = [];
 	end
@@ -120,6 +135,27 @@ for iRewardFunction = 1 : length(RewardFunctionsList)
 	TrialSets.ByRewardFunction.SideB.(CurrentRewardFunctionName) = B_TrialsOfCurrentRewardFunctionIdx;
 	TrialSets.ByRewardFunction.(CurrentRewardFunctionName) = union(A_TrialsOfCurrentRewardFunctionIdx, B_TrialsOfCurrentRewardFunctionIdx);
 end
+
+
+if isfield(LogStruct, 'SessionByTrial')
+    if isfield(LogStruct.SessionByTrial.unique_lists, 'TouchTargetPositioningMethod')
+        ByTouchTargetPositioningMethodList = LogStruct.SessionByTrial.unique_lists.TouchTargetPositioningMethod;
+        for iTouchTargetPositioningMethod = 1 : length(ByTouchTargetPositioningMethodList)
+            CurrentTouchTargetPositioningMethod = ByTouchTargetPositioningMethodList{iTouchTargetPositioningMethod};
+            CurrentTouchTargetPositioningMethodIdx = iTouchTargetPositioningMethod;
+            
+            % currently these are indentical for both sides, if they ever
+            % will be different by side, the information needs to be
+            % relocated into the per subject part of the report.
+            TrialsOfCurrentTouchTargetPositioningMethodIdx = find(LogStruct.SessionByTrial.data(:, LogStruct.SessionByTrial.cn.TouchTargetPositioningMethod_idx) == CurrentTouchTargetPositioningMethodIdx);
+            TrialSets.ByTouchTargetPositioningMethod.SideA.(CurrentTouchTargetPositioningMethod) = TrialsOfCurrentTouchTargetPositioningMethodIdx;
+            TrialSets.ByTouchTargetPositioningMethod.SideB.(CurrentTouchTargetPositioningMethod) = TrialsOfCurrentTouchTargetPositioningMethodIdx;
+            TrialSets.ByTouchTargetPositioningMethod.(CurrentTouchTargetPositioningMethod) = TrialsOfCurrentTouchTargetPositioningMethodIdx;
+            
+        end
+    end
+end
+
 
 
 % get the active subject(s)
@@ -151,11 +187,27 @@ for iName = 1: length(NamesList)
 	TrialSets.ByName.(CurrentName) = union(A_TrialsOfCurrentNameIdx, B_TrialsOfCurrentNameIdx);
 end
 
-% activity (was a side active during a given trial)
-TrialSets.ByActivity.SideA = find(LogStruct.data(:, LogStruct.cn.A_IsActive));
-TrialSets.ByActivity.SideB = find(LogStruct.data(:, LogStruct.cn.B_IsActive));
-TrialSets.ByActivity.DualSubjectTrials = intersect(TrialSets.ByActivity.SideA, TrialSets.ByActivity.SideB);
-TrialSets.ByActivity.SingleSubjectTrials = setdiff(TrialSets.All, TrialSets.ByActivity.DualSubjectTrials);
+% Magnus always uses his right hand independent of the effector code
+% so make sure Magnus effector trials with EvaluateProximitySensors = 0 are
+% accounted as left.
+if isfield(TrialSets.ByName, 'Magnus')
+    if isfield(TrialSets.ByName.SideA, 'Magnus')
+        MagnusTrialSideAIdx = TrialSets.ByName.SideA.Magnus; % these are all left trials
+        TrialSets.ByEffector.SideA.left = union(TrialSets.ByEffector.SideA.left, MagnusTrialSideAIdx);
+        TrialSets.ByEffector.SideA.right = setdiff(TrialSets.ByEffector.SideA.right, MagnusTrialSideAIdx);
+    end
+    if isfield(TrialSets.ByName.SideB, 'Magnus')
+        MagnusTrialSideBIdx = TrialSets.ByName.SideB.Magnus; % these are all left trials
+        TrialSets.ByEffector.SideB.left = union(TrialSets.ByEffector.SideB.left, MagnusTrialSideBIdx);
+        TrialSets.ByEffector.SideB.right = setdiff(TrialSets.ByEffector.SideB.right, MagnusTrialSideBIdx);
+    end
+    TrialSets.ByEffector.left = union(TrialSets.ByEffector.SideA.left, TrialSets.ByEffector.SideB.left);
+    TrialSets.ByEffector.right = union(TrialSets.ByEffector.SideA.right, TrialSets.ByEffector.SideB.right);
+    disp([LogStruct.LoggingInfo.SessionFQN, ': fixed up effector hand for Magnus']);
+end
+
+
+
 
 % generate indices for: targetposition, choice position, rewards-payout (target preference)
 % get the choice preference choice is always by side
