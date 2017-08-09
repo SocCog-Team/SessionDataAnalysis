@@ -13,7 +13,7 @@ experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA',
 SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES', SCPDirs.CurrentHostName);
 Options.OutFormat = '.pdf';
 
-experimentFile = find_all_files(experimentFolder, '*SCP_01.log');
+experimentFile = find_all_files(experimentFolder, '*SCP_01.log', 0);
 
 % allow to ignore some sessions
 %TODO fix up the parser to deal with older well-formed report files, switch
@@ -38,12 +38,18 @@ if (ProcessNewestFirst)
 	experimentFile = experimentFile(end:-1:1);
 end
 
+TmpOutBaseDir = [];
+TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyymmddTHHMMSS'));
+
 if (RunSingleSessionAnalysis)
 	for iSession = 1 : length(experimentFile)
 		CurentSessionLogFQN = experimentFile{iSession};
-		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN);
+		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir);
 	end
 end
+
+return
+
 
 w = 8;
 endSize = 45;
