@@ -6,6 +6,7 @@ function [ TrialSets ] = fnCollectTrialSets( LogStruct )
 TrialSets = [];
 TrialSets.All = (1:1:size(LogStruct.data, 1))';
 
+
 if (length(TrialSets.All) == 0) || (LogStruct.first_empty_row_idx == 1)
     CurrentSessionFQN = LogStruct.info.logfile_FQN;  
     if isfield(LogStruct, 'LoggingInfo')
@@ -69,8 +70,22 @@ TrialSets.ByTrialType.InformedTrials = union(TrialSets.ByTrialType.InformedChoic
 
 
 % create the list of choice trials
-TrialSets.ByChoices.NumChoices01 = union(TrialSets.ByTrialType.DirectFreeGazeFreeChoice, TrialSets.ByTrialType.InformedDirectedReach);
+TrialSets.ByChoices.NumChoices01 = union(TrialSets.ByTrialType.DirectFreeGazeReaches, TrialSets.ByTrialType.InformedDirectedReach);
 TrialSets.ByChoices.NumChoices02 = union(TrialSets.ByTrialType.DirectFreeGazeFreeChoice, TrialSets.ByTrialType.InformedChoice);
+
+
+% in the simple instructed reach and choice paradigms there is no true
+% false response, but trials in which the targets were actually visible
+% might be counted as misses
+% was the initial fixation target visible:
+TrialSets.ByTargetVisibility.SideA.InitialFixationTargetVisible = find(LogStruct.data(:, LogStruct.cn.A_InitialFixationOnsetTime_ms) > 0);
+TrialSets.ByTargetVisibility.SideB.InitialFixationTargetVisible = find(LogStruct.data(:, LogStruct.cn.A_InitialFixationOnsetTime_ms) > 0);
+TrialSets.ByTargetVisibility.InitialFixationTargetVisible = union(TrialSets.ByTargetVisibility.SideA.InitialFixationTargetVisible, TrialSets.ByTargetVisibility.SideB.InitialFixationTargetVisible);
+% was the final touch target visible:
+TrialSets.ByTargetVisibility.SideA.TouchTargetVisible = find(LogStruct.data(:, LogStruct.cn.A_TargetOnsetTime_ms) > 0);
+TrialSets.ByTargetVisibility.SideB.TouchTargetVisible = find(LogStruct.data(:, LogStruct.cn.A_TargetOnsetTime_ms) > 0);
+TrialSets.ByTargetVisibility.TouchTargetVisible = union(TrialSets.ByTargetVisibility.SideA.TouchTargetVisible, TrialSets.ByTargetVisibility.SideB.TouchTargetVisible);
+
 
 
 OutcomesList = fnUnsortedUnique([LogStruct.unique_lists.A_OutcomeENUM; LogStruct.unique_lists.B_OutcomeENUM]);
@@ -169,9 +184,28 @@ for iName = 1: length(NamesList)
 		continue
 	end
 	CurrentName = NamesList{iName};
-	A_CurrentNameIdx = find(ismember(LogStruct.unique_lists.A_Name, CurrentName));
-	B_CurrentNameIdx = find(ismember(LogStruct.unique_lists.B_Name, CurrentName));
-	
+    StoredName = CurrentName;
+    
+    % since we want to use the name as a matlab fieldname we need to do
+    % some cleanup
+    CurrentName  = sanitize_field_name_for_matlab(CurrentName, 'ID');
+    
+    if (~strcmp(CurrentName, StoredName))
+        % we changed the name now fix up the list...
+        UniqueA_NameIdx = find(strcmp(NamesList{iName}, LogStruct.unique_lists.A_Name));
+        if ~isempty(UniqueA_NameIdx)
+            LogStruct.unique_lists.A_Name{UniqueA_NameIdx} = CurrentName;
+        end
+        UniqueB_NameIdx = find(strcmp(NamesList{iName}, LogStruct.unique_lists.B_Name));
+        if ~isempty(UniqueB_NameIdx)
+            LogStruct.unique_lists.B_Name{UniqueB_NameIdx} = CurrentName;
+        end
+    end
+    
+    
+    A_CurrentNameIdx = find(ismember(LogStruct.unique_lists.A_Name, CurrentName));
+    B_CurrentNameIdx = find(ismember(LogStruct.unique_lists.B_Name, CurrentName));
+    
 	if ~isempty(A_CurrentNameIdx)
 		A_TrialsOfCurrentNameIdx = find(LogStruct.data(:, LogStruct.cn.A_Name_idx) == A_CurrentNameIdx);
 	else
@@ -181,7 +215,10 @@ for iName = 1: length(NamesList)
 		B_TrialsOfCurrentNameIdx = find(LogStruct.data(:, LogStruct.cn.B_Name_idx) == B_CurrentNameIdx);
 	else
 		B_TrialsOfCurrentNameIdx = [];
-	end
+    end
+    % all numeric subject codes will not work as structure fieldnames, so
+    % add a prefix so the name 
+    
 	TrialSets.ByName.SideA.(CurrentName) = A_TrialsOfCurrentNameIdx;
 	TrialSets.ByName.SideB.(CurrentName) = B_TrialsOfCurrentNameIdx;
 	TrialSets.ByName.(CurrentName) = union(A_TrialsOfCurrentNameIdx, B_TrialsOfCurrentNameIdx);
@@ -278,3 +315,45 @@ TrialSets.ByChoice.SideB.TargetValueLow = intersect(TrialSets.ByTrialType.Inform
 return
 end
 
+
+
+function [ sanitized_field_name ]  = sanitize_field_name_for_matlab( raw_field_name, PrefixForNumbers )
+% some characters are not really helpful inside matlab variable names, so
+% replace them with something that should not cause problems
+taboo_char_list =		{' ', '-', '.', '='};
+replacement_char_list = {'_', '_', '_dot_', '_eq_'};
+
+sanitized_field_name = raw_field_name;
+
+for i_taboo_char = 1: length(taboo_char_list)
+	current_taboo_string = taboo_char_list{i_taboo_char};
+	current_replacement_string = replacement_char_list{i_taboo_char};
+	current_taboo_processed = 0;
+	remain = sanitized_field_name;
+	tmp_string = '';
+	while (~current_taboo_processed)
+		[token, remain] = strtok(remain, current_taboo_string);
+		tmp_string = [tmp_string, token, current_replacement_string];
+		if isempty(remain)
+			current_taboo_processed = 1;
+			% we add one superfluous replaceent string at the end, so
+			% remove that
+			tmp_string = tmp_string(1:end-length(current_replacement_string));
+		end
+	end
+	sanitized_field_name = tmp_string;
+end
+
+if (strcmp(raw_field_name, ' '))
+	sanitized_field_name = 'EmptyString';
+	disp('Found empty string as field name, replacing with "None"...');
+end
+
+% numeric names are not allowed, so 
+if ~isnan(str2double(sanitized_field_name))
+    sanitized_field_name = [PrefixForNumbers, sanitized_field_name];
+end
+
+
+return
+end
