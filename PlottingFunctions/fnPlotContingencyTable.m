@@ -131,8 +131,8 @@ switch group_by_string
 		error([group_by_string, ' is not handeled yet']);
 end
 
-x_limits = get(gca(), 'XLim');
-y_limits = get(gca(), 'YLim');
+% x_limits = get(gca(), 'XLim');
+% y_limits = get(gca(), 'YLim');
 
 % long names and/or many groups make the xlabel unreadable
 cur_group_names = group_names;
@@ -195,6 +195,10 @@ if strcmp('subplot', plot_type)
 else
 	fh_cur_contingency_table = figure;
 end
+
+x_limits = get(gca(), 'XLim');
+y_limits = get(gca(), 'YLim');
+
 hold on
 
 switch bar_type
@@ -254,6 +258,7 @@ end
 TickLabel_fontsize = 12;
 
 if (show_xlabels)
+    set(gca,'TickLabelInterpreter','none');
 	set(gca(), 'XTickLabel', cur_x_group_names, 'FontSize', TickLabel_fontsize, 'FontWeight', 'normal');
 	%ah_cur = rotateXLabels( gca, 45);	% would be nice but is fickle under R2011b macosx
 	switch size(group_names_and_n, 2)
@@ -264,7 +269,7 @@ if (show_xlabels)
 		otherwise
 			multiline_axisticks_fontsize = 6;
 	end
-	xVerticalOffset = abs(y_limits(1)) + diff(y_limits)/100 * 3;	% sm needs to be smarter
+	xVerticalOffset = (abs(y_limits(1)) + diff(y_limits))/100 * 3;	% sm needs to be smarter
 	if (size(group_names_and_n, 1)) > 1 && (ReplaceGroupNamesByGroupNumbers)
 		center_col = floor(median(1:1:size(group_names_and_n, 2)));
 		group_names_and_n{end + 1, center_col} = 'Group Numbers';
