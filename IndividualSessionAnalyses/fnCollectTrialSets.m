@@ -3,6 +3,10 @@ function [ TrialSets ] = fnCollectTrialSets( LogStruct )
 %   Create all interesting subsets of trials
 % first collect the basic sets then use set functions to refine to create
 % interesting combinations
+% it is possible with two actors, that both can cooperate even when one is
+% not set for EvaluateTouchPanel, so detect true joint trials by both
+% subjects touching the initial target, the main target and getting rewards
+
 TrialSets = [];
 TrialSets.All = (1:1:size(LogStruct.data, 1))';
 
@@ -33,10 +37,61 @@ end
 
 
 % activity (was a side active during a given trial)
+% dual subject activity does not necessarily mean joint trials!
 TrialSets.ByActivity.SideA = find(LogStruct.data(:, LogStruct.cn.A_IsActive));
 TrialSets.ByActivity.SideB = find(LogStruct.data(:, LogStruct.cn.B_IsActive));
-TrialSets.ByActivity.DualSubjectTrials = intersect(TrialSets.ByActivity.SideA, TrialSets.ByActivity.SideB);
+TrialSets.ByActivity.DualSubjectTrials = intersect(TrialSets.ByActivity.SideA, TrialSets.ByActivity.SideB); % these contain trials were only one subject performed the task
 TrialSets.ByActivity.SingleSubjectTrials = setdiff(TrialSets.All, TrialSets.ByActivity.DualSubjectTrials);
+
+
+% these are real joint trials when both subject work together
+% test for touching the initial target:
+TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_InitialFixationTouchTime_ms) > 0);
+TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_InitialFixationTouchTime_ms) > 0);
+TrialSets.ByJointness.DualSubjectJointTrials = intersect(TmpJointTrialsA, TmpJointTrialsB);
+
+TrialSets.ByJointness.SideA.SoloSubjectTrials = setdiff(TmpJointTrialsA, TmpJointTrialsB);
+TrialSets.ByJointness.SideB.SoloSubjectTrials = setdiff(TmpJointTrialsB, TmpJointTrialsA);
+
+% test for touching the touch target
+TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_TargetTouchTime_ms) > 0);
+TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsA);
+TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_TargetTouchTime_ms) > 0);
+TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsB);
+
+TmpSoloTrialsA = setdiff(TmpJointTrialsA, TmpJointTrialsB);
+TmpSoloTrialsB = setdiff(TmpJointTrialsB, TmpJointTrialsA);
+TrialSets.ByJointness.SideA.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideA.SoloSubjectTrials, TmpSoloTrialsA);
+TrialSets.ByJointness.SideB.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideB.SoloSubjectTrials, TmpSoloTrialsB);
+
+% test for reward
+TmpRewardAOutcomeIdx = find(strcmp('REWARD', LogStruct.unique_lists.A_OutcomeString));
+if ~isempty(TmpRewardAOutcomeIdx)
+    TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_OutcomeString_idx) == TmpRewardAOutcomeIdx);
+    TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsA);
+else
+    TmpJointTrialsA = [];
+end
+TmpRewardBOutcomeIdx = find(strcmp('REWARD', LogStruct.unique_lists.B_OutcomeString));
+if ~isempty(TmpRewardBOutcomeIdx)
+    TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_OutcomeString_idx) == TmpRewardBOutcomeIdx);
+    TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsB);
+else
+    TmpJointTrialsB = [];
+end
+
+TmpSoloTrialsA = setdiff(TmpJointTrialsA, TmpJointTrialsB);
+TmpSoloTrialsB = setdiff(TmpJointTrialsB, TmpJointTrialsA);
+TrialSets.ByJointness.SideA.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideA.SoloSubjectTrials, TmpSoloTrialsA);
+TrialSets.ByJointness.SideB.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideB.SoloSubjectTrials, TmpSoloTrialsB);
+
+% joint trials are always for both sides
+TrialSets.ByJointness.SideA.DualSubjectJointTrials = TrialSets.ByJointness.DualSubjectJointTrials;
+TrialSets.ByJointness.SideB.DualSubjectJointTrials = TrialSets.ByJointness.DualSubjectJointTrials;
+
+% what to do about the dual subject non-joint trials, with two subjects present and active, but only one working?
+TrialSets.ByJointness.DualSubjectSoloTrials = union(TrialSets.ByJointness.SideA.SoloSubjectTrials, TrialSets.ByJointness.SideB.SoloSubjectTrials);
+
 
 
 TrialTypesList = fnUnsortedUnique([LogStruct.unique_lists.A_TrialTypeENUM; LogStruct.unique_lists.B_TrialTypeENUM]);
@@ -273,12 +328,13 @@ TrialSets.ByChoice.SideB.ChoiceCenterX = find(abs(LogStruct.data(:, LogStruct.cn
 TrialSets.ByChoice.SideB.ChoiceScreenFromALeft = B_RightChoiceIdx;
 TrialSets.ByChoice.SideB.ChoiceScreenFromARight = B_LeftChoiceIdx;
 
-% create indices for up down positions as well
-TrialSets.ByChoice.SideA.ChoiceTop = find(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) < LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y));
-TrialSets.ByChoice.SideA.ChoiceBottom = find(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) > LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y));
+% create indices for up down positions as well, note top left corner is
+% 0,0, bottom right is 1920,1080
+TrialSets.ByChoice.SideA.ChoiceTop = find(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) > LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y));
+TrialSets.ByChoice.SideA.ChoiceBottom = find(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) < LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y));
 TrialSets.ByChoice.SideA.ChoiceCenterY = find(abs(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels);
-TrialSets.ByChoice.SideB.ChoiceTop = find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) < LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y));
-TrialSets.ByChoice.SideB.ChoiceBottom = find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) > LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y));
+TrialSets.ByChoice.SideB.ChoiceTop = find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) > LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y));
+TrialSets.ByChoice.SideB.ChoiceBottom = find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) < LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y));
 TrialSets.ByChoice.SideB.ChoiceCenterY = find(abs(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels);
 
 % Extract information about the selected target reward value (assume only two values for now)
