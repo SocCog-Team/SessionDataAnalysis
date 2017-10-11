@@ -38,11 +38,18 @@ end
 
 % activity (was a side active during a given trial)
 % dual subject activity does not necessarily mean joint trials!
-TrialSets.ByActivity.SideA = find(LogStruct.data(:, LogStruct.cn.A_IsActive));
-TrialSets.ByActivity.SideB = find(LogStruct.data(:, LogStruct.cn.B_IsActive));
-TrialSets.ByActivity.DualSubjectTrials = intersect(TrialSets.ByActivity.SideA, TrialSets.ByActivity.SideB); % these contain trials were only one subject performed the task
-TrialSets.ByActivity.SingleSubjectTrials = setdiff(TrialSets.All, TrialSets.ByActivity.DualSubjectTrials);
+TrialSets.ByActivity.SideA.ActiveTrials = find(LogStruct.data(:, LogStruct.cn.A_IsActive));
+TrialSets.ByActivity.SideB.ActiveTrials = find(LogStruct.data(:, LogStruct.cn.B_IsActive));
 
+% dual subject trials are always identical for both sides...
+TrialSets.ByActivity.DualSubjectTrials = intersect(TrialSets.ByActivity.SideA.ActiveTrials, TrialSets.ByActivity.SideB.ActiveTrials); % these contain trials were only one subject performed the task
+TrialSets.ByActivity.SideA.DualSubjectTrials = TrialSets.ByActivity.DualSubjectTrials;
+TrialSets.ByActivity.SideB.DualSubjectTrials = TrialSets.ByActivity.DualSubjectTrials;
+
+% SingleSubject trials are different
+TrialSets.ByActivity.SingleSubjectTrials = setdiff(TrialSets.All, TrialSets.ByActivity.DualSubjectTrials);
+TrialSets.ByActivity.SideA.SingleSubjectTrials = setdiff(TrialSets.ByActivity.SideA.ActiveTrials, TrialSets.ByActivity.SideB.ActiveTrials);
+TrialSets.ByActivity.SideB.SingleSubjectTrials = setdiff(TrialSets.ByActivity.SideB.ActiveTrials, TrialSets.ByActivity.SideA.ActiveTrials);
 
 % these are real joint trials when both subject work together
 % test for touching the initial target:
@@ -84,6 +91,10 @@ TmpSoloTrialsA = setdiff(TmpJointTrialsA, TmpJointTrialsB);
 TmpSoloTrialsB = setdiff(TmpJointTrialsB, TmpJointTrialsA);
 TrialSets.ByJointness.SideA.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideA.SoloSubjectTrials, TmpSoloTrialsA);
 TrialSets.ByJointness.SideB.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideB.SoloSubjectTrials, TmpSoloTrialsB);
+% solo trials: two subjects present, single troials only one subject
+% active/present
+TrialSets.ByJointness.SideA.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideA.SoloSubjectTrials, TrialSets.ByActivity.SideA.DualSubjectTrials);
+TrialSets.ByJointness.SideB.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideB.SoloSubjectTrials, TrialSets.ByActivity.SideB.DualSubjectTrials);
 
 % joint trials are always for both sides
 TrialSets.ByJointness.SideA.DualSubjectJointTrials = TrialSets.ByJointness.DualSubjectJointTrials;
@@ -181,8 +192,8 @@ for iEffector = 1 : length(ReachEffectorsList)
 	else
 		B_TrialsOfCurrentEffectorIdx = [];
 	end
-	TrialSets.ByEffector.SideA.(CurrentEffectorName) = intersect(A_TrialsOfCurrentEffectorIdx, TrialSets.ByActivity.SideA);
-	TrialSets.ByEffector.SideB.(CurrentEffectorName) = intersect(B_TrialsOfCurrentEffectorIdx, TrialSets.ByActivity.SideB);
+	TrialSets.ByEffector.SideA.(CurrentEffectorName) = intersect(A_TrialsOfCurrentEffectorIdx, TrialSets.ByActivity.SideA.ActiveTrials);
+	TrialSets.ByEffector.SideB.(CurrentEffectorName) = intersect(B_TrialsOfCurrentEffectorIdx, TrialSets.ByActivity.SideB.ActiveTrials);
 	TrialSets.ByEffector.(CurrentEffectorName) = union(A_TrialsOfCurrentEffectorIdx, B_TrialsOfCurrentEffectorIdx);
 end
 
