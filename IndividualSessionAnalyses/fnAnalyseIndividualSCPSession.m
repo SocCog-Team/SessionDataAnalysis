@@ -11,8 +11,15 @@ function [ output ] = fnAnalyseIndividualSCPSession( SessionLogFQN, OutputBasePa
 %   include BvS analysis
 %       show moving average of performance per subject (average over 8 to 10 trials)
 %       choice left or top, choice high or low, choice common
-
-
+%   AR plot: add individual rewards
+%   SoC: also create plot for Share of left/ Share of bottom (subjective and objective)
+%   Magnifications of switch events to show which actor initiated a
+%       reversel (smoothed/non-smoothed)
+%
+% Quick Hack: return the percent choice for a given trial type
+% TODO note that from 20170701 until 20170926 the rewarder was broken and
+% did not dispende according tp the BoS schedule, but always just two
+% pulses for all combinations
 
 output = [];
 
@@ -22,11 +29,11 @@ if ~exist('OutputBasePath', 'var')
 end
 
 ProcessReactionTimes = 1; % needs work...
-ForceParsingOfExperimentLog = 1; % rewrite the logfiles anyway
+ForceParsingOfExperimentLog = 0; % rewrite the logfiles anyway
 CLoseFiguresOnReturn = 1;
 CleanOutputDir = 0;
 TitleSeparator = '_';
-
+ProcessJointTrialsOnly = 0;
 
 [PathStr, FileName, ~] = fileparts(SessionLogFQN);
 if isempty(OutputBasePath)
@@ -46,12 +53,12 @@ MatFilename = fullfile(PathStr, [FileName CurrentEventIDEReportParserVersionStri
 % load if a mat file of the current parsed version exists, otherwise
 % reparse
 if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
-    tmplogData = load(MatFilename);
-    logData = tmplogData.report_struct;
-    clear tmplogData;
+    tmpDataStruct = load(MatFilename);
+    DataStruct = tmpDataStruct.report_struct;
+    clear tmpDataStruct;
 else
-    logData = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName '.log']));
-    %save(matFilename, 'logData'); % fnParseEventIDEReportSCPv06 saves by default
+    DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName '.log']));
+    %save(matFilename, 'DataStruct'); % fnParseEventIDEReportSCPv06 saves by default
 end
 
 disp(['Processing: ', SessionLogFQN]);
@@ -60,11 +67,16 @@ disp(['Processing: ', SessionLogFQN]);
 
 % generate indices for trialtype, effector, targetposition, choice
 % position, rewards-payout (target preference) dualNHP trials
-TrialSets = fnCollectTrialSets(logData);
+TrialSets = fnCollectTrialSets(DataStruct);
 if isempty(TrialSets)
     disp(['Found zero trial records in ', SessionLogFQN, ' bailing out...']);
     return
 end
+
+% save some output
+output.sessionID = unique(DataStruct.data(:, DataStruct.cn.SessionID));
+output.FQN = SessionLogFQN;
+output.TrialSets = TrialSets;
 
 
 TitleSetDescriptorString = [];
@@ -85,6 +97,27 @@ ExcludeTrialIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumC
 
 
 
+% joint trial data!
+if ~isempty(TrialSets.ByJointness.DualSubjectJointTrials) 
+    % here we only have the actually cooperation trials (for BvS)
+    % do some timecourse analysis and imaging
+    [tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets);
+    output.joint = tmp_output;
+    if (ProcessJointTrialsOnly)
+        %disp([]);
+        return
+    end
+elseif ~isempty(TrialSets.ByActivity.SingleSubjectTrials)
+    [tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets);
+    output.single = tmp_output;
+    if (ProcessJointTrialsOnly)
+        disp(['Found zero joint trial records in ', SessionLogFQN, ' bailing out...']);        
+        return
+    end
+end
+
+
+
 % for starters only analyse single subject sessions?
 if ~isempty(TrialSets.ByActivity.DualSubjectTrials)
     %disp('Currently only analyze Single Subject Sessions');
@@ -96,8 +129,8 @@ if ~isempty(TrialSets.ByActivity.DualSubjectTrials)
     
     % TODO make this work for arbitrary grouping combinations during each
     % session to allow side changes.
-    SubjectA = logData.unique_lists.A_Name(unique(logData.data(:, logData.cn.A_Name_idx)));
-    SubjectB = logData.unique_lists.B_Name(unique(logData.data(:, logData.cn.B_Name_idx)));
+    SubjectA = DataStruct.unique_lists.A_Name(unique(DataStruct.data(:, DataStruct.cn.A_Name_idx)));
+    SubjectB = DataStruct.unique_lists.B_Name(unique(DataStruct.data(:, DataStruct.cn.B_Name_idx)));
     %
     SubjectsSideString = ['A.', SubjectA{1}, '.B.', SubjectB{1}];
         
@@ -120,6 +153,9 @@ SubjectNames = SubjectNames(3:end);
 % add sessionID loop?
 
 
+
+
+
 for iSubject = 1 : NumSubjects
     CurrentSubject = SubjectNames{iSubject};
     
@@ -137,6 +173,9 @@ for iSubject = 1 : NumSubjects
         disp(['No trials found for subject name ', CurrentSubject]);
         continue;
     end
+
+    
+    
     
     
     % loop over positioning methods
@@ -152,41 +191,24 @@ for iSubject = 1 : NumSubjects
             continue;
         end
         TitleSetDescriptorStringPositioningMethod = [TitleSetDescriptorStringName, TitleSeparator, CurrentPositioningMethod];
- 
         
-        % loop over effector
-        NumEffectors = length(fieldnames(TrialSets.ByEffector)) - 2;
-        EffectorNames = fieldnames(TrialSets.ByEffector);
-        EffectorNames = EffectorNames(3:end);
-        for iEffector = 1 : NumEffectors
-            CurrentEffector = EffectorNames{iEffector};
-            IncludeTrialsIdx = intersect(IncludeNameTrialsIdx, TrialSets.ByEffector.(CurrentEffector));
-            ExcludeTrialsIdx = intersect(ExcludeNameTrialsIdx, TrialSets.ByEffector.(CurrentEffector));
-            
-            if isempty(IncludeTrialsIdx)
-                disp(['No trials found for effector name ', CurrentEffector]);
-                continue;
+        
+        
+        % this will fail with
+        % TODO loop over Sides (to allow sme subject on both sides)
+        % TODO turn into proper loop
+        if ~isempty(TrialSets.ByActivity.SideA) && ~isempty(TrialSets.ByActivity.SideB)
+            disp(['Encountered a nominal single subject session with active trials from both sides, fixing for now']);
+            if ~isempty(TrialSets.ByName.SideA.(CurrentSubject))
+                ActiveSideName = 'SideA';
+                SideShortHand = 'A';
             end
-            CurrentTitleSetDescriptorString = [TitleSetDescriptorStringPositioningMethod, TitleSeparator, CurrentEffector];
-            
-            if strcmp(CurrentSubject, 'Curius') && strcmp(CurrentEffector, 'right')
-                tmp = 0;
+            if ~isempty(TrialSets.ByName.SideB.(CurrentSubject))
+                ActiveSideName = 'SideB';
+                SideShortHand = 'B';
             end
-            
-            % this will fail with
-            % TODO loop over Sides (to allow sme subject on both sides)
-            if ~isempty(TrialSets.ByActivity.SideA) && ~isempty(TrialSets.ByActivity.SideB)
-                disp(['Encountered a nominal single subject session with active trials from both sides, fixing for now']);
-                if ~isempty(TrialSets.ByName.SideA.(CurrentSubject))
-                   ActiveSideName = 'SideA';
-                    SideShortHand = 'A';
-                end
-                if ~isempty(TrialSets.ByName.SideB.(CurrentSubject))
-                   ActiveSideName = 'SideB';
-                    SideShortHand = 'B';
-                end
-                %return
-            else
+            %return
+        else
             if ~isempty(TrialSets.ByActivity.SideA)
                 ActiveSideName = 'SideA';
                 SideShortHand = 'A';
@@ -195,8 +217,31 @@ for iSubject = 1 : NumSubjects
                 ActiveSideName = 'SideB';
                 SideShortHand = 'B';
             end
+        end
+        
+        
+        
+        
+        % loop over effector
+        NumEffectors = length(fieldnames(TrialSets.ByEffector)) - 2;
+        EffectorNames = fieldnames(TrialSets.ByEffector);
+        EffectorNames = EffectorNames(3:end);
+        for iEffector = 1 : NumEffectors
+            CurrentEffector = EffectorNames{iEffector};
+            IncludeTrialsIdx = intersect(IncludeNameTrialsIdx, TrialSets.ByEffector.(ActiveSideName).(CurrentEffector));
+            ExcludeTrialsIdx = intersect(ExcludeNameTrialsIdx, TrialSets.ByEffector.(ActiveSideName).(CurrentEffector));
+            
+            if isempty(IncludeTrialsIdx)
+                disp(['No trials found for effector name ', CurrentEffector]);
+                continue;
+            end
+            CurrentTitleSetDescriptorString = [TitleSetDescriptorStringPositioningMethod, TitleSeparator, ActiveSideName, TitleSeparator, CurrentEffector];
+            
+            if strcmp(CurrentSubject, 'Curius') && strcmp(CurrentEffector, 'right')
+                tmp = 0;
             end
             
+
             % individual subject analysis
             % loop over all subjects and over all effector (sides) and
             % TouchTargetPositioningMethod (from session header)
@@ -366,8 +411,8 @@ for iSubject = 1 : NumSubjects
                     % group, for this also create the two 
                     fh_RT = figure('Name', [CurrentTitleSetDescriptorString, ': Reaction and Movement Times']);
                     % calculate the times for all trials...
-                    MovementTime = logData.data(:, logData.cn.([SideShortHand, '_TargetTouchTime_ms'])) - logData.data(:, logData.cn.([SideShortHand, '_TargetOnsetTime_ms']));
-                    ReactionTime = logData.data(:, logData.cn.([SideShortHand, '_InitialFixationReleaseTime_ms'])) - logData.data(:, logData.cn.([SideShortHand, '_TargetOnsetTime_ms']));
+                    MovementTime = DataStruct.data(:, DataStruct.cn.([SideShortHand, '_TargetTouchTime_ms'])) - DataStruct.data(:, DataStruct.cn.([SideShortHand, '_TargetOnsetTime_ms']));
+                    ReactionTime = DataStruct.data(:, DataStruct.cn.([SideShortHand, '_InitialFixationReleaseTime_ms'])) - DataStruct.data(:, DataStruct.cn.([SideShortHand, '_TargetOnsetTime_ms']));
                     
                     % since our groups are not guaranteed to contain
                     % different trials we need to create artificially
@@ -413,10 +458,12 @@ for iSubject = 1 : NumSubjects
                     outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.ReactionTimes.pdf']);
                     write_out_figure(fh_RT, outfile_fqn);
                 end
+                % FIXME export the per session data to a population collector,
+                % this is a Q'n'D proof of concept
+                output.(CurrentSubject).(CurrentPositioningMethod).(ActiveSideName).(CurrentEffector).ContingencyTable = ContingencyTable;
             else
                 disp([FileName, ': no trials found in the requested subsets, skipping...']);
-            end
-            
+            end            
         end % effectors
     end % PositioningMethods
 end % subjects
@@ -428,3 +475,44 @@ end
 return
 end
 
+
+function [ sanitized_field_name ]  = sanitize_field_name_for_matlab( raw_field_name, PrefixForNumbers )
+% some characters are not really helpful inside matlab variable names, so
+% replace them with something that should not cause problems
+taboo_char_list =		{' ', '-', '.', '='};
+replacement_char_list = {'_', '_', '_dot_', '_eq_'};
+
+sanitized_field_name = raw_field_name;
+
+for i_taboo_char = 1: length(taboo_char_list)
+	current_taboo_string = taboo_char_list{i_taboo_char};
+	current_replacement_string = replacement_char_list{i_taboo_char};
+	current_taboo_processed = 0;
+	remain = sanitized_field_name;
+	tmp_string = '';
+	while (~current_taboo_processed)
+		[token, remain] = strtok(remain, current_taboo_string);
+		tmp_string = [tmp_string, token, current_replacement_string];
+		if isempty(remain)
+			current_taboo_processed = 1;
+			% we add one superfluous replacement string at the end, so
+			% remove that
+			tmp_string = tmp_string(1:end-length(current_replacement_string));
+		end
+	end
+	sanitized_field_name = tmp_string;
+end
+
+if (strcmp(raw_field_name, ' '))
+	sanitized_field_name = 'EmptyString';
+	disp('Found empty string as field name, replacing with "None"...');
+end
+
+% numeric names are not allowed, so 
+if ~isnan(str2double(sanitized_field_name))
+    sanitized_field_name = [PrefixForNumbers, sanitized_field_name];
+end
+
+
+return
+end
