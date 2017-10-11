@@ -2,23 +2,87 @@ clear variables;
 N_PLAYERS = 2;
 FontSize = 18;
 LineWidth = 1.2;
+
+
 ProcessNewestFirst = 1;
 RunSingleSessionAnalysis = 1;
 
+% human subjects
+CurrentAnalysisSetName = 'SCP00';
+% NHP subjects
+CurrentAnalysisSetName = 'SCP01';
+% %CurrentAnalysisSetName = 'LabRetreat2017';
+% CurrentAnalysisSetName = 'LabRetreat2017FC';    % Free Choice
+% CurrentAnalysisSetName = 'LabRetreat2017IC';    % Informed Choice
+% 
+% CurrentAnalysisSetName = 'Evaluation2017FC';    % Free Choice
+% CurrentAnalysisSetName = 'Evaluation2017IC';    % Informed Choice
+
+
 %experimentFolder = '201705ReachBiasData\\SCP-CTRL-01\\SESSIONLOGS\\';
 %experimentFolder = fullfile('201705ReachBiasData', 'SCP-CTRL-01', 'SESSIONLOGS');
-SCPDirs = GetDirectoriesByHostName();
-experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
+SCPDirs = GetDirectoriesByHostName('local');
+switch CurrentAnalysisSetName
+    case {'SCP01'}
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
+        LogFileWildCardString = '*SCP_01.log';
+    case {'SCP00'}
+        % the human data
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-00', 'SCP_DATA', 'SCP-CTRL-00', 'SESSIONLOGS');
+        LogFileWildCardString = '*SCP_00.log';
+    case {'LabRetreat2017'}
+        % data for the lab retreat 2017 presentation        
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, '..', 'Projects', 'LabReatreat2017_BvS', 'LogFiles');
+        LogFileWildCardString = '*.log';   
+        
+     case {'LabRetreat2017FC'}
+        % data for the lab retreat 2017 presentation        
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, '..', 'Projects', 'LabReatreat2017_BvS', 'LogFiles', 'FreeChoiceSessionLogs');
+        LogFileWildCardString = '*.log';        
 
-SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES', SCPDirs.CurrentHostName);
+    case {'LabRetreat2017IC'}
+        % data for the lab retreat 2017 presentation        
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, '..', 'Projects', 'LabReatreat2017_BvS', 'LogFiles', 'InformedChoiceSessionLogs');
+        LogFileWildCardString = '*.log';        
+
+     case {'Evaluation2017FC'}
+        % data for the lab retreat 2017 presentation        
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, '..', 'Projects', 'CNL_Evaluation_2017', 'LogFiles', 'FreeChoiceSessionLogs');
+        LogFileWildCardString = '*.log';        
+
+    case {'Evaluation2017IC'}
+        % data for the lab retreat 2017 presentation        
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, '..', 'Projects', 'CNL_Evaluation_2017', 'LogFiles', 'InformedChoiceSessionLogs');
+        LogFileWildCardString = '*.log';        
+
+        
+        
+        
+    otherwise
+        error(['Encountered yet unhandled set up numer ', num2str(CurrentSetUpNum), ' stopping.']);
+end
+
+SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES', SCPDirs.CurrentShortHostName);
 Options.OutFormat = '.pdf';
 
-experimentFile = find_all_files(experimentFolder, '*SCP_01.log', 0);
+% examples for development
+% DAG_VERTICALCHOICE DirectFreeGazeReaches, no dual target trials
+ExperimentFileFQN_list = {fullfile(experimentFolder, '20170531/20170531T145722.A_Magnus.B_None.SCP_01/20170531T145722.A_Magnus.B_None.SCP_01.log')};
+% DAG_VERTICALCHOICE DirectFreeGazeFreeChoice
+ExperimentFileFQN_list = {fullfile(experimentFolder, '20170602/20170602T151337.A_Magnus.B_None.SCP_01/20170602T151337.A_Magnus.B_None.SCP_01.log')};
+ExperimentFileFQN_list = [];
 
+if isempty(ExperimentFileFQN_list)
+    experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
+else
+    experimentFile = ExperimentFileFQN_list;
+end    
 % allow to ignore some sessions
 %TODO fix up the parser to deal with older well-formed report files, switch
 %to selective exclusion of individual days instead of whole months...
-ExcludeWildCardList = {'_TESTVERSIONS', '20170106', '201701', '201702', '201703', '201704', 'A_SM-InactiveVirusScanner', 'A_Test'};
+ExcludeWildCardList = {'_TESTVERSIONS', '20170106', '201701', '201702', '201703', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test'};
+ExcludeWildCardList = {'ANALYSES', '201701', '201702', '201703', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING'};
+
 IncludedFilesIdx = [];
 for iFile = 1 : length(experimentFile)
 	TmpIdx = [];
@@ -31,6 +95,7 @@ for iFile = 1 : length(experimentFile)
 end
 experimentFile = experimentFile(IncludedFilesIdx);
 
+
 nFiles = length(experimentFile);
 
 % the newest sessions might of most interest
@@ -38,15 +103,34 @@ if (ProcessNewestFirst)
 	experimentFile = experimentFile(end:-1:1);
 end
 
+% no time information
 TmpOutBaseDir = [];
+% full time resolution
 TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyymmddTHHMMSS'));
+% by day
+TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyymmdd'));
+
+%% for DPZEvaluation2017
+%TmpOutBaseDir = SCPDirs.OutputDir;
+
+
+out_list = {};
 
 if (RunSingleSessionAnalysis)
 	for iSession = 1 : length(experimentFile)
 		CurentSessionLogFQN = experimentFile{iSession};
 		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir);
+        if ~isempty(out)
+            out_list{end+1} = out;
+        end
 	end
 end
+
+% collect the output from 
+% loop over all cells of out and create meaningful performance plots (show perf in %)
+disp(['Saving summary as ', fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat'])]);
+save(fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat']), 'out_list');
+
 
 return
 
