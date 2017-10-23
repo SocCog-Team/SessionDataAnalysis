@@ -148,6 +148,14 @@ for iGroup = 1 : length(GroupNameList)
         disp(['Found zero ', CurrentGroup, ' in ', SessionLogFQN, ' bailing out...']);
         continue
     end
+ 
+    if length(GoodTrialsIdx) == 1
+        % here we only have the actually cooperation trials (for BvS)
+        % do some timecourse analysis and imaging
+        disp(['Found a single trial for', CurrentGroup, ' in ', SessionLogFQN, ' skipping out...']);
+        continue
+    end
+    
     
     if ~isempty(TrialSets.ByActivity.DualSubjectTrials)
         %disp('Currently only analyze Single Subject Sessions');
