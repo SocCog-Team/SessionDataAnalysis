@@ -21,7 +21,10 @@ CurrentAnalysisSetName = 'SCP01';
 
 %experimentFolder = '201705ReachBiasData\\SCP-CTRL-01\\SESSIONLOGS\\';
 %experimentFolder = fullfile('201705ReachBiasData', 'SCP-CTRL-01', 'SESSIONLOGS');
-SCPDirs = GetDirectoriesByHostName('local');
+override_directive = 'local_code';
+override_directive = 'local';
+
+SCPDirs = GetDirectoriesByHostName(override_directive);
 switch CurrentAnalysisSetName
     case {'SCP01'}
         experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
@@ -53,16 +56,27 @@ switch CurrentAnalysisSetName
     case {'Evaluation2017IC'}
         % data for the lab retreat 2017 presentation        
         experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, '..', 'Projects', 'CNL_Evaluation_2017', 'LogFiles', 'InformedChoiceSessionLogs');
-        LogFileWildCardString = '*.log';        
-
-        
-        
+        LogFileWildCardString = '*.log';
         
     otherwise
         error(['Encountered yet unhandled set up numer ', num2str(CurrentSetUpNum), ' stopping.']);
 end
 
 SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES', SCPDirs.CurrentShortHostName);
+% no time information
+TmpOutBaseDir = [];
+% full time resolution
+TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyymmddTHHMMSS'));
+% by day
+TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyymmdd'));
+% by year
+TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyy'));
+% for DPZEvaluation2017
+%TmpOutBaseDir = SCPDirs.OutputDir;
+
+
+
+
 Options.OutFormat = '.pdf';
 
 % examples for development
@@ -73,6 +87,7 @@ ExperimentFileFQN_list = {fullfile(experimentFolder, '20170602/20170602T151337.A
 ExperimentFileFQN_list = [];
 
 if isempty(ExperimentFileFQN_list)
+    disp(['Trying to find all logfiles in ', experimentFolder]);
     experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
 else
     experimentFile = ExperimentFileFQN_list;
@@ -81,7 +96,7 @@ end
 %TODO fix up the parser to deal with older well-formed report files, switch
 %to selective exclusion of individual days instead of whole months...
 ExcludeWildCardList = {'_TESTVERSIONS', '20170106', '201701', '201702', '201703', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test'};
-ExcludeWildCardList = {'ANALYSES', '201701', '201702', '201703', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING'};
+ExcludeWildCardList = {'ANALYSES', '201701', '201702', '201703', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
 
 IncludedFilesIdx = [];
 for iFile = 1 : length(experimentFile)
@@ -103,15 +118,7 @@ if (ProcessNewestFirst)
 	experimentFile = experimentFile(end:-1:1);
 end
 
-% no time information
-TmpOutBaseDir = [];
-% full time resolution
-TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyymmddTHHMMSS'));
-% by day
-TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyymmdd'));
 
-%% for DPZEvaluation2017
-%TmpOutBaseDir = SCPDirs.OutputDir;
 
 
 out_list = {};
