@@ -349,9 +349,9 @@ TrialSets.ByChoice.SideB.ChoiceBottom = find(LogStruct.data(:, LogStruct.cn.B_To
 TrialSets.ByChoice.SideB.ChoiceCenterY = find(abs(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels);
 
 % Extract information about the selected target reward value (assume only two values for now)
-
-DifferentialRewardedTrialsIdx = TrialSets.ByRewardFunction.BOSMATRIXV01;
-
+if (isfield(TrialSets.ByRewardFunction, 'BOSMATRIXV01'))
+    DifferentialRewardedTrialsIdx = TrialSets.ByRewardFunction.BOSMATRIXV01;
+end
 % note that for the DirectFreeGazeReaches trials we store the randomised
 % position as the selected.
 A_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_Y) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels) & (abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_X) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels));
@@ -378,6 +378,24 @@ TrialSets.ByChoice.SideB.TargetValueLow = intersect(TrialSets.ByTrialType.Inform
 %using a differential RewardFunction.
 
 
+
+% whether the same target position was touched
+TmpSameYIdx = find(LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y) == LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y));
+TmpSameXIdX = find(LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_X) == LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X));
+TmpSameIdx = intersect(TmpSameXIdX, TmpSameYIdx);
+% target was actually shown?
+TmpSameIdx = intersect(TmpSameIdx, TrialSets.ByTargetVisibility.SideA.TouchTargetVisible);
+TmpSameIdx = intersect(TmpSameIdx, TrialSets.ByTargetVisibility.SideB.TouchTargetVisible);
+
+% only report if both subjects made a choice
+TmpSameIdx = intersect(TmpSameIdx, find(LogStruct.data(:, LogStruct.cn.A_TargetTouchTime_ms) > 0.0));
+TmpSameIdx = intersect(TmpSameIdx, find(LogStruct.data(:, LogStruct.cn.B_TargetTouchTime_ms) > 0.0));
+
+% only report real joint trials
+% note all three should be identical...
+TrialSets.ByChoice.SideA.SameTarget = intersect(TmpSameIdx, TrialSets.ByJointness.SideA.DualSubjectJointTrials);
+TrialSets.ByChoice.SideB.SameTarget = intersect(TmpSameIdx, TrialSets.ByJointness.SideB.DualSubjectJointTrials);
+TrialSets.ByChoice.SameTarget = intersect(TrialSets.ByChoice.SideA.SameTarget, TrialSets.ByChoice.SideB.SameTarget);
 
 return
 end
