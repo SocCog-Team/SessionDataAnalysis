@@ -45,10 +45,10 @@ if ~exist('DataStruct', 'var')
     % reparse
     if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
         tmplogData = load(MatFilename);
-        logData = tmplogData.report_struct;
+        DataStruct = tmplogData.report_struct;
         clear tmplogData;
     else
-        logData = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName '.log']));
+        DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName '.log']));
         %save(matFilename, 'logData'); % fnParseEventIDEReportSCPv06 saves by default
     end
     disp(['Processing: ', SessionLogFQN]);
@@ -62,6 +62,15 @@ if isempty(TrialSets)
     disp(['Found zero trial records in ', SessionLogFQN, ' bailing out...']);
     return
 end
+
+
+%TODO find better species detection heuristic (use list on known NHP names or add explicit variable to the log file?)
+IsHuman = 0;
+if 	(strcmp(DataStruct.EventIDEinfo.Computer, 'SCP-CTRL-00'))
+    % the test setup will always deliver human data...
+    IsHuman = 1;
+end
+
 
 
 % for joint sessions also report single trials
@@ -138,6 +147,23 @@ for iGroup = 1 : length(GroupNameList)
     
     
     GoodTrialsIdx = GroupTrialIdxList{iGroup};
+
+    % extract the TouchTargetPositioningMethod, this is a HACK FIXME
+    TTPM_idx = unique(DataStruct.SessionByTrial.data(GoodTrialsIdx, DataStruct.SessionByTrial.cn.TouchTargetPositioningMethod_idx));
+    if ~isempty(find(TTPM_idx == 0))
+        TTPM_idx(find(TTPM_idx == 0)) = [];
+    end
+    
+    if (length(TTPM_idx) ~= 1)
+        ChoiceDimension = 'mixed';
+    else
+        ChoiceDimension = 'left_right';
+        CurrentGroup_TTPM = DataStruct.SessionByTrial.unique_lists.TouchTargetPositioningMethod{TTPM_idx};
+        if ~isempty(strfind(CurrentGroup_TTPM, 'VERTICALCHOICE'))
+            ChoiceDimension = 'top_bottom';
+        end
+        
+    end
     
     %ExcludeTrialIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);
     
@@ -148,7 +174,7 @@ for iGroup = 1 : length(GroupNameList)
         disp(['Found zero ', CurrentGroup, ' in ', SessionLogFQN, ' bailing out...']);
         continue
     end
- 
+    
     if length(GoodTrialsIdx) == 1
         % here we only have the actually cooperation trials (for BvS)
         % do some timecourse analysis and imaging
@@ -246,6 +272,39 @@ for iGroup = 1 : length(GroupNameList)
     LeftTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceScreenFromALeft) = 1;
     
     
+    SameTargetSelected_A = zeros([NumTrials, 1]);
+    SameTargetSelected_A(TrialSets.ByChoice.SideA.SameTarget) = 1;
+    SameTargetSelected_B = zeros([NumTrials, 1]);
+    SameTargetSelected_B(TrialSets.ByChoice.SideB.SameTarget) = 1;
+    
+    % Anton's coordination test
+    if ~(IsSoloGroup)
+        NumExplorationTrials = 49;
+        % human data?
+        if (IsHuman)
+            NumExplorationTrials = 199;
+        end
+        
+        TrialIdx = GoodTrialsIdx;
+        if (length(TrialIdx) > (NumExplorationTrials + 1))
+            TrialIdx = TrialIdx(NumExplorationTrials+1:end);
+        end
+        isOwnChoice = [PreferableTargetSelected_A(TrialIdx)'; PreferableTargetSelected_B(TrialIdx)'];
+        switch ChoiceDimension
+           case 'mixed'
+                sideChoice = [LeftTargetSelected_A(TrialIdx)'; LeftTargetSelected_B(TrialIdx)'];    % this requires the pysical stimulus side (aka objective position)
+    
+            case 'left_right'
+                sideChoice = [LeftTargetSelected_A(TrialIdx)'; LeftTargetSelected_B(TrialIdx)'];    % this requires the pysical stimulus side (aka objective position)
+            case 'top_bottom'
+                sideChoice = [BottomTargetSelected_A(TrialIdx)'; BottomTargetSelected_B(TrialIdx)'];    % this requires the pysical stimulus side (aka objective position)
+        end
+            [partnerInluenceOnSide, partnerInluenceOnTarget] = check_coordination(isOwnChoice, sideChoice);
+    else
+        partnerInluenceOnSide = [];
+        partnerInluenceOnTarget = [];
+    end
+    
     
     %Common filter properties:
     FilterHalfWidth = 4;
@@ -336,6 +395,13 @@ for iGroup = 1 : length(GroupNameList)
     set(gca(),'TickLabelInterpreter','none');
     xlabel( 'Number of trial');
     ylabel( 'Share of own choices');
+    
+    if (~isempty(partnerInluenceOnSide) && ~isempty(partnerInluenceOnTarget))
+        partnerInluenceOnSideString = ['Partner effect on side choice of A: ', num2str(partnerInluenceOnSide(1)), '; of B: ', num2str(partnerInluenceOnSide(2))];
+        partnerInluenceOnTargetString = ['Partner effect on target choice of A: ', num2str(partnerInluenceOnTarget(1)), '; of B: ', num2str(partnerInluenceOnTarget(2))];
+        title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'Interpreter','none');
+    end
+    
     %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
     CurrentTitleSetDescriptorString = TitleSetDescriptorString;
     outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SOC.highvalue.', OutPutType]);
