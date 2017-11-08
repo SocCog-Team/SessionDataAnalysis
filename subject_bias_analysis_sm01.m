@@ -1,3 +1,4 @@
+function [] = subject_bias_analysis_sm01()
 clear variables;
 N_PLAYERS = 2;
 FontSize = 18;
@@ -84,6 +85,9 @@ Options.OutFormat = '.pdf';
 ExperimentFileFQN_list = {fullfile(experimentFolder, '20170531/20170531T145722.A_Magnus.B_None.SCP_01/20170531T145722.A_Magnus.B_None.SCP_01.log')};
 % DAG_VERTICALCHOICE DirectFreeGazeFreeChoice
 ExperimentFileFQN_list = {fullfile(experimentFolder, '20170602/20170602T151337.A_Magnus.B_None.SCP_01/20170602T151337.A_Magnus.B_None.SCP_01.log')};
+
+ExperimentFileFQN_list = {fullfile(experimentFolder, '20171019/20171019T132932.A_Flaffus.B_Curius.SCP_01/20171019T132932.A_Flaffus.B_Curius.SCP_01.log')};
+
 ExperimentFileFQN_list = [];
 
 if isempty(ExperimentFileFQN_list)
@@ -140,6 +144,11 @@ save(fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat']), 'out
 
 
 return
+
+
+
+
+
 
 
 w = 8;
@@ -666,3 +675,5 @@ for iSubject = 1:nSubject
 end
 %{
 %}
+return
+end
