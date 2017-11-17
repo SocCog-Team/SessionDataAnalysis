@@ -107,7 +107,7 @@ if ~isempty(TrialSets.ByJointness.DualSubjectJointTrials)
         %disp([]);
         return
     end
-elseif ~isempty(TrialSets.ByActivity.SingleSubjectTrials)
+elseif ~isempty(TrialSets.ByActivity.SingleSubjectTrials) || ~isempty(TrialSets.ByJointness.DualSubjectSoloTrials)
     [tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets);
     output.single = tmp_output;
     if (ProcessJointTrialsOnly)
