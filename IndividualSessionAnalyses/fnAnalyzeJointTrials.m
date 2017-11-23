@@ -20,6 +20,8 @@ ProcessReactionTimes = 1; % needs work...
 ForceParsingOfExperimentLog = 1; % rewrite the logfiles anyway
 CLoseFiguresOnReturn = 1;
 CleanOutputDir = 0;
+SaveMat4CoordinationCheck = 0;
+
 TitleSeparator = '_';
 
 OutPutType = 'pdf';
@@ -318,7 +320,7 @@ for iGroup = 1 : length(GroupNameList)
     EqualTargetAcquisition_AB = zeros([NumTrials, 1]);
     EqualTargetAcquisition_AB(TrialSets.ByFirstReaction.SideA.TargetAcquisitionEqual) = 1;
     
-
+    
     % Anton's coordination test
     if ~(IsSoloGroup)
         NumExplorationTrials = 49;
@@ -335,7 +337,7 @@ for iGroup = 1 : length(GroupNameList)
         
         % for saving
         isOwnChoiceArray = [PreferableTargetSelected_A(GoodTrialsIdx)'; PreferableTargetSelected_B(GoodTrialsIdx)'];
-
+        
         switch ChoiceDimension
             case 'mixed'
                 sideChoice = [LeftTargetSelected_A(TrialIdx)'; LeftTargetSelected_B(TrialIdx)'];    % this requires the pysical stimulus side (aka objective position)
@@ -348,28 +350,28 @@ for iGroup = 1 : length(GroupNameList)
             case 'top_bottom'
                 sideChoice = [BottomTargetSelected_A(TrialIdx)'; BottomTargetSelected_B(TrialIdx)'];    % this requires the pysical stimulus side (aka objective position)
                 sideChoiceObjectiveArray = [BottomTargetSelected_A(GoodTrialsIdx)'; BottomTargetSelected_B(GoodTrialsIdx)'];
-                sideChoiceSubjectiveArray = [BottomTargetSelected_A(GoodTrialsIdx)'; BottomTargetSelected_B(GoodTrialsIdx)'];  %here subjective and objective are the same             
+                sideChoiceSubjectiveArray = [BottomTargetSelected_A(GoodTrialsIdx)'; BottomTargetSelected_B(GoodTrialsIdx)'];  %here subjective and objective are the same
         end
         [partnerInluenceOnSide, partnerInluenceOnTarget] = check_coordination_v1(isOwnChoice, sideChoice);
         coordStruct = check_coordination(isOwnChoice, sideChoice, coordination_alpha);
         [sideChoiceIndependence, targetChoiceIndependence] = check_independence(isOwnChoice, sideChoice);
         
         % now save the data
-        info.ChoiceDimension = ChoiceDimension;
-        info.SessionLogFQN = SessionLogFQN;
-        info.CurrentGroup = CurrentGroup;
-        info.isOwnChoiceArrayHeader = {'A', 'B'};
-        info.sideChoiceObjectiveArrayHeader = {'A', 'B',}
-        info.TrialSetsDescription = 'Structure of different sets of trials, wher the invidual sets are named';
-        outfilename = fullfile(OutputPath, ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice.mat']);
-        save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialSets');
-        
+        if (SaveMat4CoordinationCheck)
+            info.ChoiceDimension = ChoiceDimension;
+            info.SessionLogFQN = SessionLogFQN;
+            info.CurrentGroup = CurrentGroup;
+            info.isOwnChoiceArrayHeader = {'A', 'B'};
+            info.sideChoiceObjectiveArrayHeader = {'A', 'B',};
+            info.TrialSetsDescription = 'Structure of different sets of trials, wher the invidual sets are named';
+            outfilename = fullfile(OutputPath, ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice.mat']);
+            save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialSets');
+        end
         
     else
         partnerInluenceOnSide = [];
         partnerInluenceOnTarget = [];
     end
-    
     
     %Common filter properties:
     FilterHalfWidth = 4;
@@ -397,7 +399,16 @@ for iGroup = 1 : length(GroupNameList)
     set(gca(), 'YLim', [0.9, 4.1]);
     y_lim = get(gca(), 'YLim');
     
+    
+    % plot a single category vector, attention, right now this is hybrid...
     fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
+    
+    % plot multiple category vectors
+    StackedXData = {[FasterInititialTargetRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialTargetRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialTargetRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
+                    [FasterTargetAcquisition_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterTargetAcquisition_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualTargetAcquisition_AB(GoodTrialsIdx(JointTrialX_Vector)))]};
+    StackedRightEffectorColor = {[SideAColor; SideBColor; SideABColor]; [SideAColor; SideBColor; SideABColor]};
+    StackedRightEffectorBGTransparency = {[0.5]; [1.0]};
+    fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, ShowFasterSideInBackground, ProcessSideA, ProcessSideB, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
     
     if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
         y_height = (y_lim(2) - y_lim(1));
@@ -459,7 +470,7 @@ for iGroup = 1 : length(GroupNameList)
     y_lim = get(gca(), 'YLim');
     
     fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-
+    
     
     if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
         y_height = (y_lim(2) - y_lim(1));
@@ -523,8 +534,8 @@ for iGroup = 1 : length(GroupNameList)
         y_lim = get(gca(), 'YLim');
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-
-
+        
+        
         if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
             y_height = (y_lim(2) - y_lim(1));
             set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
@@ -581,7 +592,7 @@ for iGroup = 1 : length(GroupNameList)
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
-
+        
         if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
             y_height = (y_lim(2) - y_lim(1));
             set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
@@ -637,7 +648,7 @@ for iGroup = 1 : length(GroupNameList)
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
-
+        
         if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
             y_height = (y_lim(2) - y_lim(1));
             set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
@@ -681,26 +692,26 @@ for iGroup = 1 : length(GroupNameList)
         % select the relvant data points:
         InitialTargetReleaseRT_A = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
         InitialTargetReleaseRT_B = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
- 
+        
         TargetAcquisitionRT_A = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
         TargetAcquisitionRT_B = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
-
+        
         
         Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimesBySameness');
         fnFormatDefaultAxes('DPZ2017Evaluation');
         [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
         hold on
-
+        
         % create the subsets: same own A, same own B, diff own, diff other
         SameOwnA_idx = find((PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0));
         SameOwnB_idx = find((PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1));
         DiffOwn_idx = find((PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1));
         DiffOther_idx = find((PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0));
-
+        
         SameDiffSets = {SameOwnA_idx, SameOwnB_idx, DiffOwn_idx, DiffOther_idx};
         SameDiffSetsNames = {'SameOwnA', 'SameOwnB', 'DiffOwn', 'DiffOther'};
-        %SameDiffSetsColors = 
+        %SameDiffSetsColors =
         
         if (ProcessSideA)
             for iSameDiffSet = 1 : length(SameDiffSets)
@@ -747,26 +758,67 @@ end
 
 
 
-function [] = fnPlotBackgroundWrapper( ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, CategoryByXValList, CategoryByXValList_A, CategoryByXValList_B, y_lim, RightEffectorColor, RightEffectorBGTransparency )
-    
-    if (ShowEffectorHandInBackground)
-        if (ProcessSideA && ~ProcessSideB)
-            fnPlotBackgroundByCategory(CategoryByXValList, y_lim, RightEffectorColor, RightEffectorBGTransparency);
-        end
-        if (~ProcessSideA && ProcessSideB)
-            fnPlotBackgroundByCategory(CategoryByXValList, y_lim, RightEffectorColor, RightEffectorBGTransparency);
-        end
-        % split screen SideA on top, side B on bottom
-        if (ProcessSideA && ProcessSideB)
-            if isequal(CategoryByXValList_A, CategoryByXValList_B)
-                fnPlotBackgroundByCategory(CategoryByXValList_B, y_lim, RightEffectorColor, RightEffectorBGTransparency);
-            else
-                y_half_height = (y_lim(2) - y_lim(1)) * 0.5;
-                fnPlotBackgroundByCategory(CategoryByXValList_A, [(y_lim(1) + y_half_height), y_lim(2)], [1 0 0], 0.33);
-                fnPlotBackgroundByCategory(CategoryByXValList_B, [y_lim(1), (y_lim(1) + y_half_height)], [0 0 1], 0.33);
-            end
+function [] = fnPlotBackgroundWrapper( PlotBackgroundCategory, ProcessSideA, ProcessSideB, CategoryByXValList, CategoryByXValList_A, CategoryByXValList_B, y_lim, RightEffectorColor, RightEffectorBGTransparency )
+
+if (PlotBackgroundCategory)
+    if (ProcessSideA && ~ProcessSideB)
+        fnPlotBackgroundByCategory(CategoryByXValList, y_lim, RightEffectorColor, RightEffectorBGTransparency);
+    end
+    if (~ProcessSideA && ProcessSideB)
+        fnPlotBackgroundByCategory(CategoryByXValList, y_lim, RightEffectorColor, RightEffectorBGTransparency);
+    end
+    % split screen SideA on top, side B on bottom
+    if (ProcessSideA && ProcessSideB)
+        if isequal(CategoryByXValList_A, CategoryByXValList_B)
+            fnPlotBackgroundByCategory(CategoryByXValList_B, y_lim, RightEffectorColor, RightEffectorBGTransparency);
+        else
+            y_half_height = (y_lim(2) - y_lim(1)) * 0.5;
+            fnPlotBackgroundByCategory(CategoryByXValList_A, [(y_lim(1) + y_half_height), y_lim(2)], [1 0 0], 0.33);
+            fnPlotBackgroundByCategory(CategoryByXValList_B, [y_lim(1), (y_lim(1) + y_half_height)], [0 0 1], 0.33);
         end
     end
-    
-    return
 end
+
+return
+end
+
+function [] = fnPlotStackedCategoriesAtPositionWrapper( PositionLabel, StackHeightToInitialPLotHeightRatio, PlotStackedCategories, ProcessSideA, ProcessSideB, StackedXData, y_lim, StackedColors, StackedTransparencies )
+if (PlotStackedCategories) && (ProcessSideA && ProcessSideB)
+    y_height = (y_lim(2) - y_lim(1));
+    num_stacked_items = size(StackedXData, 1);
+    new_y_lim = y_lim;
+    
+    switch PositionLabel
+        case 'StackedOnTop'
+            % make room for the category markers on top of the existing plot
+            % to scale
+            CurrentHighY = y_lim(2);
+            HeightRatioPerStack = StackHeightToInitialPLotHeightRatio / (num_stacked_items + 1);
+            y_increment_per_stack = y_height * HeightRatioPerStack;
+            new_y_lim = [y_lim(1), (y_lim(2) + (StackHeightToInitialPLotHeightRatio) * y_height)];
+            set(gca(), 'YLim', new_y_lim);
+        otherwise
+            disp(['Position label: ', PositionLabel, ' not implemented yet, skipping...'])
+            return
+    end
+    
+    
+    for iStackItem = 1 : num_stacked_items
+        CurrentCategoryByXVals = StackedXData{iStackItem};
+        CurrentColorByCategoryList = StackedColors{iStackItem};
+        CurrentTransparency = StackedTransparencies{iStackItem};
+        switch PositionLabel
+            case 'StackedOnTop'
+                CurrentLowY = y_lim(2) + ((iStackItem) * y_increment_per_stack);
+                CurrentHighY = CurrentLowY + y_increment_per_stack;
+        end
+        % now plot
+        fnPlotBackgroundByCategory(CurrentCategoryByXVals, [CurrentLowY, CurrentHighY], CurrentColorByCategoryList, CurrentTransparency);
+        
+        
+    end
+    
+end
+return
+end
+
