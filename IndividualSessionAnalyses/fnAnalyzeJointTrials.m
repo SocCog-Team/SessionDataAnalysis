@@ -28,15 +28,36 @@ OutPutType = 'pdf';
 
 [PathStr, FileName, ~] = fileparts(SessionLogFQN);
 
-coordination_alpha = 0.05;  % the alpha value for all the tests for coordination
 ShowEffectorHandInBackground = 1;
+ShowFasterSideInBackground = 1;
+ShowSelectedSidePerSubjectInRewardPlotBG = 1;
+
+
+coordination_alpha = 0.05;  % the alpha value for all the tests for coordination
 RightEffectorColor = [0.75, 0.75, 0.75];
 RightEffectorBGTransparency = 1; % 1 opaque
 
-ShowFasterSideInBackground = 1;
 SideAColor = [1 0 0];
 SideBColor = [0 0 1];
 SideABColor = [1 0 1];
+SideABEqualRTColor = [1 1 1];
+
+
+LeftTargColorA = [1 1 1];
+RightTargColorA = ([255 165 0] / 255);
+NoTargColorA = [1 0 0]; % these should not exist so make them stick out
+LeftTransparencyA = 0.5;
+
+LeftTargColorB = [1 1 1];
+RightTargColorB = ([0 128 0] / 255);
+NoTargColorB = [1 0 0]; % these should not exist so make them stick out
+LeftTransparencyB = 0.5;
+
+
+% FIXME legend plotting is incomplete as it will also take patch objects
+% into account, so best plot the backgrounds last, but that requires the
+% ability to send the most recent plot to the back of an axis set
+PlotLegend = 0; % add a lengend to the plots?
 
 PlotRTBySameness = 0;
 
@@ -303,20 +324,19 @@ for iGroup = 1 : length(GroupNameList)
     RightHandUsed_B(TrialSets.ByEffector.SideB.right)  = 1;
     
     % show who was faster
+    % IntitialTargetRelease
     FasterInititialTargetRelease_A = zeros([NumTrials, 1]);
     FasterInititialTargetRelease_A(TrialSets.ByFirstReaction.SideA.InitialTargetRelease) = 1;
     FasterTargetAcquisition_A = zeros([NumTrials, 1]);
     FasterTargetAcquisition_A(TrialSets.ByFirstReaction.SideA.TargetAcquisition) = 1;
-    
     EqualInititialTargetRelease_AB = zeros([NumTrials, 1]);
     EqualInititialTargetRelease_AB(TrialSets.ByFirstReaction.SideA.InitialTargetReleaseEqual) = 1;
     
-    
+    % TargetAcquisition
     FasterInititialTargetRelease_B = zeros([NumTrials, 1]);
     FasterInititialTargetRelease_B(TrialSets.ByFirstReaction.SideB.InitialTargetRelease) = 1;
     FasterTargetAcquisition_B = zeros([NumTrials, 1]);
     FasterTargetAcquisition_B(TrialSets.ByFirstReaction.SideB.TargetAcquisition) = 1;
-    
     EqualTargetAcquisition_AB = zeros([NumTrials, 1]);
     EqualTargetAcquisition_AB(TrialSets.ByFirstReaction.SideA.TargetAcquisitionEqual) = 1;
     
@@ -347,7 +367,7 @@ for iGroup = 1 : length(GroupNameList)
                 sideChoice = [LeftTargetSelected_A(TrialIdx)'; LeftTargetSelected_B(TrialIdx)'];    % this requires the pysical stimulus side (aka objective position)
                 sideChoiceObjectiveArray = [LeftTargetSelected_A(GoodTrialsIdx)'; LeftTargetSelected_B(GoodTrialsIdx)'];
                 sideChoiceSubjectiveArray = [SubjectiveLeftTargetSelected_A(GoodTrialsIdx)'; SubjectiveLeftTargetSelected_B(GoodTrialsIdx)'];
-            case 'top_bottom'
+            case 'bottom_top'
                 sideChoice = [BottomTargetSelected_A(TrialIdx)'; BottomTargetSelected_B(TrialIdx)'];    % this requires the pysical stimulus side (aka objective position)
                 sideChoiceObjectiveArray = [BottomTargetSelected_A(GoodTrialsIdx)'; BottomTargetSelected_B(GoodTrialsIdx)'];
                 sideChoiceSubjectiveArray = [BottomTargetSelected_A(GoodTrialsIdx)'; BottomTargetSelected_B(GoodTrialsIdx)'];  %here subjective and objective are the same
@@ -389,58 +409,106 @@ for iGroup = 1 : length(GroupNameList)
     % remove the filter artifacts?
     FilteredJointTrialX_Vector = ((FilterHalfWidth + 1):1:(length(GoodTrialsIdx) - FilterHalfWidth));
     
+    % we need to have JointTrialX_Vector available
+    % Who is faster
+    StackedXData = {[FasterInititialTargetRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialTargetRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialTargetRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
+        [FasterTargetAcquisition_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterTargetAcquisition_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualTargetAcquisition_AB(GoodTrialsIdx(JointTrialX_Vector)))]};
+    StackedRightEffectorColor = {[SideAColor; SideBColor; SideABEqualRTColor]; [SideAColor; SideBColor; SideABEqualRTColor]};
+    StackedRightEffectorBGTransparency = {[0.5]; [1.0]};
+    
+    % for each trial figure out who selected the right target
+    SubjectiveSideStackedXData = {[~SubjectiveLeftTargetSelected_A(GoodTrialsIdx(JointTrialX_Vector)) * 2]; [~SubjectiveLeftTargetSelected_B(GoodTrialsIdx(JointTrialX_Vector)) * 2]};
+    SideStackedXData = {[~LeftTargetSelected_A(GoodTrialsIdx(JointTrialX_Vector)) * 2]; [~LeftTargetSelected_B(GoodTrialsIdx(JointTrialX_Vector)) * 2]};
+    SideStackedRightEffectorColor = {[LeftTargColorA; RightTargColorA; NoTargColorA]; [LeftTargColorB; RightTargColorB; NoTargColorB]};
+    SideStackedRightEffectorBGTransparency = {[LeftTransparencyA]; [LeftTransparencyB]};
+    if (ProcessSideA) && ~(ProcessSideB)
+        SubjectiveSideStackedXData = SubjectiveSideStackedXData(1);
+        SideStackedXData = SideStackedXData(1);
+        SideStackedRightEffectorColor = SideStackedRightEffectorColor(1);
+        SideStackedRightEffectorBGTransparency = SideStackedRightEffectorBGTransparency(1);
+    elseif ~(ProcessSideA) && (ProcessSideB)
+        SubjectiveSideStackedXData = SubjectiveSideStackedXData(2);
+        SideStackedXData = SideStackedXData(2);
+        SideStackedRightEffectorColor = SideStackedRightEffectorColor(2);
+        SideStackedRightEffectorBGTransparency = SideStackedRightEffectorBGTransparency(2);
+    end
+    
+    % the sideChoiceSubjectiveArray would deal with non left right
+    % postioning methods
+%     % for each trial figure out who selected the right target
+%     SubjectiveSideStackedXData = {[~sideChoiceSubjectiveArray(1, JointTrialX_Vector) * 2]; [~sideChoiceSubjectiveArray(2, JointTrialX_Vector) * 2]};
+%     SideStackedXData = {[~sideChoiceObjectiveArray(1, JointTrialX_Vector) * 2]; [~sideChoiceObjectiveArray(2, JointTrialX_Vector) * 2]};
+%     SideStackedRightEffectorColor = {[LeftTargColorA; RightTargColorA; NoTargColorA]; [LeftTargColorB; RightTargColorB; NoTargColorB]};
+%     SideStackedRightEffectorBGTransparency = {[LeftTransparencyA]; [LeftTransparencyB]};
+%     if (ProcessSideA) && ~(ProcessSideB)
+%         SubjectiveSideStackedXData = SubjectiveSideStackedXData(1);
+%         SideStackedXData = SideStackedXData(1);
+%         SideStackedRightEffectorColor = SideStackedRightEffectorColor(1);
+%         SideStackedRightEffectorBGTransparency = SideStackedRightEffectorBGTransparency(1);
+%     elseif ~(ProcessSideA) && (ProcessSideB)
+%         SubjectiveSideStackedXData = SubjectiveSideStackedXData(2);
+%         SideStackedXData = SideStackedXData(2);
+%         SideStackedRightEffectorColor = SideStackedRightEffectorColor(2);
+%         SideStackedRightEffectorBGTransparency = SideStackedRightEffectorBGTransparency(2);
+%     end
+    
+    
     Cur_fh_RewardOverTrials = figure('Name', 'RewardOverTrials');
     fnFormatDefaultAxes('DPZ2017Evaluation');
     [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
     set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+    legend_list = {};
     hold on
-    
     
     set(gca(), 'YLim', [0.9, 4.1]);
     y_lim = get(gca(), 'YLim');
     
     
-    % plot a single category vector, attention, right now this is hybrid...
-    fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-    
-    % plot multiple category vectors
-    StackedXData = {[FasterInititialTargetRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialTargetRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialTargetRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
-                    [FasterTargetAcquisition_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterTargetAcquisition_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualTargetAcquisition_AB(GoodTrialsIdx(JointTrialX_Vector)))]};
-    StackedRightEffectorColor = {[SideAColor; SideBColor; SideABColor]; [SideAColor; SideBColor; SideABColor]};
-    StackedRightEffectorBGTransparency = {[0.5]; [1.0]};
-    fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, ShowFasterSideInBackground, ProcessSideA, ProcessSideB, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
-    
-    if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
-        y_height = (y_lim(2) - y_lim(1));
-        set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
-        TmpFasterBySide = FasterInititialTargetRelease_A + (2 * FasterInititialTargetRelease_B);
-        fnPlotBackgroundByCategory(TmpFasterBySide(GoodTrialsIdx(JointTrialX_Vector)), [y_lim(2), (y_lim(2) + y_height * 0.05)], [SideAColor; SideBColor], 0.5);
-        TmpFasterBySide = FasterTargetAcquisition_A + (2 * FasterTargetAcquisition_B);
-        fnPlotBackgroundByCategory(TmpFasterBySide(GoodTrialsIdx(JointTrialX_Vector)), [(y_lim(2) + y_height * 0.05), (y_lim(2) + y_height * 0.1)], [SideAColor; SideBColor], 1.0);
+    if (ShowSelectedSidePerSubjectInRewardPlotBG)
+        fnPlotStackedCategoriesAtPositionWrapper('StackedBottomToTop', 0.15, SideStackedXData, y_lim, SideStackedRightEffectorColor, SideStackedRightEffectorBGTransparency);
+        % plot a single category vector, attention, right now this is hybrid...
+        set(gca(), 'YLim', [0.7, 4.1]);
+        y_lim = [0.7 0.9];
+        fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
+        y_lim = get(gca(), 'YLim');
+    else
+        % plot a single category vector, attention, right now this is hybrid...
+        fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
     end
     
-    plot(FilteredJointTrialX_Vector, FilteredJointTrials_AvgRewardByTrial_AB(FilteredJointTrialX_Vector), 'Color', [1 0 1], 'LineWidth', 3);
+    % plot multiple category vectors
+    if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
+        fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
+    end
+    
+    plot(FilteredJointTrialX_Vector, FilteredJointTrials_AvgRewardByTrial_AB(FilteredJointTrialX_Vector), 'Color', SideABColor, 'LineWidth', 3);
+    legend_list{end + 1} = 'running avg. AB smoothed';
     if ~isempty(FilteredJointTrialX_Vector)
         TmpMean = mean(AvgRewardByTrial_AB(GoodTrialsIdx));
         line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0 0 0], 'LineStyle', '--', 'LineWidth', 3);
+        legend_list{end + 1} = 'all trials avg. AB';
     end
     if (ProcessSideA)
-        plot(JointTrialX_Vector, RewardByTrial_A(GoodTrialsIdx(JointTrialX_Vector)), 'Color', [1 0 0]);
-        
+        plot(JointTrialX_Vector, RewardByTrial_A(GoodTrialsIdx(JointTrialX_Vector)), 'Color', SideAColor);
+        legend_list{end + 1} = 'running avg. A';
         %plot(FilteredJointTrialX_Vector, RewardByTrial_A(GoodTrialsIdx(FilteredJointTrialX_Vector)), 'Color', [1 0 0]);
         % TmpMean = mean(RewardByTrial_A(GoodTrialsIdx));
         % line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0.66 0 0], 'LineStyle', '--', 'LineWidth', 3);
+        % legend_list{end + 1} = 'all trials avg. A';
     end
     if (ProcessSideB)
-        plot(JointTrialX_Vector, RewardByTrial_B(GoodTrialsIdx(JointTrialX_Vector)), 'Color', [0 0 1]);
-        
+        plot(JointTrialX_Vector, RewardByTrial_B(GoodTrialsIdx(JointTrialX_Vector)), 'Color', SideBColor);
+        legend_list{end + 1} = 'running avg. B';
         %plot(FilteredJointTrialX_Vector, RewardByTrial_B(GoodTrialsIdx(FilteredJointTrialX_Vector)), 'Color', [0 0 1]);
         % TmpMean = mean(RewardByTrial_B(GoodTrialsIdx));
         % line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0 0 0.66], 'LineStyle', '--', 'LineWidth', 3);
+        % legend_list{end + 1} = 'all trials avg. B';
     end
     % % filtered individual rewards
     % plot(FilteredJointTrialX_Vector, FilteredJointTrials_RewardByTrial_A(FilteredJointTrialX_Vector), 'r', 'LineWidth', 2);
+    % legend_list{end + 1} = 'A';
     % plot(FilteredJointTrialX_Vector, FilteredJointTrials_RewardByTrial_B(FilteredJointTrialX_Vector), 'b', 'LineWidth', 2);
+    % legend_list{end + 1} = 'B';
     hold off
     %
     set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
@@ -449,6 +517,9 @@ for iGroup = 1 : length(GroupNameList)
     set(gca(),'TickLabelInterpreter','none');
     xlabel( 'Number of trial');
     ylabel( 'Reward units');
+    if (PlotLegend)
+        legend(legend_list, 'Interpreter', 'None');
+    end
     %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
     CurrentTitleSetDescriptorString = TitleSetDescriptorString;
     outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.Reward.', OutPutType]);
@@ -456,7 +527,7 @@ for iGroup = 1 : length(GroupNameList)
     
     %%
     %plot own choice rates
-    % select the relvant trials:
+    % select the relevant trials:
     FilteredJointTrials_PreferableTargetSelected_A = fnFilterByNamedKernel( PreferableTargetSelected_A(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
     FilteredJointTrials_PreferableTargetSelected_B = fnFilterByNamedKernel( PreferableTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
     
@@ -464,6 +535,7 @@ for iGroup = 1 : length(GroupNameList)
     fnFormatDefaultAxes('DPZ2017Evaluation');
     [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
     set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+    legend_list = {};
     hold on
     
     set(gca(), 'YLim', [0.0, 1.0]);
@@ -473,28 +545,27 @@ for iGroup = 1 : length(GroupNameList)
     
     
     if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
-        y_height = (y_lim(2) - y_lim(1));
-        set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
-        TmpFasterBySide = FasterInititialTargetRelease_A + (2 * FasterInititialTargetRelease_B);
-        fnPlotBackgroundByCategory(TmpFasterBySide(GoodTrialsIdx(JointTrialX_Vector)), [y_lim(2), (y_lim(2) + y_height * 0.05)], [SideAColor; SideBColor], 0.5);
-        TmpFasterBySide = FasterTargetAcquisition_A + (2 * FasterTargetAcquisition_B);
-        fnPlotBackgroundByCategory(TmpFasterBySide(GoodTrialsIdx(JointTrialX_Vector)), [(y_lim(2) + y_height * 0.05), (y_lim(2) + y_height * 0.1)], [SideAColor; SideBColor], 1.0);
+        fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
     end
     
     
     
     if (ProcessSideA)
-        plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_A(FilteredJointTrialX_Vector), 'Color', [1 0 0], 'LineWidth', 3);
+        plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', 3);
+        legend_list{end + 1} = 'running avg. A';
         if ~isempty(FilteredJointTrialX_Vector)
             TmpMean = mean(PreferableTargetSelected_A(GoodTrialsIdx));
-            line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0.66 0 0], 'LineStyle', '--', 'LineWidth', 3);
+            line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
+            legend_list{end + 1} = 'all trials avg. A';
         end
     end
     if (ProcessSideB)
-        plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_B(FilteredJointTrialX_Vector), 'Color', [0 0 1], 'LineWidth', 3);
+        plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', 3);
+        legend_list{end + 1} = 'runing avg. B';
         if ~isempty(FilteredJointTrialX_Vector)
             TmpMean = mean(PreferableTargetSelected_B(GoodTrialsIdx));
-            line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0 0 0.66], 'LineStyle', '--', 'LineWidth', 3);
+            line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
+            legend_list{end + 1} = 'all trials avg. B';
         end
     end
     hold off
@@ -505,7 +576,9 @@ for iGroup = 1 : length(GroupNameList)
     set(gca(),'TickLabelInterpreter','none');
     xlabel( 'Number of trial');
     ylabel( 'Share of own choices');
-    
+    if (PlotLegend)
+        legend(legend_list, 'Interpreter', 'None');
+    end
     if (~isempty(partnerInluenceOnSide) && ~isempty(partnerInluenceOnTarget))
         partnerInluenceOnSideString = ['Partner effect on side choice of A: ', num2str(partnerInluenceOnSide(1)), '; of B: ', num2str(partnerInluenceOnSide(2))];
         partnerInluenceOnTargetString = ['Partner effect on target choice of A: ', num2str(partnerInluenceOnTarget(1)), '; of B: ', num2str(partnerInluenceOnTarget(2))];
@@ -528,6 +601,7 @@ for iGroup = 1 : length(GroupNameList)
         fnFormatDefaultAxes('DPZ2017Evaluation');
         [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+        legend_list = {};
         hold on
         
         set(gca(), 'YLim', [0.0, 1.0]);
@@ -535,30 +609,22 @@ for iGroup = 1 : length(GroupNameList)
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
-        
         if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
-            y_height = (y_lim(2) - y_lim(1));
-            set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
-            TmpFasterBySide = FasterInititialTargetRelease_A + (2 * FasterInititialTargetRelease_B);
-            fnPlotBackgroundByCategory(TmpFasterBySide(GoodTrialsIdx(JointTrialX_Vector)), [y_lim(2), (y_lim(2) + y_height * 0.05)], [SideAColor; SideBColor], 0.5);
-            TmpFasterBySide = FasterTargetAcquisition_A + (2 * FasterTargetAcquisition_B);
-            fnPlotBackgroundByCategory(TmpFasterBySide(GoodTrialsIdx(JointTrialX_Vector)), [(y_lim(2) + y_height * 0.05), (y_lim(2) + y_height * 0.1)], [SideAColor; SideBColor], 1.0);
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
         end
         
-        
-        
         if (ProcessSideA)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_BottomTargetSelected_A(FilteredJointTrialX_Vector), 'Color', [1 0 0], 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_BottomTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', 3);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(BottomTargetSelected_A(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0.66 0 0], 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
             end
         end
         if (ProcessSideB)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_BottomTargetSelected_B(FilteredJointTrialX_Vector), 'Color', [0 0 1], 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_BottomTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', 3);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(BottomTargetSelected_B(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0 0 0.66], 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
             end
         end
         hold off
@@ -569,6 +635,9 @@ for iGroup = 1 : length(GroupNameList)
         set(gca(),'TickLabelInterpreter','none');
         xlabel( 'Number of trial');
         ylabel( 'Share of bottom choices');
+        if (PlotLegend)
+            legend(legend_list, 'Interpreter', 'None');
+        end
         %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
         CurrentTitleSetDescriptorString = TitleSetDescriptorString;
         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SOC.bottom.', OutPutType]);
@@ -585,6 +654,7 @@ for iGroup = 1 : length(GroupNameList)
         fnFormatDefaultAxes('DPZ2017Evaluation');
         [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+        legend_list = {};
         hold on
         
         set(gca(), 'YLim', [0.0, 1.0]);
@@ -592,29 +662,23 @@ for iGroup = 1 : length(GroupNameList)
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
-        
         if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
-            y_height = (y_lim(2) - y_lim(1));
-            set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
-            TmpFasterBySide = FasterInititialTargetRelease_A + (2 * FasterInititialTargetRelease_B);
-            fnPlotBackgroundByCategory(TmpFasterBySide(GoodTrialsIdx(JointTrialX_Vector)), [y_lim(2), (y_lim(2) + y_height * 0.05)], [SideAColor; SideBColor], 0.5);
-            TmpFasterBySide = FasterTargetAcquisition_A + (2 * FasterTargetAcquisition_B);
-            fnPlotBackgroundByCategory(TmpFasterBySide(GoodTrialsIdx(JointTrialX_Vector)), [(y_lim(2) + y_height * 0.05), (y_lim(2) + y_height * 0.1)], [SideAColor; SideBColor], 1.0);
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
         end
         
         
         if (ProcessSideA)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_SubjectiveLeftTargetSelected_A(FilteredJointTrialX_Vector), 'Color', [1 0 0], 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_SubjectiveLeftTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', 3);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(SubjectiveLeftTargetSelected_A(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0.66 0 0], 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
             end
         end
         if (ProcessSideB)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_SubjectiveLeftTargetSelected_B(FilteredJointTrialX_Vector), 'Color', [0 0 1], 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_SubjectiveLeftTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', 3);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(SubjectiveLeftTargetSelected_B(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0 0 0.66], 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
             end
         end
         hold off
@@ -625,6 +689,9 @@ for iGroup = 1 : length(GroupNameList)
         set(gca(),'TickLabelInterpreter','none');
         xlabel( 'Number of trial');
         ylabel( 'Share of subjective left choices');
+        if (PlotLegend)
+            legend(legend_list, 'Interpreter', 'None');
+        end
         %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
         CurrentTitleSetDescriptorString = TitleSetDescriptorString;
         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SOC.subjective.left.', OutPutType]);
@@ -641,6 +708,7 @@ for iGroup = 1 : length(GroupNameList)
         fnFormatDefaultAxes('DPZ2017Evaluation');
         [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+        legend_list = {};
         hold on
         
         set(gca(), 'YLim', [0.0, 1.0]);
@@ -648,28 +716,23 @@ for iGroup = 1 : length(GroupNameList)
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
-        
         if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
-            y_height = (y_lim(2) - y_lim(1));
-            set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
-            TmpFasterBySide = FasterInititialTargetRelease_A + (2 * FasterInititialTargetRelease_B);
-            fnPlotBackgroundByCategory(TmpFasterBySide(GoodTrialsIdx(JointTrialX_Vector)), [y_lim(2), (y_lim(2) + y_height * 0.05)], [SideAColor; SideBColor], 0.5);
-            TmpFasterBySide = FasterTargetAcquisition_A + (2 * FasterTargetAcquisition_B);
-            fnPlotBackgroundByCategory(TmpFasterBySide(GoodTrialsIdx(JointTrialX_Vector)), [(y_lim(2) + y_height * 0.05), (y_lim(2) + y_height * 0.1)], [SideAColor; SideBColor], 1.0);
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
         end
         
+        
         if (ProcessSideA)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_LeftTargetSelected_A(FilteredJointTrialX_Vector), 'Color', [1 0 0], 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_LeftTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', 3);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(LeftTargetSelected_A(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0.66 0 0], 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
             end
         end
         if (ProcessSideB)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_LeftTargetSelected_B(FilteredJointTrialX_Vector), 'Color', [0 0 1], 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_LeftTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', 3);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(LeftTargetSelected_B(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0 0 0.66], 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
             end
         end
         hold off
@@ -680,6 +743,9 @@ for iGroup = 1 : length(GroupNameList)
         set(gca(),'TickLabelInterpreter','none');
         xlabel( 'Number of trial');
         ylabel( 'Share of objective left choices');
+        if (PlotLegend)
+            legend(legend_list, 'Interpreter', 'None');
+        end
         %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
         CurrentTitleSetDescriptorString = TitleSetDescriptorString;
         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SOC.objective.left.', OutPutType]);
@@ -701,6 +767,7 @@ for iGroup = 1 : length(GroupNameList)
         fnFormatDefaultAxes('DPZ2017Evaluation');
         [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+        legend_list = {};
         hold on
         
         % create the subsets: same own A, same own B, diff own, diff other
@@ -735,6 +802,9 @@ for iGroup = 1 : length(GroupNameList)
         set(gca(),'TickLabelInterpreter','none');
         xlabel( 'Number of trial');
         ylabel( 'Reaction time [ms]');
+        if (PlotLegend)
+            legend(legend_list, 'Interpreter', 'None');
+        end
         %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
         CurrentTitleSetDescriptorString = TitleSetDescriptorString;
         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.BySameness.', OutPutType]);
@@ -782,43 +852,60 @@ end
 return
 end
 
-function [] = fnPlotStackedCategoriesAtPositionWrapper( PositionLabel, StackHeightToInitialPLotHeightRatio, PlotStackedCategories, ProcessSideA, ProcessSideB, StackedXData, y_lim, StackedColors, StackedTransparencies )
-if (PlotStackedCategories) && (ProcessSideA && ProcessSideB)
-    y_height = (y_lim(2) - y_lim(1));
-    num_stacked_items = size(StackedXData, 1);
-    new_y_lim = y_lim;
-    
+function [] = fnPlotStackedCategoriesAtPositionWrapper( PositionLabel, StackHeightToInitialPLotHeightRatio, StackedXData, y_lim, StackedColors, StackedTransparencies )
+y_height = (y_lim(2) - y_lim(1));
+num_stacked_items = size(StackedXData, 1);
+new_y_lim = y_lim;
+
+switch PositionLabel
+    case 'StackedOnTop'
+        % make room for the category markers on top of the existing plot
+        y_increment_per_stack = y_height * StackHeightToInitialPLotHeightRatio / (num_stacked_items + 1);
+        new_y_lim = [y_lim(1), (y_lim(2) + (StackHeightToInitialPLotHeightRatio) * y_height)];
+        set(gca(), 'YLim', new_y_lim);
+        
+    case 'StackedOnBottom'
+        % make room for the category markers below the existing plot
+        y_increment_per_stack = y_height * StackHeightToInitialPLotHeightRatio / (num_stacked_items + 1);
+        new_y_lim = [(y_lim(1) - (StackHeightToInitialPLotHeightRatio) * y_height), y_lim(2)];
+        set(gca(), 'YLim', new_y_lim);
+        
+    case 'StackedBottomToTop'
+        % just fill the existing plot area
+        y_increment_per_stack = y_height / (num_stacked_items);
+        new_y_lim = y_lim;
+        
+    otherwise
+        disp(['Position label: ', PositionLabel, ' not implemented yet, skipping...'])
+        return
+end
+
+
+for iStackItem = 1 : num_stacked_items
+    CurrentCategoryByXVals = StackedXData{iStackItem};
+    CurrentColorByCategoryList = StackedColors{iStackItem};
+    CurrentTransparency = StackedTransparencies{iStackItem};
     switch PositionLabel
         case 'StackedOnTop'
-            % make room for the category markers on top of the existing plot
-            % to scale
-            CurrentHighY = y_lim(2);
-            HeightRatioPerStack = StackHeightToInitialPLotHeightRatio / (num_stacked_items + 1);
-            y_increment_per_stack = y_height * HeightRatioPerStack;
-            new_y_lim = [y_lim(1), (y_lim(2) + (StackHeightToInitialPLotHeightRatio) * y_height)];
-            set(gca(), 'YLim', new_y_lim);
-        otherwise
-            disp(['Position label: ', PositionLabel, ' not implemented yet, skipping...'])
-            return
+            % we want one y_increment as separator from the plots intial YLimits
+            CurrentLowY = y_lim(2) + ((iStackItem) * y_increment_per_stack);
+            CurrentHighY = CurrentLowY + y_increment_per_stack;
+            
+        case 'StackedOnBottom'
+            % we want one y_increment as separator from the plots intial YLimits
+            CurrentLowY = new_y_lim(1) + ((iStackItem - 1) * y_increment_per_stack);
+            CurrentHighY = CurrentLowY + y_increment_per_stack;
+            
+        case 'StackedBottomToTop'
+            % we want one y_increment as separator from the plots intial
+            % YLimits
+            CurrentLowY = y_lim(1) + ((iStackItem - 1) * y_increment_per_stack);
+            CurrentHighY = CurrentLowY + y_increment_per_stack;
     end
-    
-    
-    for iStackItem = 1 : num_stacked_items
-        CurrentCategoryByXVals = StackedXData{iStackItem};
-        CurrentColorByCategoryList = StackedColors{iStackItem};
-        CurrentTransparency = StackedTransparencies{iStackItem};
-        switch PositionLabel
-            case 'StackedOnTop'
-                CurrentLowY = y_lim(2) + ((iStackItem) * y_increment_per_stack);
-                CurrentHighY = CurrentLowY + y_increment_per_stack;
-        end
-        % now plot
-        fnPlotBackgroundByCategory(CurrentCategoryByXVals, [CurrentLowY, CurrentHighY], CurrentColorByCategoryList, CurrentTransparency);
-        
-        
-    end
-    
+    % now plot
+    fnPlotBackgroundByCategory(CurrentCategoryByXVals, [CurrentLowY, CurrentHighY], CurrentColorByCategoryList, CurrentTransparency);
 end
+
 return
 end
 
