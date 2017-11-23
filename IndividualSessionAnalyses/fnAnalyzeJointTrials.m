@@ -399,25 +399,6 @@ for iGroup = 1 : length(GroupNameList)
     
     fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
     
-%     if (ShowEffectorHandInBackground)
-%         if (ProcessSideA && ~ProcessSideB)
-%             fnPlotBackgroundByCategory(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%         end
-%         if (~ProcessSideA && ProcessSideB)
-%             fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%         end
-%         % split screen SideA on top, side B on bottom
-%         if (ProcessSideA && ProcessSideB)
-%             if isequal(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)))
-%                 fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%             else
-%                 y_half_height = (y_lim(2) - y_lim(1)) * 0.5;
-%                 fnPlotBackgroundByCategory(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), [(y_lim(1) + y_half_height), y_lim(2)], [1 0 0], 0.33);
-%                 fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), [y_lim(1), (y_lim(1) + y_half_height)], [0 0 1], 0.33);
-%             end
-%         end
-%     end
-    
     if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
         y_height = (y_lim(2) - y_lim(1));
         set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
@@ -479,24 +460,6 @@ for iGroup = 1 : length(GroupNameList)
     
     fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
 
-%     if (ShowEffectorHandInBackground)
-%         if (ProcessSideA && ~ProcessSideB)
-%             fnPlotBackgroundByCategory(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%         end
-%         if (~ProcessSideA && ProcessSideB)
-%             fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%         end
-%         % split screen SideA on top, side B on bottom
-%         if (ProcessSideA && ProcessSideB)
-%             if isequal(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)))
-%                 fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%             else
-%                 y_half_height = (y_lim(2) - y_lim(1)) * 0.5;
-%                 fnPlotBackgroundByCategory(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), [(y_lim(1) + y_half_height), y_lim(2)], [1 0 0], 0.33);
-%                 fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), [y_lim(1), (y_lim(1) + y_half_height)], [0 0 1], 0.33);
-%             end
-%         end
-%     end
     
     if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
         y_height = (y_lim(2) - y_lim(1));
@@ -561,24 +524,7 @@ for iGroup = 1 : length(GroupNameList)
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
 
-%         if (ShowEffectorHandInBackground)
-%             if (ProcessSideA && ~ProcessSideB)
-%                 fnPlotBackgroundByCategory(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%             end
-%             if (~ProcessSideA && ProcessSideB)
-%                 fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%             end
-%             % split screen SideA on top, side B on bottom
-%             if (ProcessSideA && ProcessSideB)
-%                 if isequal(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)))
-%                     fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%                 else
-%                     y_half_height = (y_lim(2) - y_lim(1)) * 0.5;
-%                     fnPlotBackgroundByCategory(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), [(y_lim(1) + y_half_height), y_lim(2)], [1 0 0], 0.33);
-%                     fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), [y_lim(1), (y_lim(1) + y_half_height)], [0 0 1], 0.33);
-%                 end
-%             end
-%         end
+
         if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
             y_height = (y_lim(2) - y_lim(1));
             set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
@@ -635,24 +581,7 @@ for iGroup = 1 : length(GroupNameList)
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
-%         if (ShowEffectorHandInBackground)
-%             if (ProcessSideA && ~ProcessSideB)
-%                 fnPlotBackgroundByCategory(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%             end
-%             if (~ProcessSideA && ProcessSideB)
-%                 fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%             end
-%             % split screen SideA on top, side B on bottom
-%             if (ProcessSideA && ProcessSideB)
-%                 if isequal(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)))
-%                     fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%                 else
-%                     y_half_height = (y_lim(2) - y_lim(1)) * 0.5;
-%                     fnPlotBackgroundByCategory(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), [(y_lim(1) + y_half_height), y_lim(2)], [1 0 0], 0.33);
-%                     fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), [y_lim(1), (y_lim(1) + y_half_height)], [0 0 1], 0.33);
-%                 end
-%             end
-%         end
+
         if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
             y_height = (y_lim(2) - y_lim(1));
             set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
@@ -708,24 +637,7 @@ for iGroup = 1 : length(GroupNameList)
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
-%         if (ShowEffectorHandInBackground)
-%             if (ProcessSideA && ~ProcessSideB)
-%                 fnPlotBackgroundByCategory(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%             end
-%             if (~ProcessSideA && ProcessSideB)
-%                 fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%             end
-%             % split screen SideA on top, side B on bottom
-%             if (ProcessSideA && ProcessSideB)
-%                 if isequal(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)))
-%                     fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-%                 else
-%                     y_half_height = (y_lim(2) - y_lim(1)) * 0.5;
-%                     fnPlotBackgroundByCategory(RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), [(y_lim(1) + y_half_height), y_lim(2)], [1 0 0], 0.33);
-%                     fnPlotBackgroundByCategory(RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), [y_lim(1), (y_lim(1) + y_half_height)], [0 0 1], 0.33);
-%                 end
-%             end
-%         end
+
         if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
             y_height = (y_lim(2) - y_lim(1));
             set(gca(), 'YLim', [y_lim(1), (y_lim(2) + 0.1 * y_height)]);
@@ -833,89 +745,6 @@ end
 
 
 
-% function [] = fnPlotBackgroundByCategory( CategoryByXValList, YLimits, ColorByCategoryList, Transparency )
-% % use patch to plot a color overlay on the current axes.
-% % CategoryByTrialList gives the category index for each X value
-% % YLimits gives the lower and upper value for the background plot
-% % ColorByCategoryList gives the colorspec for each category
-% % a category index of 0 denotes skip this x value
-% 
-% %TODO:
-% %   test with multiple categories
-% 
-% 
-% % default to full opaqueness (the Variable has a terrible name in matlab)
-% if ~exist('Transparency', 'var') || isempty(Transparency)
-%     Transparency = 1;
-% end
-% 
-% unique_categories_list = unique(CategoryByXValList);
-% 
-% if unique_categories_list(1) == 0
-%     num_categories = length(unique_categories_list) - 1;
-%     cat_start_idx = 2;
-% else
-%     num_categories = length(unique_categories_list);
-%     cat_start_idx = 1;
-% end
-% 
-% 
-% if unique_categories_list(1) == 0 && length(unique_categories_list) == 1
-%     disp('All X values belong to category zero, nothing to do...');
-%     return
-% end
-% 
-% % the following will mis trigger for sparse category
-% % %allow empty categories as long as a matchin color row exists for the
-% % %existing categories
-% % if size(ColorByCategoryList, 1) ~= num_categories && unique_categories_list(end) ~= size(ColorByCategoryList, 1)
-% %     error('Fewer colors than categories defined, no clue what to do...');
-% % end
-% if size(ColorByCategoryList, 1) < max(unique_categories_list)
-%     error('Fewer colors than category indices defined, no clue what to do...');
-% end
-% 
-% % check and expand the transparency
-% if (length(Transparency) > 1) && (length(Transparency) ~= max(unique_categories_list))
-%     error(['The number of items in the Transparency array (', num2str(length(Transparency)), ') does not match the highest category index (', num2str(max(unique_categories_list)), ')?');
-% end
-% 
-% if (length(Transparency) == 1) && (length(Transparency) < max(unique_categories_list))
-%     TransparencyByCategory = ones([max(unique_categories_list), 1]) * Transparency;
-% end
-% 
-% for i_category = cat_start_idx : length(unique_categories_list)
-%     CurrentCategory = unique_categories_list(i_category);
-%     CurrentCatXVals = (CategoryByXValList == CurrentCategory);
-%     %CurrentCatColor = ColorByCategoryList((i_category - cat_start_idx + 1), :);
-%     CurrentCatColor = ColorByCategoryList(CurrentCategory, :);
-%     CurrentCatTransparency = TransparencyByCategory(CurrentCategory);
-%     
-%     
-%     % collect all XValues as rectangles
-%     patch_x_array = [];
-%     patch_y_array = [];
-%     for i_current_cat_xval = 1 : length(CurrentCatXVals)
-%         if (CurrentCatXVals(i_current_cat_xval) == 1)
-%             current_x_list = [ i_current_cat_xval - 0.5; i_current_cat_xval - 0.5; i_current_cat_xval + 0.5; i_current_cat_xval + 0.5];
-%             current_y_list = [ YLimits(1); YLimits(2); YLimits(2); YLimits(1)];
-%             if ~isempty(patch_x_array) && isequal(current_x_list(1:2), patch_x_array(3:4, end))
-%                 % this is an extension of the last patch, just extend its
-%                 % end
-%                 patch_x_array(3:4, end) = current_x_list(3:4);
-%             else
-%                 % add a new patchlet
-%                 patch_x_array = [patch_x_array, current_x_list];
-%                 patch_y_array = [patch_y_array, current_y_list];
-%             end
-%         end
-%     end
-%     % and now actually display the patch on the plot
-%     patch('XData', patch_x_array, 'YData', patch_y_array, 'FaceColor', CurrentCatColor, 'EdgeColor', CurrentCatColor, 'EdgeAlpha', CurrentCatTransparency, 'FaceAlpha', CurrentCatTransparency);
-% end
-% 
-% return
-% end
 
 
 function [] = fnPlotBackgroundWrapper( ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, CategoryByXValList, CategoryByXValList_A, CategoryByXValList_B, y_lim, RightEffectorColor, RightEffectorBGTransparency )
