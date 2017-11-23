@@ -397,6 +397,53 @@ TrialSets.ByChoice.SideA.SameTarget = intersect(TmpSameIdx, TrialSets.ByJointnes
 TrialSets.ByChoice.SideB.SameTarget = intersect(TmpSameIdx, TrialSets.ByJointness.SideB.DualSubjectJointTrials);
 TrialSets.ByChoice.SameTarget = intersect(TrialSets.ByChoice.SideA.SameTarget, TrialSets.ByChoice.SideB.SameTarget);
 
+
+% Reaction Times:
+TmpInititalTargetReleased_A = find(LogStruct.data(:, LogStruct.cn.A_InitialFixationReleaseTime_ms) > 0.0);
+TmpInititalTargetReleased_B = find(LogStruct.data(:, LogStruct.cn.B_InitialFixationReleaseTime_ms) > 0.0);
+% if the other side had a time of 0.0 no touch or release happened and the
+% current side, if > 0.0 is trivially faster
+TmpOnly_A = setdiff(TmpInititalTargetReleased_A, TmpInititalTargetReleased_B);
+TmpOnly_B = setdiff(TmpInititalTargetReleased_B, TmpInititalTargetReleased_A);
+% the joint trials with InitialTargetRekeases for both sides
+TmpJointTrials = intersect(TmpInititalTargetReleased_A, TmpInititalTargetReleased_B);
+TmpDeltaT = LogStruct.data(TmpJointTrials, LogStruct.cn.A_InitialFixationReleaseTime_ms) - LogStruct.data(TmpJointTrials, LogStruct.cn.B_InitialFixationReleaseTime_ms);
+TmpSideA_faster_idx = find(TmpDeltaT < 0);
+TmpSideB_faster_idx = find(TmpDeltaT > 0);
+TmpBothSidesEquallyFast_idx = find(TmpDeltaT == 0);
+
+
+% who was faster...
+TrialSets.ByFirstReaction.SideA.InitialTargetRelease = union(TmpOnly_A, TmpJointTrials(TmpSideA_faster_idx));
+TrialSets.ByFirstReaction.SideB.InitialTargetRelease = union(TmpOnly_B, TmpJointTrials(TmpSideB_faster_idx));
+% or equal
+TrialSets.ByFirstReaction.SideA.InitialTargetReleaseEqual = TmpJointTrials(TmpBothSidesEquallyFast_idx);
+TrialSets.ByFirstReaction.SideB.InitialTargetReleaseEqual = TmpJointTrials(TmpBothSidesEquallyFast_idx);
+
+
+TmpTargetTouched_A = find(LogStruct.data(:, LogStruct.cn.A_TargetTouchTime_ms) > 0.0);
+TmpTargetTouched_B = find(LogStruct.data(:, LogStruct.cn.B_TargetTouchTime_ms) > 0.0);
+% if the other side had a time of 0.0 no touch or release happened and the
+% current side, if > 0.0 is trivially faster
+TmpOnly_A = setdiff(TmpTargetTouched_A, TmpTargetTouched_B);
+TmpOnly_B = setdiff(TmpTargetTouched_B, TmpTargetTouched_A);
+% the joint trials with InitialTargetRekeases for both sides
+TmpJointTrials = intersect(TmpTargetTouched_A, TmpTargetTouched_B);
+TmpDeltaT = LogStruct.data(TmpJointTrials, LogStruct.cn.A_TargetTouchTime_ms) - LogStruct.data(TmpJointTrials, LogStruct.cn.B_TargetTouchTime_ms);
+TmpSideA_faster_idx = find(TmpDeltaT < 0);
+TmpSideB_faster_idx = find(TmpDeltaT > 0);
+TmpBothSidesEquallyFast_idx = find(TmpDeltaT == 0);
+
+
+% who was faster?
+TrialSets.ByFirstReaction.SideA.TargetAcquisition = union(TmpOnly_A, TmpJointTrials(TmpSideA_faster_idx));
+TrialSets.ByFirstReaction.SideB.TargetAcquisition = union(TmpOnly_B, TmpJointTrials(TmpSideB_faster_idx));
+% or equal
+TrialSets.ByFirstReaction.SideA.TargetAcquisitionEqual = TmpJointTrials(TmpBothSidesEquallyFast_idx);
+TrialSets.ByFirstReaction.SideB.TargetAcquisitionEqual = TmpJointTrials(TmpBothSidesEquallyFast_idx);
+
+
+
 return
 end
 
