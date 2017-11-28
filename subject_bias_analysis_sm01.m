@@ -100,7 +100,7 @@ end
 %TODO fix up the parser to deal with older well-formed report files, switch
 %to selective exclusion of individual days instead of whole months...
 ExcludeWildCardList = {'_TESTVERSIONS', '20170106', '201701', '201702', '201703', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test'};
-ExcludeWildCardList = {'ANALYSES', '201701', '201702', '201703', '20170406', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
+ExcludeWildCardList = {'ANALYSES', '201701', '201702', '201703', '20170403', '20170405', '20170405', '20170406', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
 
 IncludedFilesIdx = [];
 for iFile = 1 : length(experimentFile)
