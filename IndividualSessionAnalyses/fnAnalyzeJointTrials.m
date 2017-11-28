@@ -21,6 +21,8 @@ ForceParsingOfExperimentLog = 1; % rewrite the logfiles anyway
 CLoseFiguresOnReturn = 1;
 CleanOutputDir = 0;
 SaveMat4CoordinationCheck = 0;
+SaveCoordinationSummary = 1;
+CoordinationSummaryFileName = 'CoordinationSummary.txt';
 
 TitleSeparator = '_';
 
@@ -93,6 +95,17 @@ if ~exist('DataStruct', 'var')
     end
     disp(['Processing: ', SessionLogFQN]);
 end
+
+if (SaveCoordinationSummary)
+    CoordinationSummaryFQN = fullfile(OutputPath, CoordinationSummaryFileName);
+    if (exist(CoordinationSummaryFQN, 'file') == 2)
+        % delete the old file
+        delete(CoordinationSummaryFQN);
+    end
+end
+
+
+[SessionLogPath, SessionLogName, SessionLogExtension] = fileparts(SessionLogFQN);
 
 
 if ~exist('TrialSets', 'var')
@@ -389,6 +402,14 @@ for iGroup = 1 : length(GroupNameList)
             info.TrialSetsDescription = 'Structure of different sets of trials, wher the invidual sets are named';
             outfilename = fullfile(OutputPath, ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice.mat']);
             save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialSets');
+        end
+        
+        if (SaveCoordinationSummary)
+            CoordinationSummaryFQN_fid = fopen(CoordinationSummaryFQN, 'a+');
+            % add some extra information
+            OutPutString = ['SessionLogName: ', SessionLogName,' ; Group: ', CurrentGroup, '; ', CoordinationSummaryString, '; SessionLogFQN: ', SessionLogFQN];
+            fprintf(CoordinationSummaryFQN_fid, '%s\n', OutPutString);
+            fclose(CoordinationSummaryFQN_fid);
         end
         
     else
