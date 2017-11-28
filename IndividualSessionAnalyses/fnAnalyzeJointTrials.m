@@ -376,6 +376,9 @@ for iGroup = 1 : length(GroupNameList)
         coordStruct = check_coordination(isOwnChoice, sideChoice, coordination_alpha);
         [sideChoiceIndependence, targetChoiceIndependence] = check_independence(isOwnChoice, sideChoice);
         
+        CoordinationSummaryString = coordStruct.SummaryString;
+        CoordinationSummaryCell = coordStruct.SummaryCell;
+        
         % now save the data
         if (SaveMat4CoordinationCheck)
             info.ChoiceDimension = ChoiceDimension;
@@ -389,6 +392,8 @@ for iGroup = 1 : length(GroupNameList)
         end
         
     else
+        CoordinationSummaryString = '';
+        CoordinationSummaryCell = [];
         partnerInluenceOnSide = [];
         partnerInluenceOnTarget = [];
     end
@@ -510,7 +515,16 @@ for iGroup = 1 : length(GroupNameList)
     % plot(FilteredJointTrialX_Vector, FilteredJointTrials_RewardByTrial_B(FilteredJointTrialX_Vector), 'b', 'LineWidth', 2);
     % legend_list{end + 1} = 'B';
     hold off
-    %
+    
+    
+%     if ~ismepty(CoordinationSummaryString)
+%         title(CoordinationSummaryString, 'FontSize', 12, 'Interpreter', 'None');
+%     end
+    if ~isempty(CoordinationSummaryCell)
+        title(CoordinationSummaryCell, 'FontSize', 12, 'Interpreter', 'None');
+    end
+    
+    
     set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
     %set(gca(), 'YLim', [0.9, 4.1]);
     set(gca(), 'YTick', [1, 2, 3, 4]);
