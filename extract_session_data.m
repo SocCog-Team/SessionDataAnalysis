@@ -26,17 +26,29 @@ OUTPUT:
     chosenPos - array of chosen target positions indices
     trialType - array of trial types (with values from to TRIAL_TYPE);
     trialStatus - array of trial statuses (with values from to TRIAL_STATUS);
+TODO:
+	replace getValue (which copies the main data structure into a function)
+	with use of the column name structure cn
+
+	Move the nice summary below the function heade so that matlabs "help
+	extract_session_data" command will do something useful...
+
 %}
 
 function session = extract_session_data(fullFileName, isVerticalTest)
   [pathStr, fileName, ~] = fileparts(fullFileName); 
 
-  matFilename = [pathStr '\\' fileName '.mat'];
+  [~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
+  %matFilename = [pathStr filesep fileName CurrentEventIDEReportParserVersionString '.mat'];
+  matFilename = fullfile(pathStr, [fileName CurrentEventIDEReportParserVersionString '.mat']);
+  
   if exist(matFilename, 'file')
-    load(matFilename, 'logData');      
+    tmplogData = load(matFilename); 
+	logData = tmplogData.report_struct;
+	clear tmplogData
   else
-    logData = fnParseEventIDEReportSCPv06([pathStr '\\' fileName '.log']);
-    save(matFilename, 'logData'); 
+    logData = fnParseEventIDEReportSCPv06(fullfile(pathStr, [fileName '.log']));
+    %save(matFilename, 'logData'); % fnParseEventIDEReportSCPv06 saves by default
   end  
   
   %OUTCOME_REWARD = getValue(logData.Enums.Outcomes.EnumStruct, 'REWARD');

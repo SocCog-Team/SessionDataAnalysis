@@ -77,6 +77,12 @@ OUTPUT:
 !!!Please, note that some of the fields are defined only for 2 players 
 %}
 function res = process_free_choice_session(session, endSize, w)
+	
+	SCPDirs = GetDirectoriesByHostName();
+	SCPDirs.OutputDir = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS', 'ANALYSES', SCPDirs.CurrentHostName);	
+	Options.OutFormat = '.pdf';
+
+
   MA_filter = ones(1, w);
   FontSize = 18;
   LineWidth = 1.2;
@@ -194,7 +200,7 @@ function res = process_free_choice_session(session, endSize, w)
     
     %plot joint choice rates
     xt = w:nCorrectTrial;
-    figure
+    figh = figure('Name', '_choices');
     set( axes,'fontsize', FontSize, 'FontName', 'Times');
     plot (xt, res.jointChoiceAverage, 'b', 'linewidth', LineWidth);  
     axis( [w, nCorrectTrial, 0, 1.0] );
@@ -205,10 +211,11 @@ function res = process_free_choice_session(session, endSize, w)
     xSize = 24; ySize = 12;
     xLeft = 0; yTop = 0;
     set( gcf,'PaperPosition', [ xLeft yTop xSize ySize ] );
-    print ( '-depsc', '-r300', [session.name '_choices.eps']); 
+	write_out_figure(figh, fullfile(SCPDirs.OutputDir, [session.name, '_choices', Options.OutFormat]));
+    %print ( '-depsc', '-r300', [session.name '_choices.eps']); 
 
     %plot reaction times 
-    figure
+    figh = figure('Name', '_RT');
     set( axes,'fontsize', FontSize, 'FontName', 'Times');
     hold on;
     plot (1:nCorrectTrial, res.releaseTime(1,:), 'r--', 'linewidth', LineWidth); 
@@ -226,11 +233,12 @@ function res = process_free_choice_session(session, endSize, w)
     xSize = 24; ySize = 20;
     xLeft = 0; yTop = 0;
     set( gcf,'PaperPosition', [ xLeft yTop xSize ySize ] );
-    print ( '-depsc', '-r300', [session.name '_RT.eps']); 
+	write_out_figure(figh, fullfile(SCPDirs.OutputDir, [session.name, '_RT', Options.OutFormat]));
+    %print ( '-depsc', '-r300', [session.name '_RT.eps']); 
 
 
     %plot difference of reaction Times 
-    figure
+    figh = figure('Name', '_deltaRT');
     set( axes,'fontsize', FontSize, 'FontName', 'Times');
     subplot(3, 1, 1);
     hold on;
@@ -269,7 +277,8 @@ function res = process_free_choice_session(session, endSize, w)
     xSize = 24; ySize = 30;
     xLeft = 0; yTop = 0;
     set( gcf,'PaperPosition', [ xLeft yTop xSize ySize ] );
-    print ( '-depsc', '-r300', [session.name '_deltaRT.eps']); 
+	write_out_figure(figh, fullfile(SCPDirs.OutputDir, [session.name, '_deltaRT', Options.OutFormat]));
+    %print ( '-depsc', '-r300', [session.name '_deltaRT.eps']); 
  end
 end
 
