@@ -20,7 +20,7 @@ ProcessReactionTimes = 1; % needs work...
 ForceParsingOfExperimentLog = 1; % rewrite the logfiles anyway
 CLoseFiguresOnReturn = 1;
 CleanOutputDir = 0;
-SaveMat4CoordinationCheck = 0;
+SaveMat4CoordinationCheck = 1;
 SaveCoordinationSummary = 1;
 CoordinationSummaryFileName = 'CoordinationSummary.txt';
 
@@ -99,8 +99,25 @@ end
 if (SaveCoordinationSummary)
     CoordinationSummaryFQN = fullfile(OutputPath, CoordinationSummaryFileName);
     if (exist(CoordinationSummaryFQN, 'file') == 2)
-        % delete the old file
-        delete(CoordinationSummaryFQN);
+        % get information about CoordinationSummaryFQN
+        CoordinationSummaryFQN_listing = dir(CoordinationSummaryFQN);
+        CurrentTime = now;
+        % how long do we give each iteration of fnAnalyzeJointTrials give
+        FileTooOldThresholdSeconds = 60;
+        
+        if (CoordinationSummaryFQN_listing.datenum < (CurrentTime - (FileTooOldThresholdSeconds / (60 * 60 *24))))
+            % file too old delete it
+            disp(['Found coordination summary file older than ', num2str(FileTooOldThresholdSeconds), ' seconds, deleting: ', CoordinationSummaryFQN]);
+            delete(CoordinationSummaryFQN);
+        else
+            % touch the file, not changing a thing, do this to update the
+            % modification date for each fnAnalyzeJointTrials call in a set
+            tmp_fid = fopen(CoordinationSummaryFQN, 'r+');
+            byte = fread(tmp_fid, 1);
+            fseek(tmp_fid, 0, 'bof');
+            fwrite(tmp_fid, byte);
+            fclose(tmp_fid);
+        end       
     end
 end
 
@@ -400,8 +417,9 @@ for iGroup = 1 : length(GroupNameList)
             info.isOwnChoiceArrayHeader = {'A', 'B'};
             info.sideChoiceObjectiveArrayHeader = {'A', 'B',};
             info.TrialSetsDescription = 'Structure of different sets of trials, wher the invidual sets are named';
-            outfilename = fullfile(OutputPath, ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice.mat']);
-            save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialSets');
+            outfilename = fullfile(OutputPath, 'CoordinationCheck', ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice.mat']);
+            mkdir(fullfile(OutputPath, 'CoordinationCheck'));
+            save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialSets', 'coordStruct');
         end
         
         if (SaveCoordinationSummary)
