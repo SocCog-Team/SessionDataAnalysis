@@ -352,19 +352,28 @@ for iGroup = 1 : length(GroupNameList)
     RightHandUsed_A(TrialSets.ByEffector.SideA.right)  = 1;
     RightHandUsed_B = zeros([NumTrials, 1]);
     RightHandUsed_B(TrialSets.ByEffector.SideB.right)  = 1;
+
     
     % show who was faster
+    % InitialHoldRelease (proximity sensors)
+    FasterInititialHoldRelease_A = zeros([NumTrials, 1]);
+    FasterInititialHoldRelease_A(TrialSets.ByFirstReaction.SideA.InitialHoldRelease) = 1;
+    FasterInititialHoldRelease_B = zeros([NumTrials, 1]);
+    FasterInititialHoldRelease_B(TrialSets.ByFirstReaction.SideB.InitialHoldRelease) = 1;
+    EqualInititialHoldRelease_AB = zeros([NumTrials, 1]);
+    EqualInititialHoldRelease_AB(TrialSets.ByFirstReaction.SideA.InitialHoldReleaseEqual) = 1;
+    
     % IntitialTargetRelease
     FasterInititialTargetRelease_A = zeros([NumTrials, 1]);
     FasterInititialTargetRelease_A(TrialSets.ByFirstReaction.SideA.InitialTargetRelease) = 1;
-    FasterTargetAcquisition_A = zeros([NumTrials, 1]);
-    FasterTargetAcquisition_A(TrialSets.ByFirstReaction.SideA.TargetAcquisition) = 1;
+    FasterInititialTargetRelease_B = zeros([NumTrials, 1]);
+    FasterInititialTargetRelease_B(TrialSets.ByFirstReaction.SideB.InitialTargetRelease) = 1;
     EqualInititialTargetRelease_AB = zeros([NumTrials, 1]);
     EqualInititialTargetRelease_AB(TrialSets.ByFirstReaction.SideA.InitialTargetReleaseEqual) = 1;
     
     % TargetAcquisition
-    FasterInititialTargetRelease_B = zeros([NumTrials, 1]);
-    FasterInititialTargetRelease_B(TrialSets.ByFirstReaction.SideB.InitialTargetRelease) = 1;
+    FasterTargetAcquisition_A = zeros([NumTrials, 1]);
+    FasterTargetAcquisition_A(TrialSets.ByFirstReaction.SideA.TargetAcquisition) = 1;
     FasterTargetAcquisition_B = zeros([NumTrials, 1]);
     FasterTargetAcquisition_B(TrialSets.ByFirstReaction.SideB.TargetAcquisition) = 1;
     EqualTargetAcquisition_AB = zeros([NumTrials, 1]);
@@ -455,10 +464,11 @@ for iGroup = 1 : length(GroupNameList)
     
     % we need to have JointTrialX_Vector available
     % Who is faster
-    StackedXData = {[FasterInititialTargetRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialTargetRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialTargetRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
+    StackedXData = {[FasterInititialHoldRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialHoldRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialHoldRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
+        [FasterInititialTargetRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialTargetRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialTargetRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
         [FasterTargetAcquisition_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterTargetAcquisition_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualTargetAcquisition_AB(GoodTrialsIdx(JointTrialX_Vector)))]};
-    StackedRightEffectorColor = {[SideAColor; SideBColor; SideABEqualRTColor]; [SideAColor; SideBColor; SideABEqualRTColor]};
-    StackedRightEffectorBGTransparency = {[0.5]; [1.0]};
+    StackedRightEffectorColor = {[SideAColor; SideBColor; SideABEqualRTColor]; [SideAColor; SideBColor; SideABEqualRTColor]; [SideAColor; SideBColor; SideABEqualRTColor]};
+    StackedRightEffectorBGTransparency = {[0.33]; [0.66]; [1.0]};
     
     % for each trial figure out who selected the right target
     SubjectiveSideStackedXData = {[~SubjectiveLeftTargetSelected_A(GoodTrialsIdx(JointTrialX_Vector)) * 2]; [~SubjectiveLeftTargetSelected_B(GoodTrialsIdx(JointTrialX_Vector)) * 2]};

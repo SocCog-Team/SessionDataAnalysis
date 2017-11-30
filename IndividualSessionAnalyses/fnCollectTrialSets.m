@@ -398,7 +398,34 @@ TrialSets.ByChoice.SideB.SameTarget = intersect(TmpSameIdx, TrialSets.ByJointnes
 TrialSets.ByChoice.SameTarget = intersect(TrialSets.ByChoice.SideA.SameTarget, TrialSets.ByChoice.SideB.SameTarget);
 
 
+
+
+
 % Reaction Times:
+% InitialHoldRelease
+TmpInititalHoldReleased_A = find(LogStruct.data(:, LogStruct.cn.A_HoldReleaseTime_ms) > 0.0);
+TmpInititalHoldReleased_B = find(LogStruct.data(:, LogStruct.cn.B_HoldReleaseTime_ms) > 0.0);
+% if the other side had a time of 0.0 no touch or release happened and the
+% current side, if > 0.0 is trivially faster
+TmpOnly_A = setdiff(TmpInititalHoldReleased_A, TmpInititalHoldReleased_B);
+TmpOnly_B = setdiff(TmpInititalHoldReleased_B, TmpInititalHoldReleased_A);
+% the joint trials with InitialTargetRekeases for both sides
+TmpJointTrials = intersect(TmpInititalHoldReleased_A, TmpInititalHoldReleased_B);
+TmpDeltaT = LogStruct.data(TmpJointTrials, LogStruct.cn.A_HoldReleaseTime_ms) - LogStruct.data(TmpJointTrials, LogStruct.cn.B_HoldReleaseTime_ms);
+TmpSideA_faster_idx = find(TmpDeltaT < 0);
+TmpSideB_faster_idx = find(TmpDeltaT > 0);
+TmpBothSidesEquallyFast_idx = find(TmpDeltaT == 0);
+
+% who was faster...
+TrialSets.ByFirstReaction.SideA.InitialHoldRelease = union(TmpOnly_A, TmpJointTrials(TmpSideA_faster_idx));
+TrialSets.ByFirstReaction.SideB.InitialHoldRelease = union(TmpOnly_B, TmpJointTrials(TmpSideB_faster_idx));
+% or equal
+TrialSets.ByFirstReaction.SideA.InitialHoldReleaseEqual = TmpJointTrials(TmpBothSidesEquallyFast_idx);
+TrialSets.ByFirstReaction.SideB.InitialHoldReleaseEqual = TmpJointTrials(TmpBothSidesEquallyFast_idx);
+
+
+
+% InitialFixationRelease
 TmpInititalTargetReleased_A = find(LogStruct.data(:, LogStruct.cn.A_InitialFixationReleaseTime_ms) > 0.0);
 TmpInititalTargetReleased_B = find(LogStruct.data(:, LogStruct.cn.B_InitialFixationReleaseTime_ms) > 0.0);
 % if the other side had a time of 0.0 no touch or release happened and the
@@ -421,6 +448,9 @@ TrialSets.ByFirstReaction.SideA.InitialTargetReleaseEqual = TmpJointTrials(TmpBo
 TrialSets.ByFirstReaction.SideB.InitialTargetReleaseEqual = TmpJointTrials(TmpBothSidesEquallyFast_idx);
 
 
+
+
+% TargetAcquisition
 TmpTargetTouched_A = find(LogStruct.data(:, LogStruct.cn.A_TargetTouchTime_ms) > 0.0);
 TmpTargetTouched_B = find(LogStruct.data(:, LogStruct.cn.B_TargetTouchTime_ms) > 0.0);
 % if the other side had a time of 0.0 no touch or release happened and the
