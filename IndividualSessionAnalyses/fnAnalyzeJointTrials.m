@@ -5,15 +5,32 @@ function [ output ] = fnAnalyzeJointTrials( SessionLogFQN, OutputBasePath, DataS
 % TODO:
 %   add statistics test for average reward lines versus 2.5 (chance)
 %   add statistics test for SOCA and SOCB for joint trials
-%   add indicator which hand was used for the time series plots
 %   add plots of reaction times/reaction time differences
 %   create multi plot figure with vertical stacks of plots (so the timeline is aligned in parallel)
-%   promote fnPlotBackgroundByCategory into its own file in the
-%   AuxiliaryFunctions repository
+%   Create new RT plot, showing the histogramms for the A-B RTs for the
+%       four SameDiff/OwnOther combinations
+%   Add correlation analysis comparing:
+%       the real choice with synthetic choice vectors for simple strategies
+%           (like win stay, loose switch both for position and color)
+%       look at windowed correlations with HP stategy blocks
+
+%   Trial based Analysis:
+%   Try to predict the current choice, based on:
+%       a) stimulus display
+%       b) choice of other player
+%       c) choice of the actor in last trial(s)
+%       d) choice of other actor in last trial(s)
+%   ANOVA?
+%   Create plot showing categorical information for all trials
+
 %
 % DONE:
 %   add grand average lines for SOC and AR plots
 %   also execute for non-joint trials (of sessions with joint trials)
+%   add indicator which hand was used for the time series plots
+%   promote fnPlotBackgroundByCategory into its own file in the
+%       AuxiliaryFunctions repository
+
 
 output = [];
 ProcessReactionTimes = 1; % needs work...
@@ -55,13 +72,19 @@ RightTargColorB = ([0 128 0] / 255);
 NoTargColorB = [1 0 0]; % these should not exist so make them stick out
 LeftTransparencyB = 0.5;
 
+SameOwnAColor = [1 0 0];
+SameOwnBColor = ([255 165 0] / 255);
+DiffOwnColor = [0 1 0];
+DiffOtherColor = [0 0 1];
+
+
 
 % FIXME legend plotting is incomplete as it will also take patch objects
 % into account, so best plot the backgrounds last, but that requires the
 % ability to send the most recent plot to the back of an axis set
 PlotLegend = 0; % add a lengend to the plots?
 
-PlotRTBySameness = 0;
+PlotRTBySameness = 1;
 
 
 % this allows the caller to specify the Output directory
@@ -152,33 +175,69 @@ GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumCho
 GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
 GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.DualSubjectJointTrials);     % exclude non-joint trials
 GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'JointTrials';
+GroupNameList{end+1} = 'IC_JointTrials';
 
 % Solo trials are trials with another actor present, but not playing
 GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
 GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
 GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideA.SoloSubjectTrials);     % exclude non-joint trials
 GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'SoloTrialsSideA';
+GroupNameList{end+1} = 'IC_SoloTrialsSideA';
 
 GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
 GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
 GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideB.SoloSubjectTrials);     % exclude non-joint trials
 GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'SoloTrialsSideB';
+GroupNameList{end+1} = 'IC_SoloTrialsSideB';
 
 % SingleSubject trials are fom single subject sessions
 GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
 GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
 GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideA.SingleSubjectTrials);     % exclude non-joint trials
 GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'SingleSubjectTrialsSideA';
+GroupNameList{end+1} = 'IC_SingleSubjectTrialsSideA';
 
 GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
 GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
 GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideB.SingleSubjectTrials);     % exclude non-joint trials
 GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'SingleSubjectTrialsSideB';
+GroupNameList{end+1} = 'IC_SingleSubjectTrialsSideB';
+
+
+%%% free choice
+% only look at successfull choice trials
+GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
+GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.DualSubjectJointTrials);     % exclude non-joint trials
+GroupTrialIdxList{end+1} = GoodTrialsIdx;
+GroupNameList{end+1} = 'FC_JointTrials';
+
+% Solo trials are trials with another actor present, but not playing
+GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
+GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideA.SoloSubjectTrials);     % exclude non-joint trials
+GroupTrialIdxList{end+1} = GoodTrialsIdx;
+GroupNameList{end+1} = 'FC_SoloTrialsSideA';
+
+GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
+GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideB.SoloSubjectTrials);     % exclude non-joint trials
+GroupTrialIdxList{end+1} = GoodTrialsIdx;
+GroupNameList{end+1} = 'FC_SoloTrialsSideB';
+
+% SingleSubject trials are fom single subject sessions
+GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
+GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideA.SingleSubjectTrials);     % exclude non-joint trials
+GroupTrialIdxList{end+1} = GoodTrialsIdx;
+GroupNameList{end+1} = 'FC_SingleSubjectTrialsSideA';
+
+GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
+GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideB.SingleSubjectTrials);     % exclude non-joint trials
+GroupTrialIdxList{end+1} = GoodTrialsIdx;
+GroupNameList{end+1} = 'FC_SingleSubjectTrialsSideB';
+
 
 
 
@@ -380,6 +439,17 @@ for iGroup = 1 : length(GroupNameList)
     EqualTargetAcquisition_AB(TrialSets.ByFirstReaction.SideA.TargetAcquisitionEqual) = 1;
     
     
+    % reaction times
+    A_InitialHoldReleaseRT = DataStruct.data(:, DataStruct.cn.A_HoldReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_InitialFixationOnsetTime_ms);
+    B_InitialHoldReleaseRT = DataStruct.data(:, DataStruct.cn.B_HoldReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_InitialFixationOnsetTime_ms);
+    
+    A_InitialTargetReleaseRT = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
+    B_InitialTargetReleaseRT = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
+    
+    A_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
+    B_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
+
+    
     % Anton's coordination test
     if ~(IsSoloGroup)
         NumExplorationTrials = 49;
@@ -428,7 +498,10 @@ for iGroup = 1 : length(GroupNameList)
             info.TrialSetsDescription = 'Structure of different sets of trials, wher the invidual sets are named';
             outfilename = fullfile(OutputPath, 'CoordinationCheck', ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice.mat']);
             mkdir(fullfile(OutputPath, 'CoordinationCheck'));
-            save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialSets', 'coordStruct');
+            
+            isOwnChoice = isOwnChoiceArray;
+            isBottomChoice = sideChoiceObjectiveArray;
+            save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialSets', 'coordStruct', 'isOwnChoice', 'isBottomChoice');
         end
         
         if (SaveCoordinationSummary)
@@ -819,11 +892,11 @@ for iGroup = 1 : length(GroupNameList)
     if (PlotRTBySameness)
         
         % select the relvant data points:
-        InitialTargetReleaseRT_A = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
-        InitialTargetReleaseRT_B = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
+        %InitialTargetReleaseRT_A = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
+        %InitialTargetReleaseRT_B = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
         
-        TargetAcquisitionRT_A = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
-        TargetAcquisitionRT_B = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
+        %TargetAcquisitionRT_A = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
+        %TargetAcquisitionRT_B = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
         
         
         Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimesBySameness');
@@ -834,26 +907,35 @@ for iGroup = 1 : length(GroupNameList)
         hold on
         
         % create the subsets: same own A, same own B, diff own, diff other
-        SameOwnA_idx = find((PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0));
-        SameOwnB_idx = find((PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1));
-        DiffOwn_idx = find((PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1));
-        DiffOther_idx = find((PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0));
+        SameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0);
+        SameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1);
+        DiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1);
+        DiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0);
         
-        SameDiffSets = {SameOwnA_idx, SameOwnB_idx, DiffOwn_idx, DiffOther_idx};
-        SameDiffSetsNames = {'SameOwnA', 'SameOwnB', 'DiffOwn', 'DiffOther'};
-        %SameDiffSetsColors =
+        set(gca(), 'YLim', [0.0, 1500.0]);  % the timeout is 1500 so this should fit all possible RTs?
+        y_lim = get(gca(), 'YLim');
+        
+        
+        % use this as background
+        StackedSameDiffCatXData = {[SameOwnA_lidx(GoodTrialsIdx(JointTrialX_Vector))...
+                                    + (2 * SameOwnB_lidx(GoodTrialsIdx(JointTrialX_Vector))) ...
+                                    + (3 * DiffOwn_lidx(GoodTrialsIdx(JointTrialX_Vector))) ...
+                                    + (4 * DiffOther_lidx(GoodTrialsIdx(JointTrialX_Vector)))]};
+        
+        StackedSameDiffCatColor = {[SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor]};
+        StackedSameDiffCatBGTransparency = {[0.33]};
+
+         fnPlotStackedCategoriesAtPositionWrapper('StackedBottomToTop', 0.15, StackedSameDiffCatXData, y_lim, StackedSameDiffCatColor, StackedSameDiffCatBGTransparency);
         
         if (ProcessSideA)
-            for iSameDiffSet = 1 : length(SameDiffSets)
-                CurrentTrialSubset = SameDiffSets{iSameDiffSet};
-                CurrentTrialSubset = intersect(CurrentTrialSubset, GoodTrialsIdx(JointTrialX_Vector));
-                % get the x vector
-                
-                plot
-                
-            end
+            plot(JointTrialX_Vector, A_InitialHoldReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor/3), 'LineWidth', 2);
+            plot(JointTrialX_Vector, A_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (2*SideAColor/3), 'LineWidth', 2);
+            plot(JointTrialX_Vector, A_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor), 'LineWidth', 2);
         end
         if (ProcessSideB)
+            plot(JointTrialX_Vector, B_InitialHoldReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideBColor/3), 'LineWidth', 2);
+            plot(JointTrialX_Vector, B_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (2*SideBColor/3), 'LineWidth', 2);
+            plot(JointTrialX_Vector, B_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideBColor), 'LineWidth', 2);
         end
         
         
@@ -861,7 +943,7 @@ for iGroup = 1 : length(GroupNameList)
         %
         set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
         %set(gca(), 'YLim', [0.0, 1.0]);
-        set(gca(), 'YTick', [0, 0.25, 0.5, 0.75, 1]);
+        set(gca(), 'YTick', [0, 250, 500, 750, 1000, 1250 1500]);
         set(gca(),'TickLabelInterpreter','none');
         xlabel( 'Number of trial');
         ylabel( 'Reaction time [ms]');
