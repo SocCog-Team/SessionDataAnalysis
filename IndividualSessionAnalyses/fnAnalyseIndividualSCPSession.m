@@ -35,7 +35,7 @@ CleanOutputDir = 0;
 TitleSeparator = '_';
 ProcessJointTrialsOnly = 0;
 
-[PathStr, FileName, ~] = fileparts(SessionLogFQN);
+[PathStr, FileName, SessionLogExt] = fileparts(SessionLogFQN);
 if isempty(OutputBasePath)
     OutputPath = fullfile(PathStr, 'Analysis');
 else
@@ -57,7 +57,7 @@ if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
     DataStruct = tmpDataStruct.report_struct;
     clear tmpDataStruct;
 else
-    DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName '.log']));
+    DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]));
     %save(matFilename, 'DataStruct'); % fnParseEventIDEReportSCPv06 saves by default
 end
 
