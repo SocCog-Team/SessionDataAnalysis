@@ -12,6 +12,9 @@ RunSingleSessionAnalysis = 1;
 CurrentAnalysisSetName = 'SCP00';
 % NHP subjects
 CurrentAnalysisSetName = 'SCP01';
+
+CurrentAnalysisSetName = 'SCP_DATA';
+
 % %CurrentAnalysisSetName = 'LabRetreat2017';
 % CurrentAnalysisSetName = 'LabRetreat2017FC';    % Free Choice
 % CurrentAnalysisSetName = 'LabRetreat2017IC';    % Informed Choice
@@ -26,6 +29,8 @@ override_directive = 'local_code';
 override_directive = 'local';
 
 SCPDirs = GetDirectoriesByHostName(override_directive);
+LogFileWildCardString2018 = '*.triallog.txt';   % new file extension to allow better wildcarding and better typing
+
 switch CurrentAnalysisSetName
     case {'SCP01'}
         experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
@@ -34,6 +39,9 @@ switch CurrentAnalysisSetName
         % the human data
         experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-00', 'SCP_DATA', 'SCP-CTRL-00', 'SESSIONLOGS');
         LogFileWildCardString = '*SCP_00.log';
+    case {'SCP_DATA'}
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
+        LogFileWildCardString = '*.triallog.txt';
     case {'LabRetreat2017'}
         % data for the lab retreat 2017 presentation        
         experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, '..', 'Projects', 'LabReatreat2017_BvS', 'LogFiles');
@@ -93,6 +101,9 @@ ExperimentFileFQN_list = [];
 if isempty(ExperimentFileFQN_list)
     disp(['Trying to find all logfiles in ', experimentFolder]);
     experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
+    % merge old with new (remove once all old files have been renamed)
+    experimentFile2018 = find_all_files(experimentFolder, LogFileWildCardString2018, 0);
+    experimentFile(end+1:end+length(experimentFile2018)) = experimentFile2018;
 else
     experimentFile = ExperimentFileFQN_list;
 end    
