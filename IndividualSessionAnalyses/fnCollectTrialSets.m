@@ -197,26 +197,36 @@ for iEffector = 1 : length(ReachEffectorsList)
 	TrialSets.ByEffector.(CurrentEffectorName) = union(A_TrialsOfCurrentEffectorIdx, B_TrialsOfCurrentEffectorIdx);
 end
 
-RewardFunctionsList = fnUnsortedUnique([LogStruct.unique_lists.A_RewardFunctionENUM; LogStruct.unique_lists.B_RewardFunctionENUM]);
-for iRewardFunction = 1 : length(RewardFunctionsList)
-	CurrentRewardFunctionName = RewardFunctionsList{iRewardFunction};
-	CurrentRewardFunctionIdx = iRewardFunction;
-	
-	if ~isempty(CurrentRewardFunctionIdx)
-		A_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.A_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
-	else
-		A_TrialsOfCurrentRewardFunctionIdx = [];
-	end
-	if ~isempty(CurrentRewardFunctionIdx)
-		B_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.B_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
-	else
-		B_TrialsOfCurrentRewardFunctionIdx = [];
-	end
-	TrialSets.ByRewardFunction.SideA.(CurrentRewardFunctionName) = A_TrialsOfCurrentRewardFunctionIdx;
-	TrialSets.ByRewardFunction.SideB.(CurrentRewardFunctionName) = B_TrialsOfCurrentRewardFunctionIdx;
-	TrialSets.ByRewardFunction.(CurrentRewardFunctionName) = union(A_TrialsOfCurrentRewardFunctionIdx, B_TrialsOfCurrentRewardFunctionIdx);
-end
 
+
+if isfield(LogStruct.unique_lists, 'A_RewardFunctionENUM') && isfield(LogStruct.unique_lists, 'B_RewardFunctionENUM')
+    RewardFunctionsList = fnUnsortedUnique([LogStruct.unique_lists.A_RewardFunctionENUM; LogStruct.unique_lists.B_RewardFunctionENUM]);
+    
+    for iRewardFunction = 1 : length(RewardFunctionsList)
+        CurrentRewardFunctionName = RewardFunctionsList{iRewardFunction};
+        CurrentRewardFunctionIdx = iRewardFunction;
+        
+        if ~isempty(CurrentRewardFunctionIdx)
+            A_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.A_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
+        else
+            A_TrialsOfCurrentRewardFunctionIdx = [];
+        end
+        if ~isempty(CurrentRewardFunctionIdx)
+            B_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.B_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
+        else
+            B_TrialsOfCurrentRewardFunctionIdx = [];
+        end
+        TrialSets.ByRewardFunction.SideA.(CurrentRewardFunctionName) = A_TrialsOfCurrentRewardFunctionIdx;
+        TrialSets.ByRewardFunction.SideB.(CurrentRewardFunctionName) = B_TrialsOfCurrentRewardFunctionIdx;
+        TrialSets.ByRewardFunction.(CurrentRewardFunctionName) = union(A_TrialsOfCurrentRewardFunctionIdx, B_TrialsOfCurrentRewardFunctionIdx);
+    end
+else
+    % old experiments only had reward specification by side in the GUI
+    RewardFunctionsList = {'GUI'}';
+    TrialSets.ByRewardFunction.SideA.GUI = TrialSets.All;
+    TrialSets.ByRewardFunction.SideB.GUI = TrialSets.All;
+    TrialSets.ByRewardFunction.GUI = TrialSets.All;
+end
 
 if isfield(LogStruct, 'SessionByTrial')
     if isfield(LogStruct.SessionByTrial.unique_lists, 'TouchTargetPositioningMethod')
@@ -306,7 +316,11 @@ if isfield(TrialSets.ByName, 'Magnus')
     end
     TrialSets.ByEffector.left = union(TrialSets.ByEffector.SideA.left, TrialSets.ByEffector.SideB.left);
     TrialSets.ByEffector.right = union(TrialSets.ByEffector.SideA.right, TrialSets.ByEffector.SideB.right);
-    disp([LogStruct.LoggingInfo.SessionFQN, ': fixed up effector hand for Magnus']);
+    if ~isempty(LogStruct.LoggingInfo) && isfield(LogStruct.LoggingInfo, 'SessionFQN')
+        disp([LogStruct.LoggingInfo.SessionFQN, ': fixed up effector hand for Magnus']);
+    else
+        disp([LogStruct.info.logfile_FQN, ': fixed up effector hand for Magnus']);
+    end
 end
 
 
