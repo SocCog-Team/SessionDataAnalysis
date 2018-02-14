@@ -354,8 +354,17 @@ if (isfield(TrialSets.ByRewardFunction, 'BOSMATRIXV01'))
 end
 % note that for the DirectFreeGazeReaches trials we store the randomised
 % position as the selected.
-A_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_Y) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels) & (abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_X) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels));
-B_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, LogStruct.cn.B_RandomizedTargetPosition_Y) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels) & (abs(LogStruct.data(:, LogStruct.cn.B_RandomizedTargetPosition_X) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels));
+if isfield(LogStruct.cn, 'A_RandomizedTargetPosition_Y') && isfield(LogStruct.cn, 'A_RandomizedTargetPosition_X')
+    A_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_Y) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels) & (abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_X) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels));
+else
+    A_SelectedTargetEqualsRandomizedTargetTrialIdx = [];
+end
+if isfield(LogStruct.cn, 'B_RandomizedTargetPosition_Y') && isfield(LogStruct.cn, 'B_RandomizedTargetPosition_X')
+    B_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, LogStruct.cn.B_RandomizedTargetPosition_Y) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels) & (abs(LogStruct.data(:, LogStruct.cn.B_RandomizedTargetPosition_X) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels));
+else
+    B_SelectedTargetEqualsRandomizedTargetTrialIdx = [];
+end
+
 % now only take those trials in which a subject actually touched the target
 A_SelectedTargetEqualsRandomizedTargetTrialIdx = intersect(A_SelectedTargetEqualsRandomizedTargetTrialIdx, find(LogStruct.data(:, LogStruct.cn.A_TargetTouchTime_ms) > 0.0));
 B_SelectedTargetEqualsRandomizedTargetTrialIdx = intersect(B_SelectedTargetEqualsRandomizedTargetTrialIdx, find(LogStruct.data(:, LogStruct.cn.B_TargetTouchTime_ms) > 0.0));
