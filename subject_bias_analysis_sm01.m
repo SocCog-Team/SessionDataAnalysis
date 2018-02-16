@@ -5,7 +5,7 @@ FontSize = 18;
 LineWidth = 1.2;
 
 
-ProcessNewestFirst = 0;
+ProcessNewestFirst = 1;
 RunSingleSessionAnalysis = 1;
 
 % human subjects
@@ -26,22 +26,26 @@ CurrentAnalysisSetName = 'SCP_DATA';
 %experimentFolder = '201705ReachBiasData\\SCP-CTRL-01\\SESSIONLOGS\\';
 %experimentFolder = fullfile('201705ReachBiasData', 'SCP-CTRL-01', 'SESSIONLOGS');
 override_directive = 'local_code';
-%override_directive = 'local';
+override_directive = 'local';
 
 SCPDirs = GetDirectoriesByHostName(override_directive);
 LogFileWildCardString2018 = '*.triallog.txt';   % new file extension to allow better wildcarding and better typing
 
 switch CurrentAnalysisSetName
+    case {'SCP_DATA'}
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA');
+        LogFileWildCardString = '*.triallog.txt';
+        
     case {'SCP01'}
         experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
         LogFileWildCardString = '*SCP_01.log';
+        
     case {'SCP00'}
         % the human data
         experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-00', 'SCP_DATA', 'SCP-CTRL-00', 'SESSIONLOGS');
         LogFileWildCardString = '*SCP_00.log';
-    case {'SCP_DATA'}
-        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
-        LogFileWildCardString = '*.triallog.txt';
+        
     case {'LabRetreat2017'}
         % data for the lab retreat 2017 presentation        
         experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, '..', 'Projects', 'LabReatreat2017_BvS', 'LogFiles');
