@@ -497,6 +497,28 @@ TrialSets.ByFirstReaction.SideB.TargetAcquisitionEqual = TmpJointTrials(TmpBothS
 
 
 
+% was there a separator between the players
+% since the separation might by direction (if using the OLED) A_invisible
+% does not require B_invisible at the same time.
+% this assumes that without [A|B]_invisible being set, everything was
+% visible through the transparent screen.
+if (isfield(LogStruct.header, 'A_invisible'))
+    TrialSets.ByVisibility.SideA.A_invisible = find(LogStruct.data(:, LogStruct.cn.A_invisible) == 1);
+else
+    TrialSets.ByVisibility.SideA.A_invisible = [];
+end
+if (isfield(LogStruct.header, 'B_invisible'))
+    TrialSets.ByVisibility.SideB.B_invisible = find(LogStruct.data(:, LogStruct.cn.B_invisible) == 1);
+else
+    TrialSets.ByVisibility.SideB.B_invisible = [];
+end
+% since A_invisible is not necessarily equal to B_invisible
+TrialSets.ByVisibility.AB_invisible = intersect(TrialSets.ByVisibility.SideA.A_invisible, TrialSets.ByVisibility.SideB.B_invisible);
+
+
+
+
+
 return
 end
 
