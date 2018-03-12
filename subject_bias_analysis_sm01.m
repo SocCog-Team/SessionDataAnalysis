@@ -1,5 +1,16 @@
 function [] = subject_bias_analysis_sm01()
 clear variables;
+
+timestamps.(mfilename).start = tic;
+disp(['Starting: ', mfilename]);
+dbstop if error
+fq_mfilename = mfilename('fullpath');
+mfilepath = fileparts(fq_mfilename);
+
+copy_triallogs_to_outputdir = 0;
+
+
+
 N_PLAYERS = 2;
 FontSize = 18;
 LineWidth = 1.2;
@@ -14,6 +25,8 @@ CurrentAnalysisSetName = 'SCP00';
 CurrentAnalysisSetName = 'SCP01';
 
 CurrentAnalysisSetName = 'SCP_DATA';
+
+CurrentAnalysisSetName = 'PrimateNeurobiology2018DPZ';
 
 % %CurrentAnalysisSetName = 'LabRetreat2017';
 % CurrentAnalysisSetName = 'LabRetreat2017FC';    % Free Choice
@@ -32,6 +45,13 @@ SCPDirs = GetDirectoriesByHostName(override_directive);
 LogFileWildCardString2018 = '*.triallog.txt';   % new file extension to allow better wildcarding and better typing
 
 switch CurrentAnalysisSetName
+    
+    case {'PrimateNeurobiology2018DPZ'}
+        experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA');
+        % to speed things up collect the selected sessuins triallog files
+        experimentFolder = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'Projects', 'ProgressReportsAndPresentations', 'PrimateNeurobiology2018_TUE', 'ANALYSES', 'UsedTriallogFiles');        
+        LogFileWildCardString = '*.triallog.txt';        
+    
     case {'SCP_DATA'}
         experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
         experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA');
@@ -74,8 +94,13 @@ switch CurrentAnalysisSetName
     otherwise
         error(['Encountered yet unhandled set up numer ', num2str(CurrentSetUpNum), ' stopping.']);
 end
-
 SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES', SCPDirs.CurrentShortHostName);
+
+if strcmp(CurrentAnalysisSetName, 'PrimateNeurobiology2018DPZ')
+    % for PrimNeuro2018, /space/data_local/moeller/DPZ/Projects/ProgressReportsAndPresentations/PrimateNeurobiology2018_TUE/
+    SCPDirs.OutputDir = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'Projects', 'ProgressReportsAndPresentations', 'PrimateNeurobiology2018_TUE', 'ANALYSES');
+end
+
 % no time information
 TmpOutBaseDir = [];
 % full time resolution
@@ -118,6 +143,8 @@ ExcludeWildCardList = {'_TESTVERSIONS', '20170106', '201701', '201702', '201703'
 ExcludeWildCardList = {'ANALYSES', '201701', '201702', '201703', '20170403', '20170404', '20170405', '20170406', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
 ExcludeWildCardList = {'ANALYSES', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
 
+ExcludeWildCardList = {'201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
+
 IncludedFilesIdx = [];
 for iFile = 1 : length(experimentFile)
 	TmpIdx = [];
@@ -138,15 +165,22 @@ if (ProcessNewestFirst)
 	experimentFile = experimentFile(end:-1:1);
 end
 
-
-
-
 out_list = {};
 
 if (RunSingleSessionAnalysis)
 	for iSession = 1 : length(experimentFile)
-		CurentSessionLogFQN = experimentFile{iSession};
-		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir);
+        CurentSessionLogFQN = experimentFile{iSession};
+        
+        if (copy_triallogs_to_outputdir)
+            [~, current_name, current_ext] = fileparts(CurentSessionLogFQN);
+            tmp_out_path = fullfile(TmpOutBaseDir, 'triallogs');
+            if isempty(dir(tmp_out_path)),
+                mkdir(tmp_out_path);
+            end
+            copyfile(CurentSessionLogFQN, fullfile(tmp_out_path, [current_name, current_ext]));
+        end
+        
+        out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir);
         if ~isempty(out)
             out_list{end+1} = out;
         end
@@ -157,6 +191,13 @@ end
 % loop over all cells of out and create meaningful performance plots (show perf in %)
 disp(['Saving summary as ', fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat'])]);
 save(fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat']), 'out_list');
+
+
+
+% how long did it take?
+timestamps.(mfilename).end = toc(timestamps.(mfilename).start);
+disp([mfilename, ' took: ', num2str(timestamps.(mfilename).end), ' seconds.']);
+disp([mfilename, ' took: ', num2str(timestamps.(mfilename).end / 60), ' minutes. Done...']);
 
 
 return
