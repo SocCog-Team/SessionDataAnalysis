@@ -39,18 +39,29 @@ CLoseFiguresOnReturn = 1;
 CleanOutputDir = 0;
 SaveMat4CoordinationCheck = 1;
 SaveCoordinationSummary = 1;
+
+process_IC = 1;
+process_FC = 0;
+
 CoordinationSummaryFileName = 'CoordinationSummary.txt';
 
 TitleSeparator = '_';
 
 OutPutType = 'pdf';
+output_rect_fraction = 0.5; % default 0.5
+
+project_name = 'PrimateNeurobiology2018DPZ';
+
+DefaultAxesType = 'PrimateNeurobiology2018DPZ'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+
+
 
 [PathStr, FileName, ~] = fileparts(SessionLogFQN);
 
 ShowEffectorHandInBackground = 1;
 ShowFasterSideInBackground = 1;
 ShowSelectedSidePerSubjectInRewardPlotBG = 1;
-
 
 coordination_alpha = 0.05;  % the alpha value for all the tests for coordination
 RightEffectorColor = [0.75, 0.75, 0.75];
@@ -61,6 +72,10 @@ SideBColor = [0 0 1];
 SideABColor = [1 0 1];
 SideABEqualRTColor = [1 1 1];
 
+% INVISIBILITY/PARTIAL VIEW BLOCKING
+ShowInvisibility = 1;
+InvisibilityColor = [0.5 0.5 0.5];
+InvisibitiltyTransparency = 0.5;
 
 LeftTargColorA = [1 1 1];
 RightTargColorA = ([255 165 0] / 255);
@@ -86,6 +101,25 @@ PlotLegend = 0; % add a lengend to the plots?
 
 PlotRTBySameness = 1;
 
+PlotRTHistograms = 1;
+Plot_RT_differences = 0;
+Plot_RT_difference_histogram = 1;
+histnorm_string = 'count'; % count, probability, pdf, cdf
+histdisplaystyle_string = 'stairs';% bar, stairs
+histogram_RT_type_string = 'TargetAcquisitionRT';% InitialHoldReleaseRT, InitialTargetReleaseRT, TargetAcquisitionRT
+histogram_bin_width_ms = 40;
+histogram_edges = (0:histogram_bin_width_ms:1500);
+histogram_diff_edges = (-750:histogram_bin_width_ms:750);
+histogram_show_median = 1;
+histogram_use_histogram_func = 0;
+
+switch project_name
+    case 'PrimateNeurobiology2018DPZ'
+        ShowSelectedSidePerSubjectInRewardPlotBG = 1;
+        ShowEffectorHandInBackground = 0;
+        project_line_width = 2;
+        show_coordination_results_in_fig_title = 0;
+end
 
 % this allows the caller to specify the Output directory
 if ~exist('OutputBasePath', 'var')
@@ -140,7 +174,7 @@ if (SaveCoordinationSummary)
             fseek(tmp_fid, 0, 'bof');
             fwrite(tmp_fid, byte);
             fclose(tmp_fid);
-        end       
+        end
     end
 end
 
@@ -170,74 +204,78 @@ end
 GroupNameList = {};
 GroupTrialIdxList = {};
 
-% only look at successfull choice trials
-GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.DualSubjectJointTrials);     % exclude non-joint trials
-GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'IC_JointTrials';
+if (process_IC)
+    
+    % only look at successfull choice trials
+    GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.DualSubjectJointTrials);     % exclude non-joint trials
+    GroupTrialIdxList{end+1} = GoodTrialsIdx;
+    GroupNameList{end+1} = 'IC_JointTrials';
+    
+    % Solo trials are trials with another actor present, but not playing
+    GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideA.SoloSubjectTrials);     % exclude non-joint trials
+    GroupTrialIdxList{end+1} = GoodTrialsIdx;
+    GroupNameList{end+1} = 'IC_SoloTrialsSideA';
+    
+    GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideB.SoloSubjectTrials);     % exclude non-joint trials
+    GroupTrialIdxList{end+1} = GoodTrialsIdx;
+    GroupNameList{end+1} = 'IC_SoloTrialsSideB';
+    
+    % SingleSubject trials are fom single subject sessions
+    GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideA.SingleSubjectTrials);     % exclude non-joint trials
+    GroupTrialIdxList{end+1} = GoodTrialsIdx;
+    GroupNameList{end+1} = 'IC_SingleSubjectTrialsSideA';
+    
+    GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideB.SingleSubjectTrials);     % exclude non-joint trials
+    GroupTrialIdxList{end+1} = GoodTrialsIdx;
+    GroupNameList{end+1} = 'IC_SingleSubjectTrialsSideB';
+end
 
-% Solo trials are trials with another actor present, but not playing
-GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideA.SoloSubjectTrials);     % exclude non-joint trials
-GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'IC_SoloTrialsSideA';
 
-GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideB.SoloSubjectTrials);     % exclude non-joint trials
-GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'IC_SoloTrialsSideB';
-
-% SingleSubject trials are fom single subject sessions
-GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideA.SingleSubjectTrials);     % exclude non-joint trials
-GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'IC_SingleSubjectTrialsSideA';
-
-GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.InformedTrials);             % exclude free choice
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideB.SingleSubjectTrials);     % exclude non-joint trials
-GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'IC_SingleSubjectTrialsSideB';
-
-
-%%% free choice
-% only look at successfull choice trials
-GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.DualSubjectJointTrials);     % exclude non-joint trials
-GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'FC_JointTrials';
-
-% Solo trials are trials with another actor present, but not playing
-GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideA.SoloSubjectTrials);     % exclude non-joint trials
-GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'FC_SoloTrialsSideA';
-
-GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideB.SoloSubjectTrials);     % exclude non-joint trials
-GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'FC_SoloTrialsSideB';
-
-% SingleSubject trials are fom single subject sessions
-GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideA.SingleSubjectTrials);     % exclude non-joint trials
-GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'FC_SingleSubjectTrialsSideA';
-
-GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
-GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideB.SingleSubjectTrials);     % exclude non-joint trials
-GroupTrialIdxList{end+1} = GoodTrialsIdx;
-GroupNameList{end+1} = 'FC_SingleSubjectTrialsSideB';
-
+if (process_FC)
+    %%% free choice
+    % only look at successfull choice trials
+    GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.DualSubjectJointTrials);     % exclude non-joint trials
+    GroupTrialIdxList{end+1} = GoodTrialsIdx;
+    GroupNameList{end+1} = 'FC_JointTrials';
+    
+    % Solo trials are trials with another actor present, but not playing
+    GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideA.SoloSubjectTrials);     % exclude non-joint trials
+    GroupTrialIdxList{end+1} = GoodTrialsIdx;
+    GroupNameList{end+1} = 'FC_SoloTrialsSideA';
+    
+    GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByJointness.SideB.SoloSubjectTrials);     % exclude non-joint trials
+    GroupTrialIdxList{end+1} = GoodTrialsIdx;
+    GroupNameList{end+1} = 'FC_SoloTrialsSideB';
+    
+    % SingleSubject trials are fom single subject sessions
+    GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideA.SingleSubjectTrials);     % exclude non-joint trials
+    GroupTrialIdxList{end+1} = GoodTrialsIdx;
+    GroupNameList{end+1} = 'FC_SingleSubjectTrialsSideA';
+    
+    GoodTrialsIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumChoices02);    % exclude trials with only one target (instructed reach, informed reach)
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByTrialType.DirectFreeGazeFreeChoice);             % exclude free choice
+    GoodTrialsIdx = intersect(GoodTrialsIdx, TrialSets.ByActivity.SideB.SingleSubjectTrials);     % exclude non-joint trials
+    GroupTrialIdxList{end+1} = GoodTrialsIdx;
+    GroupNameList{end+1} = 'FC_SingleSubjectTrialsSideB';
+end
 
 
 
@@ -411,7 +449,11 @@ for iGroup = 1 : length(GroupNameList)
     RightHandUsed_A(TrialSets.ByEffector.SideA.right)  = 1;
     RightHandUsed_B = zeros([NumTrials, 1]);
     RightHandUsed_B(TrialSets.ByEffector.SideB.right)  = 1;
-
+    
+    % the invisibitity, Invisible_A denotes that B can not see A
+    Invisible_A = ismember(TrialSets.All, TrialSets.ByVisibility.SideA.A_invisible);
+    Invisible_B = ismember(TrialSets.All, TrialSets.ByVisibility.SideB.B_invisible);
+    Invisible_AB = ismember(TrialSets.All, TrialSets.ByVisibility.AB_invisible);
     
     % show who was faster
     % InitialHoldRelease (proximity sensors)
@@ -442,16 +484,18 @@ for iGroup = 1 : length(GroupNameList)
     % reaction times
     A_InitialHoldReleaseRT = DataStruct.data(:, DataStruct.cn.A_HoldReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_InitialFixationOnsetTime_ms);
     B_InitialHoldReleaseRT = DataStruct.data(:, DataStruct.cn.B_HoldReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_InitialFixationOnsetTime_ms);
-
+    AB_InitialHoldReleaseRT_diff = A_InitialHoldReleaseRT - B_InitialHoldReleaseRT;
+        
     %A_InitialTargetNonAdjReleaseRT = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
     %B_InitialTargetNonAdjReleaseRT = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
-
+    
     A_InitialTargetReleaseRT = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
     B_InitialTargetReleaseRT = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
+    AB_InitialTargetReleaseRT_diff = A_InitialTargetReleaseRT - B_InitialTargetReleaseRT;
     
     A_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
     B_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
-
+    AB_TargetAcquisitionRT_diff = A_TargetAcquisitionRT - B_TargetAcquisitionRT;
     
     % Anton's coordination test
     if ~(IsSoloGroup)
@@ -546,6 +590,17 @@ for iGroup = 1 : length(GroupNameList)
     StackedRightEffectorColor = {[SideAColor; SideBColor; SideABEqualRTColor]; [SideAColor; SideBColor; SideABEqualRTColor]; [SideAColor; SideBColor; SideABEqualRTColor]};
     StackedRightEffectorBGTransparency = {[0.33]; [0.66]; [1.0]};
     
+    
+    % exclude the InititialHoldRelease as this is not that interesting
+    StackedXData = {[FasterInititialTargetRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialTargetRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialTargetRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
+        [FasterTargetAcquisition_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterTargetAcquisition_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualTargetAcquisition_AB(GoodTrialsIdx(JointTrialX_Vector)))]};
+    StackedRightEffectorColor = {[SideAColor; SideBColor; SideABEqualRTColor]; [SideAColor; SideBColor; SideABEqualRTColor]};
+    StackedRightEffectorBGTransparency = {[0.66]; [1.0]};
+    
+    
+    
+    
+    
     % for each trial figure out who selected the right target
     SubjectiveSideStackedXData = {[~SubjectiveLeftTargetSelected_A(GoodTrialsIdx(JointTrialX_Vector)) * 2]; [~SubjectiveLeftTargetSelected_B(GoodTrialsIdx(JointTrialX_Vector)) * 2]};
     SideStackedXData = {[~LeftTargetSelected_A(GoodTrialsIdx(JointTrialX_Vector)) * 2]; [~LeftTargetSelected_B(GoodTrialsIdx(JointTrialX_Vector)) * 2]};
@@ -565,27 +620,27 @@ for iGroup = 1 : length(GroupNameList)
     
     % the sideChoiceSubjectiveArray would deal with non left right
     % postioning methods
-%     % for each trial figure out who selected the right target
-%     SubjectiveSideStackedXData = {[~sideChoiceSubjectiveArray(1, JointTrialX_Vector) * 2]; [~sideChoiceSubjectiveArray(2, JointTrialX_Vector) * 2]};
-%     SideStackedXData = {[~sideChoiceObjectiveArray(1, JointTrialX_Vector) * 2]; [~sideChoiceObjectiveArray(2, JointTrialX_Vector) * 2]};
-%     SideStackedRightEffectorColor = {[LeftTargColorA; RightTargColorA; NoTargColorA]; [LeftTargColorB; RightTargColorB; NoTargColorB]};
-%     SideStackedRightEffectorBGTransparency = {[LeftTransparencyA]; [LeftTransparencyB]};
-%     if (ProcessSideA) && ~(ProcessSideB)
-%         SubjectiveSideStackedXData = SubjectiveSideStackedXData(1);
-%         SideStackedXData = SideStackedXData(1);
-%         SideStackedRightEffectorColor = SideStackedRightEffectorColor(1);
-%         SideStackedRightEffectorBGTransparency = SideStackedRightEffectorBGTransparency(1);
-%     elseif ~(ProcessSideA) && (ProcessSideB)
-%         SubjectiveSideStackedXData = SubjectiveSideStackedXData(2);
-%         SideStackedXData = SideStackedXData(2);
-%         SideStackedRightEffectorColor = SideStackedRightEffectorColor(2);
-%         SideStackedRightEffectorBGTransparency = SideStackedRightEffectorBGTransparency(2);
-%     end
+    %     % for each trial figure out who selected the right target
+    %     SubjectiveSideStackedXData = {[~sideChoiceSubjectiveArray(1, JointTrialX_Vector) * 2]; [~sideChoiceSubjectiveArray(2, JointTrialX_Vector) * 2]};
+    %     SideStackedXData = {[~sideChoiceObjectiveArray(1, JointTrialX_Vector) * 2]; [~sideChoiceObjectiveArray(2, JointTrialX_Vector) * 2]};
+    %     SideStackedRightEffectorColor = {[LeftTargColorA; RightTargColorA; NoTargColorA]; [LeftTargColorB; RightTargColorB; NoTargColorB]};
+    %     SideStackedRightEffectorBGTransparency = {[LeftTransparencyA]; [LeftTransparencyB]};
+    %     if (ProcessSideA) && ~(ProcessSideB)
+    %         SubjectiveSideStackedXData = SubjectiveSideStackedXData(1);
+    %         SideStackedXData = SideStackedXData(1);
+    %         SideStackedRightEffectorColor = SideStackedRightEffectorColor(1);
+    %         SideStackedRightEffectorBGTransparency = SideStackedRightEffectorBGTransparency(1);
+    %     elseif ~(ProcessSideA) && (ProcessSideB)
+    %         SubjectiveSideStackedXData = SubjectiveSideStackedXData(2);
+    %         SideStackedXData = SideStackedXData(2);
+    %         SideStackedRightEffectorColor = SideStackedRightEffectorColor(2);
+    %         SideStackedRightEffectorBGTransparency = SideStackedRightEffectorBGTransparency(2);
+    %     end
     
     
     Cur_fh_RewardOverTrials = figure('Name', 'RewardOverTrials');
-    fnFormatDefaultAxes('DPZ2017Evaluation');
-    [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
+    fnFormatDefaultAxes(DefaultAxesType);
+    [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
     set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
     legend_list = {};
     hold on
@@ -593,6 +648,11 @@ for iGroup = 1 : length(GroupNameList)
     set(gca(), 'YLim', [0.9, 4.1]);
     y_lim = get(gca(), 'YLim');
     
+    % mark all trials in which the visibility of the two sides was
+    % manipulated
+    if (ShowInvisibility)
+        fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+    end
     
     if (ShowSelectedSidePerSubjectInRewardPlotBG)
         fnPlotStackedCategoriesAtPositionWrapper('StackedBottomToTop', 0.15, SideStackedXData, y_lim, SideStackedRightEffectorColor, SideStackedRightEffectorBGTransparency);
@@ -611,15 +671,8 @@ for iGroup = 1 : length(GroupNameList)
         fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
     end
     
-    plot(FilteredJointTrialX_Vector, FilteredJointTrials_AvgRewardByTrial_AB(FilteredJointTrialX_Vector), 'Color', SideABColor, 'LineWidth', 3);
-    legend_list{end + 1} = 'running avg. AB smoothed';
-    if ~isempty(FilteredJointTrialX_Vector)
-        TmpMean = mean(AvgRewardByTrial_AB(GoodTrialsIdx));
-        line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0 0 0], 'LineStyle', '--', 'LineWidth', 3);
-        legend_list{end + 1} = 'all trials avg. AB';
-    end
     if (ProcessSideA)
-        plot(JointTrialX_Vector, RewardByTrial_A(GoodTrialsIdx(JointTrialX_Vector)), 'Color', SideAColor);
+        plot(JointTrialX_Vector, RewardByTrial_A(GoodTrialsIdx(JointTrialX_Vector)), 'Color', SideAColor, 'LineWidth', project_line_width*0.33);
         legend_list{end + 1} = 'running avg. A';
         %plot(FilteredJointTrialX_Vector, RewardByTrial_A(GoodTrialsIdx(FilteredJointTrialX_Vector)), 'Color', [1 0 0]);
         % TmpMean = mean(RewardByTrial_A(GoodTrialsIdx));
@@ -627,13 +680,23 @@ for iGroup = 1 : length(GroupNameList)
         % legend_list{end + 1} = 'all trials avg. A';
     end
     if (ProcessSideB)
-        plot(JointTrialX_Vector, RewardByTrial_B(GoodTrialsIdx(JointTrialX_Vector)), 'Color', SideBColor);
+        plot(JointTrialX_Vector, RewardByTrial_B(GoodTrialsIdx(JointTrialX_Vector)), 'Color', SideBColor, 'LineWidth', project_line_width*0.33);
         legend_list{end + 1} = 'running avg. B';
         %plot(FilteredJointTrialX_Vector, RewardByTrial_B(GoodTrialsIdx(FilteredJointTrialX_Vector)), 'Color', [0 0 1]);
         % TmpMean = mean(RewardByTrial_B(GoodTrialsIdx));
         % line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0 0 0.66], 'LineStyle', '--', 'LineWidth', 3);
         % legend_list{end + 1} = 'all trials avg. B';
     end
+    
+    % plot this after the individual subject data so it lands on top
+    plot(FilteredJointTrialX_Vector, FilteredJointTrials_AvgRewardByTrial_AB(FilteredJointTrialX_Vector), 'Color', SideABColor, 'LineWidth', project_line_width);
+    legend_list{end + 1} = 'running avg. AB smoothed';
+    if ~isempty(FilteredJointTrialX_Vector)
+        TmpMean = mean(AvgRewardByTrial_AB(GoodTrialsIdx));
+        line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', [0 0 0], 'LineStyle', '--', 'LineWidth', project_line_width);
+        legend_list{end + 1} = 'all trials avg. AB';
+    end
+    
     % % filtered individual rewards
     % plot(FilteredJointTrialX_Vector, FilteredJointTrials_RewardByTrial_A(FilteredJointTrialX_Vector), 'r', 'LineWidth', 2);
     % legend_list{end + 1} = 'A';
@@ -642,10 +705,10 @@ for iGroup = 1 : length(GroupNameList)
     hold off
     
     
-%     if ~ismepty(CoordinationSummaryString)
-%         title(CoordinationSummaryString, 'FontSize', 12, 'Interpreter', 'None');
-%     end
-    if ~isempty(CoordinationSummaryCell)
+    %     if ~ismepty(CoordinationSummaryString)
+    %         title(CoordinationSummaryString, 'FontSize', 12, 'Interpreter', 'None');
+    %     end
+    if ~isempty(CoordinationSummaryCell) && show_coordination_results_in_fig_title
         title(CoordinationSummaryCell, 'FontSize', 12, 'Interpreter', 'None');
     end
     
@@ -671,14 +734,20 @@ for iGroup = 1 : length(GroupNameList)
     FilteredJointTrials_PreferableTargetSelected_B = fnFilterByNamedKernel( PreferableTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
     
     Cur_fh_ShareOfOwnChoiceOverTrials = figure('Name', 'ShareOfOwnChoiceOverTrials');
-    fnFormatDefaultAxes('DPZ2017Evaluation');
-    [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
+    fnFormatDefaultAxes(DefaultAxesType);
+    [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
     set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
     legend_list = {};
     hold on
     
     set(gca(), 'YLim', [0.0, 1.0]);
     y_lim = get(gca(), 'YLim');
+    
+    % mark all trials in which the visibility of the two sides was
+    % manipulated
+    if (ShowInvisibility)
+        fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+    end
     
     fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
     
@@ -690,20 +759,20 @@ for iGroup = 1 : length(GroupNameList)
     
     
     if (ProcessSideA)
-        plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', 3);
+        plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', project_line_width);
         legend_list{end + 1} = 'running avg. A';
         if ~isempty(FilteredJointTrialX_Vector)
             TmpMean = mean(PreferableTargetSelected_A(GoodTrialsIdx));
-            line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
+            line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             legend_list{end + 1} = 'all trials avg. A';
         end
     end
     if (ProcessSideB)
-        plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', 3);
+        plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', project_line_width);
         legend_list{end + 1} = 'runing avg. B';
         if ~isempty(FilteredJointTrialX_Vector)
             TmpMean = mean(PreferableTargetSelected_B(GoodTrialsIdx));
-            line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
+            line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             legend_list{end + 1} = 'all trials avg. B';
         end
     end
@@ -711,17 +780,17 @@ for iGroup = 1 : length(GroupNameList)
     %
     set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
     %set(gca(), 'YLim', [0.0, 1.0]);
-    set(gca(), 'YTick', [0, 0.25, 0.5, 0.75, 1]);
+    set(gca(), 'YTick', [0, 0.5, 1]);
     set(gca(),'TickLabelInterpreter','none');
     xlabel( 'Number of trial');
     ylabel( 'Share of own choices');
     if (PlotLegend)
         legend(legend_list, 'Interpreter', 'None');
     end
-    if (~isempty(partnerInluenceOnSide) && ~isempty(partnerInluenceOnTarget))
+    if (~isempty(partnerInluenceOnSide) && ~isempty(partnerInluenceOnTarget)) && show_coordination_results_in_fig_title
         partnerInluenceOnSideString = ['Partner effect on side choice of A: ', num2str(partnerInluenceOnSide(1)), '; of B: ', num2str(partnerInluenceOnSide(2))];
         partnerInluenceOnTargetString = ['Partner effect on target choice of A: ', num2str(partnerInluenceOnTarget(1)), '; of B: ', num2str(partnerInluenceOnTarget(2))];
-        title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'Interpreter','none');
+        title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'FontSize', 12, 'Interpreter', 'None');
     end
     
     %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
@@ -737,14 +806,22 @@ for iGroup = 1 : length(GroupNameList)
         FilteredJointTrials_BottomTargetSelected_B = fnFilterByNamedKernel( BottomTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
         
         Cur_fh_ShareOfBottomChoiceOverTrials = figure('Name', 'ShareOfBottomChoiceOverTrials');
-        fnFormatDefaultAxes('DPZ2017Evaluation');
-        [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
         legend_list = {};
         hold on
         
         set(gca(), 'YLim', [0.0, 1.0]);
         y_lim = get(gca(), 'YLim');
+        
+        
+        % mark all trials in which the visibility of the two sides was
+        % manipulated
+        if (ShowInvisibility)
+            fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
+        
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
@@ -753,24 +830,24 @@ for iGroup = 1 : length(GroupNameList)
         end
         
         if (ProcessSideA)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_BottomTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_BottomTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', project_line_width);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(BottomTargetSelected_A(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             end
         end
         if (ProcessSideB)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_BottomTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_BottomTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', project_line_width);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(BottomTargetSelected_B(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             end
         end
         hold off
         %
         set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
         %set(gca(), 'YLim', [0.0, 1.0]);
-        set(gca(), 'YTick', [0, 0.25, 0.5, 0.75, 1]);
+        set(gca(), 'YTick', [0, 0.5, 1]);
         set(gca(),'TickLabelInterpreter','none');
         xlabel( 'Number of trial');
         ylabel( 'Share of bottom choices');
@@ -790,14 +867,22 @@ for iGroup = 1 : length(GroupNameList)
         FilteredJointTrials_SubjectiveLeftTargetSelected_B = fnFilterByNamedKernel( SubjectiveLeftTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
         
         Cur_fh_ShareOfSubjectiveLeftChoiceOverTrials = figure('Name', 'ShareOfSubjectiveLeftChoiceOverTrials');
-        fnFormatDefaultAxes('DPZ2017Evaluation');
-        [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
         legend_list = {};
         hold on
         
         set(gca(), 'YLim', [0.0, 1.0]);
         y_lim = get(gca(), 'YLim');
+        
+        
+        % mark all trials in which the visibility of the two sides was
+        % manipulated
+        if (ShowInvisibility)
+            fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
+        
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
@@ -807,24 +892,24 @@ for iGroup = 1 : length(GroupNameList)
         
         
         if (ProcessSideA)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_SubjectiveLeftTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_SubjectiveLeftTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', project_line_width);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(SubjectiveLeftTargetSelected_A(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             end
         end
         if (ProcessSideB)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_SubjectiveLeftTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_SubjectiveLeftTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', project_line_width);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(SubjectiveLeftTargetSelected_B(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             end
         end
         hold off
         %
         set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
         %set(gca(), 'YLim', [0.0, 1.0]);
-        set(gca(), 'YTick', [0, 0.25, 0.5, 0.75, 1]);
+        set(gca(), 'YTick', [0, 0.5, 1]);
         set(gca(),'TickLabelInterpreter','none');
         xlabel( 'Number of trial');
         ylabel( 'Share of subjective left choices');
@@ -844,14 +929,20 @@ for iGroup = 1 : length(GroupNameList)
         FilteredJointTrials_LeftTargetSelected_B = fnFilterByNamedKernel( LeftTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
         
         Cur_fh_ShareOfObjectiveLeftChoiceOverTrials = figure('Name', 'ShareOfObjectiveLeftChoiceOverTrials');
-        fnFormatDefaultAxes('DPZ2017Evaluation');
-        [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
         legend_list = {};
         hold on
         
         set(gca(), 'YLim', [0.0, 1.0]);
         y_lim = get(gca(), 'YLim');
+        
+        % mark all trials in which the visibility of the two sides was
+        % manipulated
+        if (ShowInvisibility)
+            fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
@@ -861,24 +952,24 @@ for iGroup = 1 : length(GroupNameList)
         
         
         if (ProcessSideA)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_LeftTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_LeftTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', project_line_width);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(LeftTargetSelected_A(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             end
         end
         if (ProcessSideB)
-            plot(FilteredJointTrialX_Vector, FilteredJointTrials_LeftTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', 3);
+            plot(FilteredJointTrialX_Vector, FilteredJointTrials_LeftTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', project_line_width);
             if ~isempty(FilteredJointTrialX_Vector)
                 TmpMean = mean(LeftTargetSelected_B(GoodTrialsIdx));
-                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', 3);
+                line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             end
         end
         hold off
         %
         set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
         %set(gca(), 'YLim', [0.0, 1.0]);
-        set(gca(), 'YTick', [0, 0.25, 0.5, 0.75, 1]);
+        set(gca(), 'YTick', [0, 0.5, 1]);
         set(gca(),'TickLabelInterpreter','none');
         xlabel( 'Number of trial');
         ylabel( 'Share of objective left choices');
@@ -903,8 +994,8 @@ for iGroup = 1 : length(GroupNameList)
         
         
         Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimesBySameness');
-        fnFormatDefaultAxes('DPZ2017Evaluation');
-        [output_rect] = fnFormatPaperSize('DPZ2017Evaluation', gcf, 0.5);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
         legend_list = {};
         hold on
@@ -915,41 +1006,69 @@ for iGroup = 1 : length(GroupNameList)
         DiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1);
         DiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0);
         
-        set(gca(), 'YLim', [0.0, 1500.0]);  % the timeout is 1500 so this should fit all possible RTs?
+        
+        if (Plot_RT_differences) && (ProcessSideA) && (ProcessSideA)
+            set(gca(), 'YLim', [-650.0, 650.0]);  % let's assume no greater difference than 500ms between acctors?
+        else
+            set(gca(), 'YLim', [0.0, 1500.0]);  % the timeout is 1500 so this should fit all possible RTs?
+        end
         y_lim = get(gca(), 'YLim');
+        
+        
+        % mark all trials in which the visibility of the two sides was
+        % manipulated
+        if (ShowInvisibility)
+            fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
         
         
         % use this as background
         StackedSameDiffCatXData = {[SameOwnA_lidx(GoodTrialsIdx(JointTrialX_Vector))...
-                                    + (2 * SameOwnB_lidx(GoodTrialsIdx(JointTrialX_Vector))) ...
-                                    + (3 * DiffOwn_lidx(GoodTrialsIdx(JointTrialX_Vector))) ...
-                                    + (4 * DiffOther_lidx(GoodTrialsIdx(JointTrialX_Vector)))]};
+            + (2 * SameOwnB_lidx(GoodTrialsIdx(JointTrialX_Vector))) ...
+            + (3 * DiffOwn_lidx(GoodTrialsIdx(JointTrialX_Vector))) ...
+            + (4 * DiffOther_lidx(GoodTrialsIdx(JointTrialX_Vector)))]};
         
         StackedSameDiffCatColor = {[SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor]};
         StackedSameDiffCatBGTransparency = {[0.33]};
-
-         fnPlotStackedCategoriesAtPositionWrapper('StackedBottomToTop', 0.15, StackedSameDiffCatXData, y_lim, StackedSameDiffCatColor, StackedSameDiffCatBGTransparency);
         
-        if (ProcessSideA)
-            plot(JointTrialX_Vector, A_InitialHoldReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor/3), 'LineWidth', 2);
-            plot(JointTrialX_Vector, A_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (2*SideAColor/3), 'LineWidth', 2);
-            plot(JointTrialX_Vector, A_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor), 'LineWidth', 2);
-        end
-        if (ProcessSideB)
-            plot(JointTrialX_Vector, B_InitialHoldReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideBColor/3), 'LineWidth', 2);
-            plot(JointTrialX_Vector, B_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (2*SideBColor/3), 'LineWidth', 2);
-            plot(JointTrialX_Vector, B_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideBColor), 'LineWidth', 2);
-        end
+        fnPlotStackedCategoriesAtPositionWrapper('StackedBottomToTop', 0.15, StackedSameDiffCatXData, y_lim, StackedSameDiffCatColor, StackedSameDiffCatBGTransparency);
         
+        % what to do in solo sessions?
+        if (Plot_RT_differences) && (ProcessSideA) && (ProcessSideA)
+            %plot(JointTrialX_Vector, AB_InitialHoldReleaseRT_diff(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor/3 + SideBColor/3), 'LineWidth', 2);
+            plot(JointTrialX_Vector, AB_InitialTargetReleaseRT_diff(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (2*SideAColor/3 + 2*SideBColor/3), 'LineWidth', project_line_width*0.66);
+            plot(JointTrialX_Vector, AB_TargetAcquisitionRT_diff(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor + SideBColor), 'LineWidth', 2);
+        else
+            if (ProcessSideA)
+                %plot(JointTrialX_Vector, A_InitialHoldReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor/3), 'LineWidth', 2);
+                plot(JointTrialX_Vector, A_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (2*SideAColor/3), 'LineWidth', project_line_width*0.66);
+                plot(JointTrialX_Vector, A_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor), 'LineWidth', project_line_width);
+            end
+            if (ProcessSideB)
+                %plot(JointTrialX_Vector, B_InitialHoldReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideBColor/3), 'LineWidth', 2);
+                plot(JointTrialX_Vector, B_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (2*SideBColor/3), 'LineWidth', project_line_width*0.66);
+                plot(JointTrialX_Vector, B_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideBColor), 'LineWidth', project_line_width);
+            end
+        end
         
         hold off
         %
         set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
         %set(gca(), 'YLim', [0.0, 1.0]);
-        set(gca(), 'YTick', [0, 250, 500, 750, 1000, 1250 1500]);
         set(gca(),'TickLabelInterpreter','none');
+        
+        set(gca(), 'YTick', [0, 250, 500, 750, 1000, 1250 1500]);
         xlabel( 'Number of trial');
-        ylabel( 'Reaction time [ms]');
+        
+        if (Plot_RT_differences) && (ProcessSideA) && (ProcessSideA)
+            set(gca(), 'YTick', [-600, -300, 0, 300, 600]);
+            ylabel( 'Reaction time A-B [ms]');
+            CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdifferences'];
+        else
+            set(gca(), 'YTick', [0, 250, 500, 750, 1000, 1250 1500]);
+            ylabel( 'Reaction time [ms]');
+        end
+        
         if (PlotLegend)
             legend(legend_list, 'Interpreter', 'None');
         end
@@ -957,9 +1076,296 @@ for iGroup = 1 : length(GroupNameList)
         CurrentTitleSetDescriptorString = TitleSetDescriptorString;
         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.BySameness.', OutPutType]);
         write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+
+        legend(legend_list, 'Interpreter', 'None');
+        
+        %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
+        CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.BySameness.legend.', OutPutType]);
+        write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
         
         
     end
+    
+    % also plot the reaction time per trial
+    if (PlotRTHistograms)
+        % TODO: always create a distinct category for Invisible trials
+        
+        if (strcmp(histnorm_string, 'cdf'))
+            histogram_show_median = 0;
+        end
+        % which reaction time to display
+        switch histogram_RT_type_string
+            case 'InitialHoldReleaseRT'
+                AB_RT_data_diff = AB_InitialHoldReleaseRT_diff;
+                A_IRT_data = A_InitialHoldReleaseRT;
+                B_RT_data = B_InitialHoldReleaseRT;
+            case 'InitialTargetReleaseRT'
+                AB_RT_data_diff = AB_InitialTargetReleaseRT_diff;
+                A_IRT_data = A_InitialTargetReleaseRT;
+                B_RT_data = B_InitialTargetReleaseRT;
+            case 'TargetAcquisitionRT'
+                AB_RT_data_diff = AB_TargetAcquisitionRT_diff;
+                A_IRT_data = A_TargetAcquisitionRT;
+                B_RT_data = B_TargetAcquisitionRT;
+        end
+        CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RT.', histogram_RT_type_string];
+        
+        
+        
+        histogram_bin_width_ms = 16;
+        switch Plot_RT_difference_histogram
+            case 0
+                current_histogram_edge_list = histogram_edges;
+            case 1
+                current_histogram_edge_list =   histogram_diff_edges;
+        end
+        histcounts_per_bin = histcounts(AB_RT_data_diff(GoodTrialsIdx), current_histogram_edge_list);
+        
+        
+        
+        Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySameness');
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+        legend_list = {};
+        hold on
+        
+        
+        
+        % create the subsets: same own A, same own B, diff own, diff other
+        SameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0);
+        SameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1);
+        DiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1);
+        DiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0);
+                
+        
+        %         % the limits
+        %         switch histnorm_string
+        %             case 'count'
+        %                 % this needs work run histcount and get the maximum?
+        %                 set(gca(), 'YLim', [0, 100]);
+        %             case {'probability', 'cdf'}
+        %                 set(gca(), 'YLim', [0, 1]);
+        %         end
+        %         y_lim = get(gca(), 'YLim');
+        
+        % not for histograms
+        %% mark all trials in which the visibility of the two sides was
+        %% manipulated
+        %if (ShowInvisibility)
+        %    fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        %end
+        
+        
+        % use this as background
+        StackedSameDiffCatXData = {[SameOwnA_lidx(GoodTrialsIdx(JointTrialX_Vector))...
+            + (2 * SameOwnB_lidx(GoodTrialsIdx(JointTrialX_Vector))) ...
+            + (3 * DiffOwn_lidx(GoodTrialsIdx(JointTrialX_Vector))) ...
+            + (4 * DiffOther_lidx(GoodTrialsIdx(JointTrialX_Vector)))]};
+        
+        StackedSameDiffCatColor = {[SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor]};
+        StackedSameDiffCatBGTransparency = {[0.33]};
+        
+        % not for histograms
+        %fnPlotStackedCategoriesAtPositionWrapper('StackedBottomToTop', 0.15, StackedSameDiffCatXData, y_lim, StackedSameDiffCatColor, StackedSameDiffCatBGTransparency);
+        
+        % create a stack of category vectors
+        if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
+            VisSameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 0);
+            VisSameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 0);
+            VisDiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 0);
+            VisDiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 0);
+            InvisSameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 1);
+            InvisSameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 1);
+            InvisDiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 1);
+            InvisDiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 1);
+            
+            legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other', 'Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Opaque_Diff_Other'};
+            
+            if (histogram_show_median)
+                legend_list = {'Same_Own_A','Same_Own_A', 'Same_Own_B', 'Same_Own_B', 'Diff_Own', 'Diff_Own', 'Diff_Other', 'Diff_Other', 'Opaque_Same_Own_A', 'Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Opaque_Diff_Own', 'Opaque_Diff_Other', 'Opaque_Diff_Other'}; 
+            end
+            
+            
+            StackedCatTrialIdxList = {VisSameOwnA_lidx, VisSameOwnB_lidx, VisDiffOwn_lidx, VisDiffOther_lidx, InvisSameOwnA_lidx, InvisSameOwnB_lidx, InvisDiffOwn_lidx, InvisDiffOther_lidx};
+            % half the brightness of the invisible trials
+            StackedCatColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+            StackedCatLineStyleList = {'-', '-', '-', '-', ':', ':' , ':', ':'};
+            
+            StackedCatColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor*0.66; SameOwnBColor*0.66; DiffOwnColor*0.66; DiffOtherColor*0.66};
+            StackedCatColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+            StackedCatLineStyleList = {'-', '-', '-', '-', '-.', '-.' , '-.', '-.'};
+            StackedCatSignFactorList = [1, 1, 1, 1, -1, -1, -1, -1];
+            
+        else
+            % no invisible trials jut visible
+            StackedCatTrialIdxList = {SameOwnA_lidx, SameOwnB_lidx, DiffOwn_lidx, DiffOther_lidx};
+            legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other'};
+            if (histogram_show_median)
+                legend_list = {'Same_Own_A','Same_Own_A', 'Same_Own_B', 'Same_Own_B', 'Diff_Own', 'Diff_Own', 'Diff_Other', 'Diff_Other'};
+            end
+            
+            StackedCatColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+            StackedCatLineStyleList = {'-', '-', '-', '-'};
+            StackedCatSignFactorList = [1, 1, 1, 1];
+        end
+        
+        % try to scale the axis
+        axis_limit = 5 * ceil(max(histcounts_per_bin) / 5) * 5;
+        if ismember(histnorm_string, {'probability', 'cdf'})
+            axis_limit = 1;
+        end
+        
+        lower_y = 0;
+        if ~isempty(find(StackedCatSignFactorList == -1))
+            lower_y = -1 * axis_limit;
+        end
+        upper_y = 0;
+        if ~isempty(find(StackedCatSignFactorList == 1))
+            upper_y = 1 * axis_limit;
+        end
+
+        if (axis_limit ~= 0)
+            set(gca, 'YLim', [lower_y, upper_y]);
+        end
+        
+        
+        max_bin_val = 0;
+        min_bin_val = 0;
+        
+        hist_AB_struct = struct();
+        hist_A_struct = struct();
+        hist_B_struct = struct();
+        
+        for i_cat = 1 : length(StackedCatTrialIdxList)
+            current_CatTrial_Lidx =  StackedCatTrialIdxList{i_cat};
+            current_CatColor = StackedCatColorList{i_cat};
+            current_CatLineStyle = StackedCatLineStyleList{i_cat};
+            current_CatSignFactor = StackedCatSignFactorList(i_cat);
+            
+            % those are the trial indices in the current category
+            current_CatTrial_idx = intersect(find(current_CatTrial_Lidx), GoodTrialsIdx(JointTrialX_Vector));
+                        
+            switch histdisplaystyle_string
+                case 'bar'
+                    current_CatFaceColor = current_CatColor;
+                case 'stairs'
+                    current_CatFaceColor = 'none';
+            end
+            
+            if (Plot_RT_difference_histogram) && (ProcessSideA) && (ProcessSideA)
+                if (histogram_use_histogram_func)
+                    hist_AB_struct.(['h', num2str(i_cat, '%03d')]) = histogram(AB_RT_data_diff(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
+                    if (histogram_show_median)
+                        line([median(AB_RT_data_diff(current_CatTrial_idx)), median(AB_RT_data_diff(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
+                    end
+                else
+                    [N, edges, bin] = histcounts(AB_RT_data_diff(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
+                    
+                    if (current_CatSignFactor > 0)
+                        max_bin_val = max([max_bin_val, (N * current_CatSignFactor)]);
+                    end
+                    if (current_CatSignFactor < 0)
+                        min_bin_val = min([min_bin_val, (N * current_CatSignFactor)]);
+                    end
+                    
+                    plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
+                    if (histogram_show_median)
+                        line([median(AB_RT_data_diff(current_CatTrial_idx)), median(AB_RT_data_diff(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
+                    end
+                end
+            else
+                if (ProcessSideA)
+                    if (histogram_use_histogram_func)
+                        hist_A_struct.(['h', num2str(i_cat, '%03d')]) = histogram(A_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', '-');
+                        if (histogram_show_median)
+                            line([median(AB_RT_data_diff(current_CatTrial_idx)), median(AB_RT_data_diff(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.5, 'LineStyle', '--');
+                        end
+                    else
+                        [N, edges, bin] = histcounts(A_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
+                        plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
+                        if (histogram_show_median)
+                            line([median(A_RT_data(current_CatTrial_idx)), median(A_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
+                        end
+                    end
+                end
+                if (ProcessSideB)
+                    if (histogram_use_histogram_func)
+                        hist_A_struct.(['h', num2str(i_cat, '%03d')]) = histogram(B_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', ':');
+                        if (histogram_show_median)
+                            line([median(B_RT_data(current_CatTrial_idx)), median(B_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.5, 'LineStyle', '-.');
+                        end
+                    else
+                        [N, edges, bin] = histcounts(B_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
+                        plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
+                        if (histogram_show_median)
+                            line([median(B_RT_data(current_CatTrial_idx)), median(B_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
+                        end
+                    end
+                end
+            end
+        end
+        if (Plot_RT_difference_histogram)
+            % this defines whether A was faster or B
+            line([0, 0], get(gca(), 'YLim'), 'Color', [0 0 0], 'LineWidth', project_line_width*0.5, 'LineStyle', '-');
+        end
+        
+        
+        hold off
+        if (axis_limit ~= 0) && (axis_limit ~= 1)
+            tmp_upper_y = ceil(max_bin_val / 5) * 5;
+            tmp_lower_y = ceil(min_bin_val /5) * 5;
+            if (tmp_lower_y < 0)
+                lower_y = min([tmp_lower_y, -1*tmp_upper_y]);
+            end
+            if (tmp_upper_y > 0)
+                upper_y = max([tmp_lower_y*-1, tmp_upper_y]);
+            end
+            
+            set(gca, 'YLim', [lower_y, upper_y]);
+        end        %
+        %set(gca(), 'YLim', [0.0, 1.0]);
+        set(gca(),'TickLabelInterpreter','none');
+        
+        switch histnorm_string
+            case 'count'
+                ylabel( 'Number of trials per bin');
+                %set(gca(), 'YTick', [0, 100]);
+            case {'probability', 'cdf'}
+                ylabel( 'Probability');
+                set(gca(), 'YTick', [0, 1]);
+        end
+        
+        if (Plot_RT_difference_histogram) && (ProcessSideA) && (ProcessSideA)
+            set(gca(), 'XLim', [-750, 750]);
+            set(gca(), 'XTick', [-700, -350, 0, 350, 700]);
+            xlabel( 'Reaction time A-B [ms]');
+            CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdifferences'];
+        else
+            set(gca(), 'XLim', [0, 1500]);
+            set(gca(), 'XTick', [0, 250, 500, 750, 1000, 1250, 1500]);
+            xlabel( 'Reaction time [ms]');
+        end
+        
+%         if (PlotLegend)
+%             legend(legend_list, 'Interpreter', 'None');
+%         end
+        %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
+        %CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.', OutPutType]);
+        write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+        
+        
+        legend(legend_list, 'Interpreter', 'None');
+        
+        %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
+        %CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.legend.', OutPutType]);
+        write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+        
+    end
+    
 end
 
 
