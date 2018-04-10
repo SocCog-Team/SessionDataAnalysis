@@ -546,9 +546,24 @@ for iGroup = 1 : length(GroupNameList)
             outfilename = fullfile(OutputPath, 'CoordinationCheck', ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice.mat']);
             mkdir(fullfile(OutputPath, 'CoordinationCheck'));
             
+            TrialsInCurrentSetIdx = TrialIdx;
+            
+            % additional information for all the trials in the current set
+            PerTrialStruct.isTrialInvisible_AB = Invisible_AB(TrialIdx);
+            
+            PerTrialStruct.A_InitialTargetReleaseRT = A_InitialTargetReleaseRT(TrialIdx);
+            PerTrialStruct.B_InitialTargetReleaseRT = B_InitialTargetReleaseRT(TrialIdx);
+            PerTrialStruct.AB_InitialTargetReleaseRT_diff = AB_InitialTargetReleaseRT_diff(TrialIdx);
+            
+            PerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(TrialIdx);
+            PerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(TrialIdx);
+            PerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(TrialIdx);
+            
+            
+            
             isOwnChoice = isOwnChoiceArray;
             isBottomChoice = sideChoiceObjectiveArray;
-            save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialSets', 'coordStruct', 'isOwnChoice', 'isBottomChoice');
+            save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialsInCurrentSetIdx', 'TrialSets', 'coordStruct', 'isOwnChoice', 'isBottomChoice', 'PerTrialStruct');
         end
         
         if (SaveCoordinationSummary)
@@ -645,7 +660,31 @@ for iGroup = 1 : length(GroupNameList)
     legend_list = {};
     hold on
     
-    set(gca(), 'YLim', [0.9, 4.1]);
+    y_margin = 0.1; % how much to extend the plot below and above the true reward limits
+    
+    % the default ranges
+    y_data_bottom = 1;
+    y_data_top = 4;
+    y_tick_list = [1, 2, 3, 4];
+    
+    % the following need to be ordered by increasing range so that
+    if (isfield(TrialSets.ByRewardFunction, 'BOSMATRIXV01') && ~isempty(TrialSets.ByRewardFunction.BOSMATRIXV01))
+        y_data_bottom = min([1, y_data_bottom]);
+        y_data_top = max([4, y_data_top]);
+    end
+    
+    if (isfield(TrialSets.ByRewardFunction, 'BOSTEMPCOMPV01') && ~isempty(TrialSets.ByRewardFunction.BOSTEMPCOMPV01))
+        y_data_bottom = min([1, y_data_bottom]);
+        y_data_top = max([4, y_data_top]);
+    end
+    
+    if (isfield(TrialSets.ByRewardFunction, 'BOSTEMPCOMPV02') && ~isempty(TrialSets.ByRewardFunction.BOSTEMPCOMPV02))
+        y_data_bottom = min([1, y_data_bottom]);
+        y_data_top = max([5, y_data_top]);
+        y_tick_list = [1, 2, 3, 4, 5];
+    end
+    
+    set(gca(), 'YLim', [(y_data_bottom - y_margin), (y_data_top + y_margin)]);
     y_lim = get(gca(), 'YLim');
     
     % mark all trials in which the visibility of the two sides was
@@ -657,8 +696,8 @@ for iGroup = 1 : length(GroupNameList)
     if (ShowSelectedSidePerSubjectInRewardPlotBG)
         fnPlotStackedCategoriesAtPositionWrapper('StackedBottomToTop', 0.15, SideStackedXData, y_lim, SideStackedRightEffectorColor, SideStackedRightEffectorBGTransparency);
         % plot a single category vector, attention, right now this is hybrid...
-        set(gca(), 'YLim', [0.7, 4.1]);
-        y_lim = [0.7 0.9];
+        set(gca(), 'YLim', [0.7, (y_data_top + y_margin)]);
+        y_lim = [0.7 (y_data_bottom - y_margin)];
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         y_lim = get(gca(), 'YLim');
     else
@@ -715,7 +754,7 @@ for iGroup = 1 : length(GroupNameList)
     
     set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
     %set(gca(), 'YLim', [0.9, 4.1]);
-    set(gca(), 'YTick', [1, 2, 3, 4]);
+    set(gca(), 'YTick', y_tick_list);
     set(gca(),'TickLabelInterpreter','none');
     xlabel( 'Number of trial');
     ylabel( 'Reward units');
@@ -1315,7 +1354,7 @@ for iGroup = 1 : length(GroupNameList)
         hold off
         if (axis_limit ~= 0) && (axis_limit ~= 1)
             tmp_upper_y = ceil(max_bin_val / 5) * 5;
-            tmp_lower_y = ceil(min_bin_val /5) * 5;
+            tmp_lower_y = floor(min_bin_val /5) * 5;
             if (tmp_lower_y < 0)
                 lower_y = min([tmp_lower_y, -1*tmp_upper_y]);
             end
