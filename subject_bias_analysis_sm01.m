@@ -26,7 +26,7 @@ CurrentAnalysisSetName = 'SCP01';
 
 CurrentAnalysisSetName = 'SCP_DATA';
 
-CurrentAnalysisSetName = 'PrimateNeurobiology2018DPZ';
+%CurrentAnalysisSetName = 'PrimateNeurobiology2018DPZ';
 
 % %CurrentAnalysisSetName = 'LabRetreat2017';
 % CurrentAnalysisSetName = 'LabRetreat2017FC';    % Free Choice
@@ -39,7 +39,7 @@ CurrentAnalysisSetName = 'PrimateNeurobiology2018DPZ';
 %experimentFolder = '201705ReachBiasData\\SCP-CTRL-01\\SESSIONLOGS\\';
 %experimentFolder = fullfile('201705ReachBiasData', 'SCP-CTRL-01', 'SESSIONLOGS');
 override_directive = 'local_code';
-override_directive = 'local';
+%override_directive = 'local';
 
 SCPDirs = GetDirectoriesByHostName(override_directive);
 LogFileWildCardString2018 = '*.triallog.txt';   % new file extension to allow better wildcarding and better typing
