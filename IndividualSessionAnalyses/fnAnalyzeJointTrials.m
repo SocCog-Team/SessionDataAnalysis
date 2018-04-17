@@ -102,6 +102,11 @@ PlotLegend = 0; % add a lengend to the plots?
 PlotRTBySameness = 1;
 
 PlotRTHistograms = 1;
+PlotRTHistogramsByByPayoffMatrix = 1;
+PlotRTHistogramsBySelectedSideAndEffector = 0;
+
+
+
 Plot_RT_differences = 0;
 Plot_RT_difference_histogram = 1;
 histnorm_string = 'count'; % count, probability, pdf, cdf
@@ -485,7 +490,7 @@ for iGroup = 1 : length(GroupNameList)
     A_InitialHoldReleaseRT = DataStruct.data(:, DataStruct.cn.A_HoldReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_InitialFixationOnsetTime_ms);
     B_InitialHoldReleaseRT = DataStruct.data(:, DataStruct.cn.B_HoldReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_InitialFixationOnsetTime_ms);
     AB_InitialHoldReleaseRT_diff = A_InitialHoldReleaseRT - B_InitialHoldReleaseRT;
-        
+    
     %A_InitialTargetNonAdjReleaseRT = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
     %B_InitialTargetNonAdjReleaseRT = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
     
@@ -546,21 +551,22 @@ for iGroup = 1 : length(GroupNameList)
             outfilename = fullfile(OutputPath, 'CoordinationCheck', ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice.mat']);
             mkdir(fullfile(OutputPath, 'CoordinationCheck'));
             
-            TrialsInCurrentSetIdx = TrialIdx;
+            % include the edxploration trials
+            TrialsInCurrentSetIdx = GoodTrialsIdx;
             
             % additional information for all the trials in the current set
-            PerTrialStruct.isTrialInvisible_AB = Invisible_AB(TrialIdx);
+            PerTrialStruct.isTrialInvisible_AB = Invisible_AB(TrialsInCurrentSetIdx);
             
-            PerTrialStruct.A_InitialTargetReleaseRT = A_InitialTargetReleaseRT(TrialIdx);
-            PerTrialStruct.B_InitialTargetReleaseRT = B_InitialTargetReleaseRT(TrialIdx);
-            PerTrialStruct.AB_InitialTargetReleaseRT_diff = AB_InitialTargetReleaseRT_diff(TrialIdx);
+            PerTrialStruct.A_InitialTargetReleaseRT = A_InitialTargetReleaseRT(TrialsInCurrentSetIdx);
+            PerTrialStruct.B_InitialTargetReleaseRT = B_InitialTargetReleaseRT(TrialsInCurrentSetIdx);
+            PerTrialStruct.AB_InitialTargetReleaseRT_diff = AB_InitialTargetReleaseRT_diff(TrialsInCurrentSetIdx);
             
-            PerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(TrialIdx);
-            PerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(TrialIdx);
-            PerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(TrialIdx);
+            PerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(TrialsInCurrentSetIdx);
+            PerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(TrialsInCurrentSetIdx);
+            PerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(TrialsInCurrentSetIdx);
             
             
-            
+            % ATTENTION this includes the exploration trials!!!
             isOwnChoice = isOwnChoiceArray;
             isBottomChoice = sideChoiceObjectiveArray;
             save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialsInCurrentSetIdx', 'TrialSets', 'coordStruct', 'isOwnChoice', 'isBottomChoice', 'PerTrialStruct');
@@ -1115,7 +1121,7 @@ for iGroup = 1 : length(GroupNameList)
         CurrentTitleSetDescriptorString = TitleSetDescriptorString;
         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.BySameness.', OutPutType]);
         write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
-
+        
         legend(legend_list, 'Interpreter', 'None');
         
         %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
@@ -1128,8 +1134,9 @@ for iGroup = 1 : length(GroupNameList)
     
     % also plot the reaction time per trial
     if (PlotRTHistograms)
-        % TODO: always create a distinct category for Invisible trials
         
+        % COMMON processing for all RT histograms
+        % TODO: always create a distinct category for Invisible trials
         if (strcmp(histnorm_string, 'cdf'))
             histogram_show_median = 0;
         end
@@ -1137,15 +1144,15 @@ for iGroup = 1 : length(GroupNameList)
         switch histogram_RT_type_string
             case 'InitialHoldReleaseRT'
                 AB_RT_data_diff = AB_InitialHoldReleaseRT_diff;
-                A_IRT_data = A_InitialHoldReleaseRT;
+                A_RT_data = A_InitialHoldReleaseRT;
                 B_RT_data = B_InitialHoldReleaseRT;
             case 'InitialTargetReleaseRT'
                 AB_RT_data_diff = AB_InitialTargetReleaseRT_diff;
-                A_IRT_data = A_InitialTargetReleaseRT;
+                A_RT_data = A_InitialTargetReleaseRT;
                 B_RT_data = B_InitialTargetReleaseRT;
             case 'TargetAcquisitionRT'
                 AB_RT_data_diff = AB_TargetAcquisitionRT_diff;
-                A_IRT_data = A_TargetAcquisitionRT;
+                A_RT_data = A_TargetAcquisitionRT;
                 B_RT_data = B_TargetAcquisitionRT;
         end
         CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RT.', histogram_RT_type_string];
@@ -1163,248 +1170,170 @@ for iGroup = 1 : length(GroupNameList)
         
         
         
-        Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySameness');
-        fnFormatDefaultAxes(DefaultAxesType);
-        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
-        legend_list = {};
-        hold on
-        
-        
-        
-        % create the subsets: same own A, same own B, diff own, diff other
-        SameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0);
-        SameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1);
-        DiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1);
-        DiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0);
+        if (PlotRTHistogramsByByPayoffMatrix)
+            
+            CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+            
+            % create the subsets: same own A, same own B, diff own, diff other
+            SameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0);
+            SameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1);
+            DiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1);
+            DiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0);
+            
+            
+            % create a stack of category vectors
+            if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
+                VisSameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 0);
+                VisSameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 0);
+                VisDiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 0);
+                VisDiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 0);
+                InvisSameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 1);
+                InvisSameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 1);
+                InvisDiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 1);
+                InvisDiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 1);
                 
-        
-        %         % the limits
-        %         switch histnorm_string
-        %             case 'count'
-        %                 % this needs work run histcount and get the maximum?
-        %                 set(gca(), 'YLim', [0, 100]);
-        %             case {'probability', 'cdf'}
-        %                 set(gca(), 'YLim', [0, 1]);
-        %         end
-        %         y_lim = get(gca(), 'YLim');
-        
-        % not for histograms
-        %% mark all trials in which the visibility of the two sides was
-        %% manipulated
-        %if (ShowInvisibility)
-        %    fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
-        %end
-        
-        
-        % use this as background
-        StackedSameDiffCatXData = {[SameOwnA_lidx(GoodTrialsIdx(JointTrialX_Vector))...
-            + (2 * SameOwnB_lidx(GoodTrialsIdx(JointTrialX_Vector))) ...
-            + (3 * DiffOwn_lidx(GoodTrialsIdx(JointTrialX_Vector))) ...
-            + (4 * DiffOther_lidx(GoodTrialsIdx(JointTrialX_Vector)))]};
-        
-        StackedSameDiffCatColor = {[SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor]};
-        StackedSameDiffCatBGTransparency = {[0.33]};
-        
-        % not for histograms
-        %fnPlotStackedCategoriesAtPositionWrapper('StackedBottomToTop', 0.15, StackedSameDiffCatXData, y_lim, StackedSameDiffCatColor, StackedSameDiffCatBGTransparency);
-        
-        % create a stack of category vectors
-        if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
-            VisSameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 0);
-            VisSameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 0);
-            VisDiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 0);
-            VisDiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 0);
-            InvisSameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 1);
-            InvisSameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 1);
-            InvisDiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 1);
-            InvisDiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 1);
-            
-            legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other', 'Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Opaque_Diff_Other'};
-            
-            if (histogram_show_median)
-                legend_list = {'Same_Own_A','Same_Own_A', 'Same_Own_B', 'Same_Own_B', 'Diff_Own', 'Diff_Own', 'Diff_Other', 'Diff_Other', 'Opaque_Same_Own_A', 'Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Opaque_Diff_Own', 'Opaque_Diff_Other', 'Opaque_Diff_Other'}; 
-            end
-            
-            
-            StackedCatTrialIdxList = {VisSameOwnA_lidx, VisSameOwnB_lidx, VisDiffOwn_lidx, VisDiffOther_lidx, InvisSameOwnA_lidx, InvisSameOwnB_lidx, InvisDiffOwn_lidx, InvisDiffOther_lidx};
-            % half the brightness of the invisible trials
-            StackedCatColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
-            StackedCatLineStyleList = {'-', '-', '-', '-', ':', ':' , ':', ':'};
-            
-            StackedCatColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor*0.66; SameOwnBColor*0.66; DiffOwnColor*0.66; DiffOtherColor*0.66};
-            StackedCatColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
-            StackedCatLineStyleList = {'-', '-', '-', '-', '-.', '-.' , '-.', '-.'};
-            StackedCatSignFactorList = [1, 1, 1, 1, -1, -1, -1, -1];
-            
-        else
-            % no invisible trials jut visible
-            StackedCatTrialIdxList = {SameOwnA_lidx, SameOwnB_lidx, DiffOwn_lidx, DiffOther_lidx};
-            legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other'};
-            if (histogram_show_median)
-                legend_list = {'Same_Own_A','Same_Own_A', 'Same_Own_B', 'Same_Own_B', 'Diff_Own', 'Diff_Own', 'Diff_Other', 'Diff_Other'};
-            end
-            
-            StackedCatColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
-            StackedCatLineStyleList = {'-', '-', '-', '-'};
-            StackedCatSignFactorList = [1, 1, 1, 1];
-        end
-        
-        % try to scale the axis
-        axis_limit = 5 * ceil(max(histcounts_per_bin) / 5) * 5;
-        if ismember(histnorm_string, {'probability', 'cdf'})
-            axis_limit = 1;
-        end
-        
-        lower_y = 0;
-        if ~isempty(find(StackedCatSignFactorList == -1))
-            lower_y = -1 * axis_limit;
-        end
-        upper_y = 0;
-        if ~isempty(find(StackedCatSignFactorList == 1))
-            upper_y = 1 * axis_limit;
-        end
-
-        if (axis_limit ~= 0)
-            set(gca, 'YLim', [lower_y, upper_y]);
-        end
-        
-        
-        max_bin_val = 0;
-        min_bin_val = 0;
-        
-        hist_AB_struct = struct();
-        hist_A_struct = struct();
-        hist_B_struct = struct();
-        
-        for i_cat = 1 : length(StackedCatTrialIdxList)
-            current_CatTrial_Lidx =  StackedCatTrialIdxList{i_cat};
-            current_CatColor = StackedCatColorList{i_cat};
-            current_CatLineStyle = StackedCatLineStyleList{i_cat};
-            current_CatSignFactor = StackedCatSignFactorList(i_cat);
-            
-            % those are the trial indices in the current category
-            current_CatTrial_idx = intersect(find(current_CatTrial_Lidx), GoodTrialsIdx(JointTrialX_Vector));
-                        
-            switch histdisplaystyle_string
-                case 'bar'
-                    current_CatFaceColor = current_CatColor;
-                case 'stairs'
-                    current_CatFaceColor = 'none';
-            end
-            
-            if (Plot_RT_difference_histogram) && (ProcessSideA) && (ProcessSideA)
-                if (histogram_use_histogram_func)
-                    hist_AB_struct.(['h', num2str(i_cat, '%03d')]) = histogram(AB_RT_data_diff(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
-                    if (histogram_show_median)
-                        line([median(AB_RT_data_diff(current_CatTrial_idx)), median(AB_RT_data_diff(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
-                    end
-                else
-                    [N, edges, bin] = histcounts(AB_RT_data_diff(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
-                    
-                    if (current_CatSignFactor > 0)
-                        max_bin_val = max([max_bin_val, (N * current_CatSignFactor)]);
-                    end
-                    if (current_CatSignFactor < 0)
-                        min_bin_val = min([min_bin_val, (N * current_CatSignFactor)]);
-                    end
-                    
-                    plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
-                    if (histogram_show_median)
-                        line([median(AB_RT_data_diff(current_CatTrial_idx)), median(AB_RT_data_diff(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
-                    end
+                legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other', 'Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Opaque_Diff_Other'};
+                
+                if (histogram_show_median)
+                    legend_list = {'Same_Own_A','Same_Own_A', 'Same_Own_B', 'Same_Own_B', 'Diff_Own', 'Diff_Own', 'Diff_Other', 'Diff_Other', 'Opaque_Same_Own_A', 'Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Opaque_Diff_Own', 'Opaque_Diff_Other', 'Opaque_Diff_Other'};
                 end
+                
+                
+                StackedCatData.TrialIdxList = {VisSameOwnA_lidx, VisSameOwnB_lidx, VisDiffOwn_lidx, VisDiffOther_lidx, InvisSameOwnA_lidx, InvisSameOwnB_lidx, InvisDiffOwn_lidx, InvisDiffOther_lidx};
+                % half the brightness of the invisible trials
+                StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+                StackedCatData.LineStyleList = {'-', '-', '-', '-', ':', ':' , ':', ':'};
+                
+                StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor*0.66; SameOwnBColor*0.66; DiffOwnColor*0.66; DiffOtherColor*0.66};
+                StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+                StackedCatData.LineStyleList = {'-', '-', '-', '-', '-.', '-.' , '-.', '-.'};
+                StackedCatData.SignFactorList = [1, 1, 1, 1, -1, -1, -1, -1];
+                
             else
-                if (ProcessSideA)
-                    if (histogram_use_histogram_func)
-                        hist_A_struct.(['h', num2str(i_cat, '%03d')]) = histogram(A_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', '-');
-                        if (histogram_show_median)
-                            line([median(AB_RT_data_diff(current_CatTrial_idx)), median(AB_RT_data_diff(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.5, 'LineStyle', '--');
-                        end
-                    else
-                        [N, edges, bin] = histcounts(A_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
-                        plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
-                        if (histogram_show_median)
-                            line([median(A_RT_data(current_CatTrial_idx)), median(A_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
-                        end
-                    end
+                % no invisible trials just visible
+                StackedCatData.TrialIdxList = {SameOwnA_lidx, SameOwnB_lidx, DiffOwn_lidx, DiffOther_lidx};
+                legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other'};
+                if (histogram_show_median)
+                    legend_list = {'Same_Own_A','Same_Own_A', 'Same_Own_B', 'Same_Own_B', 'Diff_Own', 'Diff_Own', 'Diff_Other', 'Diff_Other'};
                 end
-                if (ProcessSideB)
-                    if (histogram_use_histogram_func)
-                        hist_A_struct.(['h', num2str(i_cat, '%03d')]) = histogram(B_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', ':');
-                        if (histogram_show_median)
-                            line([median(B_RT_data(current_CatTrial_idx)), median(B_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.5, 'LineStyle', '-.');
-                        end
-                    else
-                        [N, edges, bin] = histcounts(B_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
-                        plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
-                        if (histogram_show_median)
-                            line([median(B_RT_data(current_CatTrial_idx)), median(B_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
-                        end
-                    end
-                end
-            end
-        end
-        if (Plot_RT_difference_histogram)
-            % this defines whether A was faster or B
-            line([0, 0], get(gca(), 'YLim'), 'Color', [0 0 0], 'LineWidth', project_line_width*0.5, 'LineStyle', '-');
-        end
-        
-        
-        hold off
-        if (axis_limit ~= 0) && (axis_limit ~= 1)
-            tmp_upper_y = ceil(max_bin_val / 5) * 5;
-            tmp_lower_y = floor(min_bin_val /5) * 5;
-            if (tmp_lower_y < 0)
-                lower_y = min([tmp_lower_y, -1*tmp_upper_y]);
-            end
-            if (tmp_upper_y > 0)
-                upper_y = max([tmp_lower_y*-1, tmp_upper_y]);
+                
+                StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+                StackedCatData.LineStyleList = {'-', '-', '-', '-'};
+                StackedCatData.SignFactorList = [1, 1, 1, 1];
             end
             
-            set(gca, 'YLim', [lower_y, upper_y]);
-        end        %
-        %set(gca(), 'YLim', [0.0, 1.0]);
-        set(gca(),'TickLabelInterpreter','none');
-        
-        switch histnorm_string
-            case 'count'
-                ylabel( 'Number of trials per bin');
-                %set(gca(), 'YTick', [0, 100]);
-            case {'probability', 'cdf'}
-                ylabel( 'Probability');
-                set(gca(), 'YTick', [0, 1]);
+            
+            Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySameness');
+            fnFormatDefaultAxes(DefaultAxesType);
+            [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+            set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+            legend_list = {};
+            
+            CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
+            plot_differences = Plot_RT_difference_histogram;
+            
+            fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histcounts_per_bin, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
+
+            if (plot_differences) && (ProcessSideA) && (ProcessSideA)
+                CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
+            end
+            
+            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.', OutPutType]);
+            write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+            
+            
+            legend(legend_list, 'Interpreter', 'None');            
+            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.legend.', OutPutType]);
+            write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
         end
-        
-        if (Plot_RT_difference_histogram) && (ProcessSideA) && (ProcessSideA)
-            set(gca(), 'XLim', [-750, 750]);
-            set(gca(), 'XTick', [-700, -350, 0, 350, 700]);
-            xlabel( 'Reaction time A-B [ms]');
-            CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdifferences'];
-        else
-            set(gca(), 'XLim', [0, 1500]);
-            set(gca(), 'XTick', [0, 250, 500, 750, 1000, 1250, 1500]);
-            xlabel( 'Reaction time [ms]');
+        if (PlotRTHistogramsBySelectedSideAndEffector)         
+            
+            % for selected side and used effector
+            SubjectiveLeftTargetSelected_A
+            SubjectiveLeftTargetSelected_B
+            RightHandUsed_A
+            RightHandUsed_B
+             CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+            
+            % create the subsets: same own A, same own B, diff own, diff other
+            Same_AleftBright = (SubjectiveLeftTargetSelected_A == 1) & (PreferableTargetSelected_B == 0);
+            Same_ArightBleft = [];
+            Diff_AleftBleft = [];
+            Diff_ArightBright = [];
+            SameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0);
+            SameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1);
+            DiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1);
+            DiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0);
+            
+            
+            % create a stack of category vectors
+            if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
+                VisSameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 0);
+                VisSameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 0);
+                VisDiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 0);
+                VisDiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 0);
+                InvisSameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 1);
+                InvisSameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 1);
+                InvisDiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1) & (Invisible_AB == 1);
+                InvisDiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0) & (Invisible_AB == 1);
+                
+                legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other', 'Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Opaque_Diff_Other'};
+                
+                if (histogram_show_median)
+                    legend_list = {'Same_Own_A','Same_Own_A', 'Same_Own_B', 'Same_Own_B', 'Diff_Own', 'Diff_Own', 'Diff_Other', 'Diff_Other', 'Opaque_Same_Own_A', 'Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Opaque_Diff_Own', 'Opaque_Diff_Other', 'Opaque_Diff_Other'};
+                end
+                
+                
+                StackedCatData.TrialIdxList = {VisSameOwnA_lidx, VisSameOwnB_lidx, VisDiffOwn_lidx, VisDiffOther_lidx, InvisSameOwnA_lidx, InvisSameOwnB_lidx, InvisDiffOwn_lidx, InvisDiffOther_lidx};
+                % half the brightness of the invisible trials
+                StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+                StackedCatLineStyleList = {'-', '-', '-', '-', ':', ':' , ':', ':'};
+                
+                StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor*0.66; SameOwnBColor*0.66; DiffOwnColor*0.66; DiffOtherColor*0.66};
+                StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+                StackedCatData.LineStyleList.LineStyleList = {'-', '-', '-', '-', '-.', '-.' , '-.', '-.'};
+                StackedCatData.SignFactorList = [1, 1, 1, 1, -1, -1, -1, -1];
+                
+            else
+                % no invisible trials just visible
+                StackedCatData.TrialIdxList = {SameOwnA_lidx, SameOwnB_lidx, DiffOwn_lidx, DiffOther_lidx};
+                legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other'};
+                if (histogram_show_median)
+                    legend_list = {'Same_Own_A','Same_Own_A', 'Same_Own_B', 'Same_Own_B', 'Diff_Own', 'Diff_Own', 'Diff_Other', 'Diff_Other'};
+                end
+                
+                StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+                StackedCatData.LineStyleList = {'-', '-', '-', '-'};
+                StackedCatData.SignFactorList = [1, 1, 1, 1];
+            end
+            
+            
+            Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySide');
+            fnFormatDefaultAxes(DefaultAxesType);
+            [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+            set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+            legend_list = {};
+            
+            CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
+            plot_differences = Plot_RT_difference_histogram;
+            
+            fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histcounts_per_bin, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
+
+            if (plot_differences) && (ProcessSideA) && (ProcessSideA)
+                CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
+            end
+            
+            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySide.', OutPutType]);
+            write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+            
+            
+            legend(legend_list, 'Interpreter', 'None');            
+            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySide.legend.', OutPutType]);
+            write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+            
+            
         end
-        
-%         if (PlotLegend)
-%             legend(legend_list, 'Interpreter', 'None');
-%         end
-        %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
-        %CurrentTitleSetDescriptorString = TitleSetDescriptorString;
-        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.', OutPutType]);
-        write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
-        
-        
-        legend(legend_list, 'Interpreter', 'None');
-        
-        %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
-        %CurrentTitleSetDescriptorString = TitleSetDescriptorString;
-        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.legend.', OutPutType]);
-        write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
-        
     end
-    
 end
 
 
@@ -1502,3 +1431,160 @@ end
 return
 end
 
+
+
+function [] = fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histcounts_per_bin, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width)
+
+StackedCatTrialIdxList = StackedCatData.TrialIdxList;
+StackedCatColorList = StackedCatData.ColorList;
+StackedCatLineStyleList = StackedCatData.LineStyleList;
+StackedCatSignFactorList = StackedCatData.SignFactorList;
+
+% gather multiple plots into one figure
+hold on
+
+if (plot_differences)
+    AB_RT_data_diff = A_RT_data - B_RT_data;
+end
+
+% try to scale the axis
+axis_limit = 5 * ceil(max(histcounts_per_bin) / 5) * 5;
+if ismember(histnorm_string, {'probability', 'cdf'})
+    axis_limit = 1;
+end
+
+lower_y = 0;
+if ~isempty(find(StackedCatSignFactorList == -1))
+    lower_y = -1 * axis_limit;
+end
+upper_y = 0;
+if ~isempty(find(StackedCatSignFactorList == 1))
+    upper_y = 1 * axis_limit;
+end
+
+if (axis_limit ~= 0)
+    set(gca, 'YLim', [lower_y, upper_y]);
+end
+
+
+max_bin_val = 0;
+min_bin_val = 0;
+
+hist_AB_struct = struct();
+hist_A_struct = struct();
+hist_B_struct = struct();
+
+
+
+
+for i_cat = 1 : length(StackedCatTrialIdxList)
+    current_CatTrial_Lidx =  StackedCatTrialIdxList{i_cat};
+    current_CatColor = StackedCatColorList{i_cat};
+    current_CatLineStyle = StackedCatLineStyleList{i_cat};
+    current_CatSignFactor = StackedCatSignFactorList(i_cat);
+    
+    % those are the trial indices in the current category
+    current_CatTrial_idx = intersect(find(current_CatTrial_Lidx), CurrentGroupGoodTrialsIdx);
+    
+    switch histdisplaystyle_string
+        case 'bar'
+            current_CatFaceColor = current_CatColor;
+        case 'stairs'
+            current_CatFaceColor = 'none';
+    end
+    
+    if (plot_differences) && (ProcessSideA) && (ProcessSideB)
+        if (histogram_use_histogram_func)
+            hist_AB_struct.(['h', num2str(i_cat, '%03d')]) = histogram(AB_RT_data_diff(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
+            if (histogram_show_median)
+                line([median(AB_RT_data_diff(current_CatTrial_idx)), median(AB_RT_data_diff(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
+            end
+        else
+            [N, edges, bin] = histcounts(AB_RT_data_diff(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
+            
+            if (current_CatSignFactor > 0)
+                max_bin_val = max([max_bin_val, (N * current_CatSignFactor)]);
+            end
+            if (current_CatSignFactor < 0)
+                min_bin_val = min([min_bin_val, (N * current_CatSignFactor)]);
+            end
+            
+            plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
+            if (histogram_show_median)
+                line([median(AB_RT_data_diff(current_CatTrial_idx)), median(AB_RT_data_diff(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
+            end
+        end
+    else
+        if (ProcessSideA)
+            if (histogram_use_histogram_func)
+                hist_A_struct.(['h', num2str(i_cat, '%03d')]) = histogram(A_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', '-');
+                if (histogram_show_median)
+                    line([median(A_RT_data(current_CatTrial_idx)), median(A_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.5, 'LineStyle', '--');
+                end
+            else
+                [N, edges, bin] = histcounts(A_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
+                plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
+                if (histogram_show_median)
+                    line([median(A_RT_data(current_CatTrial_idx)), median(A_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
+                end
+            end
+        end
+        if (ProcessSideB)
+            if (histogram_use_histogram_func)
+                hist_B_struct.(['h', num2str(i_cat, '%03d')]) = histogram(B_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', ':');
+                if (histogram_show_median)
+                    line([median(B_RT_data(current_CatTrial_idx)), median(B_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.5, 'LineStyle', '-.');
+                end
+            else
+                [N, edges, bin] = histcounts(B_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
+                plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
+                if (histogram_show_median)
+                    line([median(B_RT_data(current_CatTrial_idx)), median(B_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
+                end
+            end
+        end
+    end
+end
+if (plot_differences)
+    % this defines whether A was faster or B
+    line([0, 0], get(gca(), 'YLim'), 'Color', [0 0 0], 'LineWidth', project_line_width*0.5, 'LineStyle', '-');
+end
+
+
+hold off
+if (axis_limit ~= 0) && (axis_limit ~= 1)
+    tmp_upper_y = ceil(max_bin_val / 5) * 5;
+    tmp_lower_y = floor(min_bin_val /5) * 5;
+    if (tmp_lower_y < 0)
+        lower_y = min([tmp_lower_y, -1*tmp_upper_y]);
+    end
+    if (tmp_upper_y > 0)
+        upper_y = max([tmp_lower_y*-1, tmp_upper_y]);
+    end
+    
+    set(gca, 'YLim', [lower_y, upper_y]);
+end        %
+%set(gca(), 'YLim', [0.0, 1.0]);
+set(gca(),'TickLabelInterpreter','none');
+
+switch histnorm_string
+    case 'count'
+        ylabel( 'Number of trials per bin');
+        %set(gca(), 'YTick', [0, 100]);
+    case {'probability', 'cdf'}
+        ylabel( 'Probability');
+        set(gca(), 'YTick', [0, 1]);
+end
+
+if (plot_differences) && (ProcessSideA) && (ProcessSideA)
+    set(gca(), 'XLim', [-750, 750]);
+    set(gca(), 'XTick', [-700, -350, 0, 350, 700]);
+    xlabel( 'Reaction time A-B [ms]');
+    %CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
+else
+    set(gca(), 'XLim', [0, 1500]);
+    set(gca(), 'XTick', [0, 250, 500, 750, 1000, 1250, 1500]);
+    xlabel( 'Reaction time [ms]');
+end
+return
+end
