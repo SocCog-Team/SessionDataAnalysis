@@ -39,6 +39,7 @@ CLoseFiguresOnReturn = 1;
 CleanOutputDir = 0;
 SaveMat4CoordinationCheck = 1;
 SaveCoordinationSummary = 1;
+InvisibleFigures = 1;
 
 process_IC = 1;
 process_FC = 0;
@@ -117,6 +118,14 @@ histogram_edges = (0:histogram_bin_width_ms:1500);
 histogram_diff_edges = (-750:histogram_bin_width_ms:750);
 histogram_show_median = 1;
 histogram_use_histogram_func = 0;
+
+
+if (InvisibleFigures)
+    figure_visibility_string = 'off';
+else
+    figure_visibility_string = 'on';
+end
+
 
 switch project_name
     case 'PrimateNeurobiology2018DPZ'
@@ -659,7 +668,7 @@ for iGroup = 1 : length(GroupNameList)
     %     end
     
     
-    Cur_fh_RewardOverTrials = figure('Name', 'RewardOverTrials');
+    Cur_fh_RewardOverTrials = figure('Name', 'RewardOverTrials', 'visible', figure_visibility_string);
     fnFormatDefaultAxes(DefaultAxesType);
     [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
     set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
@@ -778,7 +787,8 @@ for iGroup = 1 : length(GroupNameList)
     FilteredJointTrials_PreferableTargetSelected_A = fnFilterByNamedKernel( PreferableTargetSelected_A(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
     FilteredJointTrials_PreferableTargetSelected_B = fnFilterByNamedKernel( PreferableTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
     
-    Cur_fh_ShareOfOwnChoiceOverTrials = figure('Name', 'ShareOfOwnChoiceOverTrials');
+    
+        Cur_fh_ShareOfOwnChoiceOverTrials = figure('Name', 'ShareOfOwnChoiceOverTrials', 'visible', figure_visibility_string);    
     fnFormatDefaultAxes(DefaultAxesType);
     [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
     set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
@@ -850,7 +860,7 @@ for iGroup = 1 : length(GroupNameList)
         FilteredJointTrials_BottomTargetSelected_A = fnFilterByNamedKernel( BottomTargetSelected_A(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
         FilteredJointTrials_BottomTargetSelected_B = fnFilterByNamedKernel( BottomTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
         
-        Cur_fh_ShareOfBottomChoiceOverTrials = figure('Name', 'ShareOfBottomChoiceOverTrials');
+            Cur_fh_ShareOfBottomChoiceOverTrials = figure('Name', 'ShareOfBottomChoiceOverTrials', 'visible', figure_visibility_string);
         fnFormatDefaultAxes(DefaultAxesType);
         [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
@@ -911,7 +921,7 @@ for iGroup = 1 : length(GroupNameList)
         FilteredJointTrials_SubjectiveLeftTargetSelected_A = fnFilterByNamedKernel( SubjectiveLeftTargetSelected_A(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
         FilteredJointTrials_SubjectiveLeftTargetSelected_B = fnFilterByNamedKernel( SubjectiveLeftTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
         
-        Cur_fh_ShareOfSubjectiveLeftChoiceOverTrials = figure('Name', 'ShareOfSubjectiveLeftChoiceOverTrials');
+            Cur_fh_ShareOfSubjectiveLeftChoiceOverTrials = figure('Name', 'ShareOfSubjectiveLeftChoiceOverTrials', 'visible', figure_visibility_string);
         fnFormatDefaultAxes(DefaultAxesType);
         [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
@@ -973,7 +983,7 @@ for iGroup = 1 : length(GroupNameList)
         FilteredJointTrials_LeftTargetSelected_A = fnFilterByNamedKernel( LeftTargetSelected_A(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
         FilteredJointTrials_LeftTargetSelected_B = fnFilterByNamedKernel( LeftTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
         
-        Cur_fh_ShareOfObjectiveLeftChoiceOverTrials = figure('Name', 'ShareOfObjectiveLeftChoiceOverTrials');
+            Cur_fh_ShareOfObjectiveLeftChoiceOverTrials = figure('Name', 'ShareOfObjectiveLeftChoiceOverTrials', 'visible', figure_visibility_string);
         fnFormatDefaultAxes(DefaultAxesType);
         [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
@@ -1037,8 +1047,7 @@ for iGroup = 1 : length(GroupNameList)
         %TargetAcquisitionRT_A = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
         %TargetAcquisitionRT_B = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
         
-        
-        Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimesBySameness');
+            Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimesBySameness', 'visible', figure_visibility_string);
         fnFormatDefaultAxes(DefaultAxesType);
         [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
         set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
@@ -1222,8 +1231,7 @@ for iGroup = 1 : length(GroupNameList)
                 StackedCatData.SignFactorList = [1, 1, 1, 1];
             end
             
-            
-            Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySameness');
+                Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySameness', 'visible', figure_visibility_string);
             fnFormatDefaultAxes(DefaultAxesType);
             [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
             set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
@@ -1306,9 +1314,8 @@ for iGroup = 1 : length(GroupNameList)
                 StackedCatData.LineStyleList = {'-', '-', '-', '-'};
                 StackedCatData.SignFactorList = [1, 1, 1, 1];
             end
-            
-            
-            Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySide');
+
+                Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySide', 'visible', figure_visibility_string);
             fnFormatDefaultAxes(DefaultAxesType);
             [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
             set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
