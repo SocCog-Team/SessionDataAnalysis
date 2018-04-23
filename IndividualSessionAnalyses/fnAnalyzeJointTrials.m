@@ -119,6 +119,10 @@ histogram_diff_edges = (-750:histogram_bin_width_ms:750);
 histogram_show_median = 1;
 histogram_use_histogram_func = 0;
 
+% no GUI means no figure windows possible, so try to work around that
+if (fnIsMatlabRunningInTextMode())
+    InvisibleFigures = 1;
+end
 
 if (InvisibleFigures)
     figure_visibility_string = 'off';
