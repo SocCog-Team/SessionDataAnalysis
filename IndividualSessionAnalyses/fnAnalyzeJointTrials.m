@@ -1242,6 +1242,12 @@ for iGroup = 1 : length(GroupNameList)
             
             CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
             plot_differences = Plot_RT_difference_histogram;
+            switch plot_differences
+                case 0
+                    current_histogram_edge_list = histogram_edges;
+                case 1
+                    current_histogram_edge_list =   histogram_diff_edges;
+            end
             
             fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
             
@@ -1322,7 +1328,15 @@ for iGroup = 1 : length(GroupNameList)
             
             CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
             plot_differences = Plot_RT_difference_histogramBySelectedSideAndEffector;
-
+            
+            switch plot_differences
+                case 0
+                    current_histogram_edge_list = histogram_edges;
+                case 1
+                    current_histogram_edge_list =   histogram_diff_edges;
+            end
+            
+            
             fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
             
             if (plot_differences) && (ProcessSideA) && (ProcessSideA)
