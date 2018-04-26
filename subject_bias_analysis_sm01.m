@@ -39,7 +39,7 @@ CurrentAnalysisSetName = 'SCP_DATA';
 %experimentFolder = '201705ReachBiasData\\SCP-CTRL-01\\SESSIONLOGS\\';
 %experimentFolder = fullfile('201705ReachBiasData', 'SCP-CTRL-01', 'SESSIONLOGS');
 override_directive = 'local_code';
-%override_directive = 'local';
+override_directive = 'local';
 
 SCPDirs = GetDirectoriesByHostName(override_directive);
 LogFileWildCardString2018 = '*.triallog.txt';   % new file extension to allow better wildcarding and better typing
@@ -166,6 +166,12 @@ if (ProcessNewestFirst)
 end
 
 out_list = {};
+
+% make sure we always fill a fresh CoordinationSummary
+CoordinationSummaryFileName = 'CoordinationSummary.txt';
+CoordinationSummaryFQN = fullfile(TmpOutBaseDir, CoordinationSummaryFileName);
+delete(CoordinationSummaryFQN);
+
 
 if (RunSingleSessionAnalysis)
 	for iSession = 1 : length(experimentFile)
