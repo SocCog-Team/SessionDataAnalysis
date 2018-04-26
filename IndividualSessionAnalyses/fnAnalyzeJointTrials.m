@@ -40,6 +40,7 @@ CleanOutputDir = 0;
 SaveMat4CoordinationCheck = 1;
 SaveCoordinationSummary = 1;
 InvisibleFigures = 1;
+PruneOldCoordinationSummaryFiles = 0;
 
 process_IC = 1;
 process_FC = 0;
@@ -178,9 +179,12 @@ if (SaveCoordinationSummary)
         CoordinationSummaryFQN_listing = dir(CoordinationSummaryFQN);
         CurrentTime = now;
         % how long do we give each iteration of fnAnalyzeJointTrials give
+        % DANGER: this reqi=uires that the analysis macines RTC is synched
+        % with the file server's RTC, otherwise things go2
+        pear-shaped
         FileTooOldThresholdSeconds = 120;
         
-        if (CoordinationSummaryFQN_listing.datenum < (CurrentTime - (FileTooOldThresholdSeconds / (60 * 60 * 24))))
+        if (CoordinationSummaryFQN_listing.datenum < (CurrentTime - (FileTooOldThresholdSeconds / (60 * 60 * 24)))) && PruneOldCoordinationSummaryFiles
             % file too old delete it
             disp(['Found coordination summary file older than ', num2str(FileTooOldThresholdSeconds), ' seconds, deleting: ', CoordinationSummaryFQN]);
             delete(CoordinationSummaryFQN);
