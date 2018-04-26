@@ -39,7 +39,7 @@ CLoseFiguresOnReturn = 1;
 CleanOutputDir = 0;
 SaveMat4CoordinationCheck = 1;
 SaveCoordinationSummary = 1;
-InvisibleFigures = 0;
+InvisibleFigures = 1;
 
 process_IC = 1;
 process_FC = 0;
@@ -178,9 +178,9 @@ if (SaveCoordinationSummary)
         CoordinationSummaryFQN_listing = dir(CoordinationSummaryFQN);
         CurrentTime = now;
         % how long do we give each iteration of fnAnalyzeJointTrials give
-        FileTooOldThresholdSeconds = 60;
+        FileTooOldThresholdSeconds = 120;
         
-        if (CoordinationSummaryFQN_listing.datenum < (CurrentTime - (FileTooOldThresholdSeconds / (60 * 60 *24))))
+        if (CoordinationSummaryFQN_listing.datenum < (CurrentTime - (FileTooOldThresholdSeconds / (60 * 60 * 24))))
             % file too old delete it
             disp(['Found coordination summary file older than ', num2str(FileTooOldThresholdSeconds), ' seconds, deleting: ', CoordinationSummaryFQN]);
             delete(CoordinationSummaryFQN);
