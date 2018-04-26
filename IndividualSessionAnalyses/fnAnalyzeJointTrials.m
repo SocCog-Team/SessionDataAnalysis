@@ -180,8 +180,7 @@ if (SaveCoordinationSummary)
         CurrentTime = now;
         % how long do we give each iteration of fnAnalyzeJointTrials give
         % DANGER: this reqi=uires that the analysis macines RTC is synched
-        % with the file server's RTC, otherwise things go2
-        pear-shaped
+        % with the file server's RTC, otherwise things go pear-shaped
         FileTooOldThresholdSeconds = 120;
         
         if (CoordinationSummaryFQN_listing.datenum < (CurrentTime - (FileTooOldThresholdSeconds / (60 * 60 * 24)))) && PruneOldCoordinationSummaryFiles
