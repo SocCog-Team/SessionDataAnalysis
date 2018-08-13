@@ -120,6 +120,21 @@ histogram_diff_edges = (-750:histogram_bin_width_ms:750);
 histogram_show_median = 1;
 histogram_use_histogram_func = 0;
 
+
+% set parameters of the methods for checking the coordination metrics
+process_coordination_metrics = 1;
+coordination_metrics_cfg.pValueForMI = 0.01;
+coordination_metrics_cfg.memoryLength = 1; % number of previous trials that affect the choices on the current trials
+coordination_metrics_cfg.minSampleNum = 6*(2.^(coordination_metrics_cfg.memoryLength+1))*(2.^coordination_metrics_cfg.memoryLength);
+coordination_metrics_cfg.stationarySegmentLength = 200;  % number of last trials supposedly corresponding to equilibrium state
+coordination_metrics_cfg.minStationarySegmentStart = 20; % earliest possible start of equilibrium state
+coordination_metrics_cfg.minDRT = 200; %minimal difference of reaction times allowing the slower partner to se the choice of the faster
+coordination_metrics_cfg.check_coordination_alpha = 5*10^-5;
+coordination_metrics_cfg.proficiencyThreshold = 2.75;
+coordination_metrics_row_header = [];
+plot_transferentropy_per_trial = 1;
+plot_mutualinformation_per_trial = 1;
+
 % no GUI means no figure windows possible, so try to work around that
 if (fnIsMatlabRunningInTextMode())
     InvisibleFigures = 1;
@@ -179,7 +194,7 @@ if (SaveCoordinationSummary)
         CoordinationSummaryFQN_listing = dir(CoordinationSummaryFQN);
         CurrentTime = now;
         % how long do we give each iteration of fnAnalyzeJointTrials give
-        % DANGER: this reqi=uires that the analysis macines RTC is synched
+        % DANGER: this requires that the analysis machines RTC is synched
         % with the file server's RTC, otherwise things go pear-shaped
         FileTooOldThresholdSeconds = 120;
         
@@ -556,37 +571,89 @@ for iGroup = 1 : length(GroupNameList)
         CoordinationSummaryString = coordStruct.SummaryString;
         CoordinationSummaryCell = coordStruct.SummaryCell;
         
+        
+        info.session_id = SessionLogName;
+        info.ChoiceDimension = ChoiceDimension;
+        info.SessionLogFQN = SessionLogFQN;
+        info.CurrentGroup = CurrentGroup;
+        info.isOwnChoiceArrayHeader = {'A', 'B'};
+        info.sideChoiceObjectiveArrayHeader = {'A', 'B',};
+        info.TrialSetsDescription = 'Structure of different sets of trials, where the invidual sets are named';
+        
+        % include the exploration trials
+        TrialsInCurrentSetIdx = GoodTrialsIdx;
+        
+        % additional information for all the trials in the current set
+        PerTrialStruct.isTrialInvisible_AB = Invisible_AB(TrialsInCurrentSetIdx);
+        
+        PerTrialStruct.A_InitialTargetReleaseRT = A_InitialTargetReleaseRT(TrialsInCurrentSetIdx);
+        PerTrialStruct.B_InitialTargetReleaseRT = B_InitialTargetReleaseRT(TrialsInCurrentSetIdx);
+        PerTrialStruct.AB_InitialTargetReleaseRT_diff = AB_InitialTargetReleaseRT_diff(TrialsInCurrentSetIdx);
+        
+        PerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(TrialsInCurrentSetIdx);
+        PerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(TrialsInCurrentSetIdx);
+        PerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(TrialsInCurrentSetIdx);
+        
+        
+        
+        coordination_metrics_struct = struct();
+        if (process_coordination_metrics)
+            % save the per session population results
+            population_per_session_aggregates_FQN = fullfile(OutputPath, 'CoordinationCheck', ['ALL_SESSSION_METRICS.mat']);
+            % the next is used as session selector currently, so save out as
+            % well
+            current_file_group_id_string = ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice'];
+            if ~exist(fullfile(OutputPath, 'CoordinationCheck'), 'dir')
+                mkdir(fullfile(OutputPath, 'CoordinationCheck'));
+            end
+            
+            coordination_metrics_table = [];
+            tmp_coordination_metrics_table = struct();
+            [coordination_metrics_struct, coordination_metrics_row, coordination_metrics_row_header] = fn_compute_coordination_metrics_session(isOwnChoiceArray, sideChoiceObjectiveArray, PerTrialStruct, coordination_metrics_cfg);
+            if ~isempty(coordination_metrics_row_header)
+                tmp_coordination_metrics_table.key = current_file_group_id_string;
+                tmp_coordination_metrics_table.info_struct = info;
+                tmp_coordination_metrics_table.row = coordination_metrics_row;
+                tmp_coordination_metrics_table.header = coordination_metrics_row_header;
+            end
+            if exist(population_per_session_aggregates_FQN, 'file')
+                load(population_per_session_aggregates_FQN); % contains coordination_metrics_table
+            end
+            
+            % now store the tmp_coordination_metrics_table into the coordination_metrics_table
+            if isempty(coordination_metrics_table)
+                coordination_metrics_table.key = {current_file_group_id_string};
+                coordination_metrics_table.info_struct = info;
+                coordination_metrics_table.data = tmp_coordination_metrics_table.row;
+                coordination_metrics_table.header = tmp_coordination_metrics_table.header;
+                coordination_metrics_table.cn = local_get_column_name_indices(tmp_coordination_metrics_table.header);
+            else
+                % only add data if we actually calculated data
+                if ~isempty(coordination_metrics_row) && ~isempty(coordination_metrics_row_header)
+                    coordination_metrics_table = fn_add_entry_to_table_by_key(coordination_metrics_table, tmp_coordination_metrics_table);
+                end
+            end
+            % now save out the modified data
+            save(population_per_session_aggregates_FQN, 'coordination_metrics_table');
+        end
+        
         % now save the data
         if (SaveMat4CoordinationCheck)
-            info.ChoiceDimension = ChoiceDimension;
-            info.SessionLogFQN = SessionLogFQN;
-            info.CurrentGroup = CurrentGroup;
-            info.isOwnChoiceArrayHeader = {'A', 'B'};
-            info.sideChoiceObjectiveArrayHeader = {'A', 'B',};
-            info.TrialSetsDescription = 'Structure of different sets of trials, wher the invidual sets are named';
-            outfilename = fullfile(OutputPath, 'CoordinationCheck', ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice.mat']);
-            mkdir(fullfile(OutputPath, 'CoordinationCheck'));
-            
-            % include the edxploration trials
-            TrialsInCurrentSetIdx = GoodTrialsIdx;
-            
-            % additional information for all the trials in the current set
-            PerTrialStruct.isTrialInvisible_AB = Invisible_AB(TrialsInCurrentSetIdx);
-            
-            PerTrialStruct.A_InitialTargetReleaseRT = A_InitialTargetReleaseRT(TrialsInCurrentSetIdx);
-            PerTrialStruct.B_InitialTargetReleaseRT = B_InitialTargetReleaseRT(TrialsInCurrentSetIdx);
-            PerTrialStruct.AB_InitialTargetReleaseRT_diff = AB_InitialTargetReleaseRT_diff(TrialsInCurrentSetIdx);
-            
-            PerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(TrialsInCurrentSetIdx);
-            PerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(TrialsInCurrentSetIdx);
-            PerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(TrialsInCurrentSetIdx);
+            current_outfilename = ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice.mat'];
+            outfilename = fullfile(OutputPath, 'CoordinationCheck', current_outfilename);
+            if ~exist(fullfile(OutputPath, 'CoordinationCheck'), 'dir')
+                mkdir(fullfile(OutputPath, 'CoordinationCheck'));
+            end
             
             
             % ATTENTION this includes the exploration trials!!!
             isOwnChoice = isOwnChoiceArray;
             isBottomChoice = sideChoiceObjectiveArray;
-            save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', 'TrialsInCurrentSetIdx', 'TrialSets', 'coordStruct', 'isOwnChoice', 'isBottomChoice', 'PerTrialStruct');
+            save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', ...
+                'TrialsInCurrentSetIdx', 'TrialSets', 'coordStruct', 'isOwnChoice', 'isBottomChoice', 'PerTrialStruct', ...
+                'coordination_metrics_struct', 'coordination_metrics_row', 'coordination_metrics_row_header');
         end
+        
         
         if (SaveCoordinationSummary)
             CoordinationSummaryFQN_fid = fopen(CoordinationSummaryFQN, 'a+');
@@ -1042,6 +1109,142 @@ for iGroup = 1 : length(GroupNameList)
         CurrentTitleSetDescriptorString = TitleSetDescriptorString;
         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SOC.objective.left.', OutPutType]);
         write_out_figure(Cur_fh_ShareOfObjectiveLeftChoiceOverTrials, outfile_fqn);
+    end
+    
+    
+    if (plot_transferentropy_per_trial) && ~(IsSoloGroup) && exist('coordination_metrics_struct', 'var') && isfield(coordination_metrics_struct, 'per_trial') && ~isempty(coordination_metrics_struct.per_trial.targetTE1)
+        %plot the transfer entropy
+        % select the relevant trials:
+        %FilteredJointTrials_PreferableTargetSelected_A = fnFilterByNamedKernel( PreferableTargetSelected_A(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
+        %FilteredJointTrials_PreferableTargetSelected_B = fnFilterByNamedKernel( PreferableTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
+        
+        
+        Cur_fh_ShareOfOwnChoiceOverTrials = figure('Name', 'TransferEntropyOverTrials', 'visible', figure_visibility_string);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+        legend_list = {};
+        hold on
+        
+        set(gca(), 'YLim', [-3.0, 3.0]);
+        y_lim = get(gca(), 'YLim');
+        
+        % mark all trials in which the visibility of the two sides was
+        % manipulated
+        if (ShowInvisibility)
+            fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
+        
+        fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
+        
+        
+        if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
+        end
+        
+        
+        
+        if (ProcessSideA)
+            h1 = plot(coordination_metrics_struct.per_trial.localTargetTE1, 'Color', SideAColor*0.5, 'linewidth', project_line_width*0.5);
+            legend_list{end + 1} = 'local transfer entropy A->B';
+            h3 = plot(coordination_metrics_struct.per_trial.targetTE1, 'Color', SideAColor, 'linewidth', project_line_width);
+            legend_list{end + 1} = 'transfer entropy A->B';
+        end
+        
+        if (ProcessSideB)
+            h2 = plot(coordination_metrics_struct.per_trial.localTargetTE2, 'Color', SideBColor*0.5, 'linewidth', project_line_width*0.5);
+            legend_list{end + 1} = 'local transfer entropy B->A';
+            h4 = plot(coordination_metrics_struct.per_trial.targetTE2, 'Color', SideBColor, 'linewidth', project_line_width);
+            legend_list{end + 1} = 'transfer entropy B->A';
+        end
+        
+        hold off
+        %
+        set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
+        %set(gca(), 'YLim', [0.0, 1.0]);
+        set(gca(), 'YTick', [-3, -2, -1 0, 1, 2, 3]);
+        set(gca(),'TickLabelInterpreter','none');
+        xlabel( 'Number of trial');
+        ylabel( 'Transfer Entropy');
+        if (PlotLegend)
+            legend(legend_list, 'Interpreter', 'None');
+        end
+        %         if (~isempty(partnerInluenceOnSide) && ~isempty(partnerInluenceOnTarget)) && show_coordination_results_in_fig_title
+        %             partnerInluenceOnSideString = ['Partner effect on side choice of A: ', num2str(partnerInluenceOnSide(1)), '; of B: ', num2str(partnerInluenceOnSide(2))];
+        %             partnerInluenceOnTargetString = ['Partner effect on target choice of A: ', num2str(partnerInluenceOnTarget(1)), '; of B: ', num2str(partnerInluenceOnTarget(2))];
+        %             title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'FontSize', 12, 'Interpreter', 'None');
+        %         end
+        
+        %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
+        CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.TransferEntropy.', OutPutType]);
+        write_out_figure(Cur_fh_ShareOfOwnChoiceOverTrials, outfile_fqn);
+    end
+    
+    
+    if (plot_mutualinformation_per_trial) && ~(IsSoloGroup) && exist('coordination_metrics_struct', 'var') && isfield(coordination_metrics_struct, 'per_trial') && ~isempty(coordination_metrics_struct.per_trial.mutualInf)
+        %plot the mutual information
+        % select the relevant trials:
+        %FilteredJointTrials_PreferableTargetSelected_A = fnFilterByNamedKernel( PreferableTargetSelected_A(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
+        %FilteredJointTrials_PreferableTargetSelected_B = fnFilterByNamedKernel( PreferableTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
+        
+        
+        Cur_fh_ShareOfOwnChoiceOverTrials = figure('Name', 'MutualInformationOverTrials', 'visible', figure_visibility_string);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+        legend_list = {};
+        hold on
+        
+        set(gca(), 'YLim', [-3.0, 3.0]);
+        y_lim = get(gca(), 'YLim');
+        
+        % mark all trials in which the visibility of the two sides was
+        % manipulated
+        if (ShowInvisibility)
+            fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
+        
+        fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
+        
+        
+        if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
+        end
+        
+        
+        if (ProcessSideA) && (ProcessSideB)
+            h1 = plot(coordination_metrics_struct.per_trial.locMutualInf, 'Color', SideABColor*0.5, 'linewidth', project_line_width*0.5);
+            legend_list{end + 1} = 'local mutual information';
+            h3 = plot(coordination_metrics_struct.per_trial.mutualInf, 'Color', SideABColor, 'linewidth', project_line_width);
+            legend_list{end + 1} = 'mutual information';
+            plot([1, length(coordination_metrics_struct.per_trial.mutualInf)], [0 0], 'k--', 'linewidth', 1.2);
+            %legend_list{end + 1} = '';
+        end
+        
+        
+        hold off
+        %
+        set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
+        %set(gca(), 'YLim', [0.0, 1.0]);
+        set(gca(), 'YTick', [-3, -2, -1 0, 1, 2, 3]);
+        set(gca(),'TickLabelInterpreter','none');
+        xlabel( 'Number of trial');
+        ylabel( 'Mutual Information');
+        if (PlotLegend)
+            legend(legend_list, 'Interpreter', 'None');
+        end
+        %         if (~isempty(partnerInluenceOnSide) && ~isempty(partnerInluenceOnTarget)) && show_coordination_results_in_fig_title
+        %             partnerInluenceOnSideString = ['Partner effect on side choice of A: ', num2str(partnerInluenceOnSide(1)), '; of B: ', num2str(partnerInluenceOnSide(2))];
+        %             partnerInluenceOnTargetString = ['Partner effect on target choice of A: ', num2str(partnerInluenceOnTarget(1)), '; of B: ', num2str(partnerInluenceOnTarget(2))];
+        %             title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'FontSize', 12, 'Interpreter', 'None');
+        %         end
+        
+        %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
+        CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MutualInformation.', OutPutType]);
+        write_out_figure(Cur_fh_ShareOfOwnChoiceOverTrials, outfile_fqn);
+        
     end
     
     % also plot the reaction time per trial
@@ -1640,6 +1843,62 @@ else
     set(gca(), 'XLim', [0, 1500]);
     set(gca(), 'XTick', [0, 250, 500, 750, 1000, 1250, 1500]);
     xlabel( 'Reaction time [ms]');
+end
+return
+end
+
+
+function [ coordination_metrics_table ] = fn_add_entry_to_table_by_key( coordination_metrics_table, tmp_coordination_metrics_table )
+
+% get the column name structure
+if ~isfield(coordination_metrics_table, 'cn') || (isfield(coordination_metrics_table, 'cn') && isempty(coordination_metrics_table.cn))
+    coordination_metrics_table.cn = local_get_column_name_indices(coordination_metrics_table.header);
+end
+
+% only add data if the header match
+if ~isequal(coordination_metrics_table.header, tmp_coordination_metrics_table.header)
+    error('The existing data table and the to be added row data, have different columns/column order, which is not handled yet');
+end
+
+% find whether tmp_coordination_metrics_table.key is already in
+% coordination_metrics_table.key
+tmp_key_idx = find(strcmp(tmp_coordination_metrics_table.key, coordination_metrics_table.key));
+
+if isempty(tmp_key_idx)
+    % new data, just add at the end
+    coordination_metrics_table.info_struct(end+1) = tmp_coordination_metrics_table.info_struct;
+    coordination_metrics_table.key(end+1) = {tmp_coordination_metrics_table.key};
+    coordination_metrics_table.data(end+1, :) = tmp_coordination_metrics_table.row;
+else
+    % we have seen this before so update
+    coordination_metrics_table.infostruct(tmp_key_idx) = tmp_coordination_metrics_table.info_struct;
+    coordination_metrics_table.key(tmp_key_idx) = {tmp_coordination_metrics_table.key};
+    coordination_metrics_table.data(tmp_key_idx, :) = tmp_coordination_metrics_table.row;
+end
+
+return
+end
+
+function [columnnames_struct, n_fields] = local_get_column_name_indices(name_list, start_val)
+% return a structure with each field for each member if the name_list cell
+% array, giving the position in the name_list, then the columnnames_struct
+% can serve as to address the columns, so the functions assigning values
+% to the columns do not have to care too much about the positions, and it
+% becomes easy to add fields.
+% name_list: cell array of string names for the fields to be added
+% start_val: numerical value to start the field values with (if empty start
+%            with 1 so the results are valid indices into name_list)
+
+if nargin < 2
+    start_val = 1;  % value of the first field
+end
+n_fields = length(name_list);
+for i_col = 1 : length(name_list)
+    cur_name = name_list{i_col};
+    % skip empty names, this allows non consequtive numberings
+    if ~isempty(cur_name)
+        columnnames_struct.(cur_name) = i_col + (start_val - 1);
+    end
 end
 return
 end
