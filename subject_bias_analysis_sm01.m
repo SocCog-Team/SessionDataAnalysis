@@ -127,6 +127,14 @@ ExperimentFileFQN_list = {fullfile(experimentFolder, '20171019/20171019T132932.A
 
 ExperimentFileFQN_list = [];
 
+ExperimentFileFQN_list = {...
+    fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171215/20171215T122633.A_SM.B_Curius.SCP_01.sessiondir/20171215T122633.A_SM.B_Curius.SCP_01.triallog.txt'), ...
+    fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171221/20171221T135010.A_SM.B_Curius.SCP_01.sessiondir/20171221T135010.A_SM.B_Curius.SCP_01.triallog.txt'), ...
+    fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171222/20171222T104137.A_SM.B_Curius.SCP_01.sessiondir/20171222T104137.A_SM.B_Curius.SCP_01.triallog.txt'), ...
+    };
+ExperimentFileFQN_list = [];
+
+
 if isempty(ExperimentFileFQN_list)
     disp(['Trying to find all logfiles in ', experimentFolder]);
     experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
