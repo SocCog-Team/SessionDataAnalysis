@@ -44,6 +44,9 @@ PruneOldCoordinationSummaryFiles = 0;
 
 process_IC = 1;
 process_FC = 0;
+process_coordination_metrics = 1;% this roughly doubles the run time
+
+
 
 CoordinationSummaryFileName = 'CoordinationSummary.txt';
 
@@ -64,6 +67,7 @@ DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, Pri
 ShowEffectorHandInBackground = 1;
 ShowFasterSideInBackground = 1;
 ShowSelectedSidePerSubjectInRewardPlotBG = 1;
+ShowTargetSideChoiceCombinations = 1;
 
 coordination_alpha = 0.05;  % the alpha value for all the tests for coordination
 RightEffectorColor = [0.75, 0.75, 0.75];
@@ -89,10 +93,19 @@ RightTargColorB = ([0 128 0] / 255);
 NoTargColorB = [1 0 0]; % these should not exist so make them stick out
 LeftTransparencyB = 0.5;
 
-SameOwnAColor = [1 0 0];
-SameOwnBColor = ([255 165 0] / 255);
-DiffOwnColor = [0 1 0];
-DiffOtherColor = [0 0 1];
+% combinations of objective side choices
+A_right_B_left_Color = ([255 165 0] / 255);
+A_right_B_right_Color = [0.5 0.5 0.5];
+A_left_B_left_Color = [1 1 1];
+A_left_B_right_Color = [0 0.5 0];
+
+% 20180815 new colors..., for joint report the joint color (well blue
+% instead of yellow), for both same use magenta, and for both other use
+% green
+SameOwnAColor = [1 0 0];%[1 0 0];
+SameOwnBColor = [0 0 1];%([255 165 0] / 255);
+DiffOwnColor = [1 0 1];%[1 0 0];
+DiffOtherColor = [0 1 0];%[0 0 1];
 
 
 
@@ -122,7 +135,6 @@ histogram_use_histogram_func = 0;
 
 
 % set parameters of the methods for checking the coordination metrics
-process_coordination_metrics = 1;
 coordination_metrics_cfg.pValueForMI = 0.01;
 coordination_metrics_cfg.memoryLength = 1; % number of previous trials that affect the choices on the current trials
 coordination_metrics_cfg.minSampleNum = 6*(2.^(coordination_metrics_cfg.memoryLength+1))*(2.^coordination_metrics_cfg.memoryLength);
@@ -456,6 +468,15 @@ for iGroup = 1 : length(GroupNameList)
     PreferableTargetSelected_B = zeros([NumTrials, 1]);
     PreferableTargetSelected_B(TrialSets.ByChoice.SideB.ProtoTargetValueHigh) = 1;
     
+    A_selects_A = PreferableTargetSelected_A;
+    B_selects_B = PreferableTargetSelected_B;
+    A_selects_B = ~A_selects_A;
+    B_selects_A = ~B_selects_B;
+    SameTargetA = A_selects_A & B_selects_A;
+    SameTargetB = A_selects_B & B_selects_B;
+    DiffOwnTarget = A_selects_A & B_selects_B;
+    DiffOtherTarget = A_selects_B & B_selects_A;
+    
     % get the share of location choices (left/right, top/bottom)
     % top/bottom
     BottomTargetSelected_A = zeros([NumTrials, 1]);
@@ -473,6 +494,17 @@ for iGroup = 1 : length(GroupNameList)
     LeftTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceScreenFromALeft) = 1;
     LeftTargetSelected_B = zeros([NumTrials, 1]);
     LeftTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceScreenFromALeft) = 1;
+    
+    A_left = LeftTargetSelected_A;
+    B_left = LeftTargetSelected_B;
+    A_right = ~A_left;
+    B_right = ~B_left;
+    A_left_B_left = A_left & B_left;
+    A_right_B_right = A_right & B_right;
+    A_left_B_right = A_left & B_right;
+    A_right_B_left = A_right & B_left;
+    
+    
     
     
     SameTargetSelected_A = zeros([NumTrials, 1]);
@@ -597,6 +629,8 @@ for iGroup = 1 : length(GroupNameList)
         
         
         coordination_metrics_struct = struct();
+        coordination_metrics_row = [];
+        coordination_metrics_row_header = {};
         if (process_coordination_metrics)
             % save the per session population results
             population_per_session_aggregates_FQN = fullfile(OutputPath, 'CoordinationCheck', ['ALL_SESSSION_METRICS.mat']);
@@ -702,6 +736,14 @@ for iGroup = 1 : length(GroupNameList)
     StackedRightEffectorBGTransparency = {[0.66]; [1.0]};
     
     
+    % Show the value and side selection combinations
+    StackedTargetSideXData = {[SameTargetA(GoodTrialsIdx(JointTrialX_Vector)) + (2 * SameTargetB(GoodTrialsIdx(JointTrialX_Vector))) + (3 * DiffOwnTarget(GoodTrialsIdx(JointTrialX_Vector))) + + (4 * DiffOtherTarget(GoodTrialsIdx(JointTrialX_Vector)))]; ...
+        [A_left_B_left(GoodTrialsIdx(JointTrialX_Vector)) + (2 * A_right_B_right(GoodTrialsIdx(JointTrialX_Vector))) + (3 * A_left_B_right(GoodTrialsIdx(JointTrialX_Vector))) + (4 * A_right_B_left(GoodTrialsIdx(JointTrialX_Vector)))]};
+    StackedTargetSideColor = {[SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor]; ...
+        [A_left_B_left_Color; A_right_B_right_Color; A_left_B_right_Color; A_right_B_left_Color]};
+    StackedTargetSideBGTransparency = {[1.0], [1.0]};
+    
+    
     
     
     
@@ -782,6 +824,7 @@ for iGroup = 1 : length(GroupNameList)
         fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
     end
     
+    
     if (ShowSelectedSidePerSubjectInRewardPlotBG)
         fnPlotStackedCategoriesAtPositionWrapper('StackedBottomToTop', 0.15, SideStackedXData, y_lim, SideStackedRightEffectorColor, SideStackedRightEffectorBGTransparency);
         % plot a single category vector, attention, right now this is hybrid...
@@ -793,6 +836,11 @@ for iGroup = 1 : length(GroupNameList)
         % plot a single category vector, attention, right now this is hybrid...
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
     end
+    if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
+        fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+        y_lim = get(gca(), 'YLim');
+    end
+    
     
     % plot multiple category vectors
     if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
@@ -878,7 +926,14 @@ for iGroup = 1 : length(GroupNameList)
         fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
     end
     
+    if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
+        fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+        y_lim = get(gca(), 'YLim');
+    end
+    
     fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
+    
+    
     
     
     if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
@@ -951,6 +1006,10 @@ for iGroup = 1 : length(GroupNameList)
             fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
         end
         
+        if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+            y_lim = get(gca(), 'YLim');
+        end
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
@@ -1012,6 +1071,10 @@ for iGroup = 1 : length(GroupNameList)
             fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
         end
         
+        if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+            y_lim = get(gca(), 'YLim');
+        end
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
         
@@ -1071,6 +1134,10 @@ for iGroup = 1 : length(GroupNameList)
         % manipulated
         if (ShowInvisibility)
             fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
+        if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+            y_lim = get(gca(), 'YLim');
         end
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
@@ -1133,6 +1200,10 @@ for iGroup = 1 : length(GroupNameList)
         % manipulated
         if (ShowInvisibility)
             fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
+        if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+            y_lim = get(gca(), 'YLim');
         end
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
@@ -1203,6 +1274,10 @@ for iGroup = 1 : length(GroupNameList)
         % manipulated
         if (ShowInvisibility)
             fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
+        if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+            y_lim = get(gca(), 'YLim');
         end
         
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
