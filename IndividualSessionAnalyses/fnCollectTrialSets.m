@@ -8,6 +8,12 @@ function [ TrialSets ] = fnCollectTrialSets( LogStruct )
 % subjects touching the initial target, the main target and getting rewards
 
 TrialSets = [];
+
+if ~isfield(LogStruct, 'data') || isempty(LogStruct.data)
+    disp('Encountered trial log file without any logged trials, exiting');
+   return;
+end
+
 TrialSets.All = (1:1:size(LogStruct.data, 1))';
 
 
