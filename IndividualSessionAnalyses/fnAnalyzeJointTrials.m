@@ -56,7 +56,6 @@ OutPutType = 'pdf';
 output_rect_fraction = 0.5; % default 0.5
 
 project_name = 'PrimateNeurobiology2018DPZ';
-
 DefaultAxesType = 'PrimateNeurobiology2018DPZ'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 
