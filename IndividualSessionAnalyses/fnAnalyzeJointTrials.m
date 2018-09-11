@@ -142,6 +142,7 @@ coordination_metrics_cfg.minStationarySegmentStart = 20; % earliest possible sta
 coordination_metrics_cfg.minDRT = 200; %minimal difference of reaction times allowing the slower partner to se the choice of the faster
 coordination_metrics_cfg.check_coordination_alpha = 5*10^-5;
 coordination_metrics_cfg.proficiencyThreshold = 2.75;
+coordination_metrics_cfg.version_counter = 1; % use this to enforce recalculation of the coordination_metrics
 coordination_metrics_row_header = [];
 plot_transferentropy_per_trial = 1;
 plot_mutualinformation_per_trial = 1;
@@ -625,7 +626,9 @@ for iGroup = 1 : length(GroupNameList)
         PerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(TrialsInCurrentSetIdx);
         PerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(TrialsInCurrentSetIdx);
         
-        
+        % to make sure that we recalculte the ccordination metrics if the
+        % included trials change stor this into the cfg structure
+        coordination_metrics_cfg.TrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
         
         coordination_metrics_struct = struct();
         coordination_metrics_row = [];
@@ -640,34 +643,60 @@ for iGroup = 1 : length(GroupNameList)
                 mkdir(fullfile(OutputPath, 'CoordinationCheck'));
             end
             
-            coordination_metrics_table = [];
-            tmp_coordination_metrics_table = struct();
-            [coordination_metrics_struct, coordination_metrics_row, coordination_metrics_row_header] = fn_compute_coordination_metrics_session(isOwnChoiceArray, sideChoiceObjectiveArray, PerTrialStruct, coordination_metrics_cfg);
-            if ~isempty(coordination_metrics_row_header)
-                tmp_coordination_metrics_table.key = current_file_group_id_string;
-                tmp_coordination_metrics_table.info_struct = info;
-                tmp_coordination_metrics_table.row = coordination_metrics_row;
-                tmp_coordination_metrics_table.header = coordination_metrics_row_header;
-            end
+            
             if exist(population_per_session_aggregates_FQN, 'file')
                 load(population_per_session_aggregates_FQN); % contains coordination_metrics_table
+            else
+                coordination_metrics_table = [];
+            end
+            tmp_coordination_metrics_table = struct();
+            
+            % now only (re-)calculate the coordination_metrics if the
+            % current coordination_metrics_cfg does not match the existing
+            % one, as the caculation is costly.
+            
+            % find the index of the current key
+            recalc_coordination_metrics = 0;
+            if isfield(coordination_metrics_table, 'key') && ~isempty(coordination_metrics_table.key)
+                tmp_key_idx = find(strcmp(coordination_metrics_table.key, current_file_group_id_string));
+                if ~isempty(tmp_key_idx)
+                    stored_coordination_metrics_cfg = coordination_metrics_table.cfg_struct(tmp_key_idx);
+                    cfg_is_equal = isequaln(stored_coordination_metrics_cfg, coordination_metrics_cfg);
+                    recalc_coordination_metrics = ~(cfg_is_equal);
+                    if (cfg_is_equal)
+                        disp(['Keeping already computed coordination_metrics for ', coordination_metrics_table.key{tmp_key_idx}]);
+                    end
+                end             
             end
             
-            % now store the tmp_coordination_metrics_table into the coordination_metrics_table
-            if isempty(coordination_metrics_table)
-                coordination_metrics_table.key = {current_file_group_id_string};
-                coordination_metrics_table.info_struct = info;
-                coordination_metrics_table.data = tmp_coordination_metrics_table.row;
-                coordination_metrics_table.header = tmp_coordination_metrics_table.header;
-                coordination_metrics_table.cn = local_get_column_name_indices(tmp_coordination_metrics_table.header);
-            else
-                % only add data if we actually calculated data
-                if ~isempty(coordination_metrics_row) && ~isempty(coordination_metrics_row_header)
-                    coordination_metrics_table = fn_add_entry_to_table_by_key(coordination_metrics_table, tmp_coordination_metrics_table);
+            if isempty(coordination_metrics_table) || (recalc_coordination_metrics)
+                [coordination_metrics_struct, coordination_metrics_row, coordination_metrics_row_header] = fn_compute_coordination_metrics_session(isOwnChoiceArray, sideChoiceObjectiveArray, PerTrialStruct, coordination_metrics_cfg);
+                if ~isempty(coordination_metrics_row_header)
+                    tmp_coordination_metrics_table.key = current_file_group_id_string;
+                    tmp_coordination_metrics_table.info_struct = info;
+                    tmp_coordination_metrics_table.row = coordination_metrics_row;
+                    tmp_coordination_metrics_table.header = coordination_metrics_row_header;
+                    tmp_coordination_metrics_table.cfg_struct = coordination_metrics_cfg;
                 end
+                
+                
+                % now store the tmp_coordination_metrics_table into the coordination_metrics_table
+                if isempty(coordination_metrics_table)
+                    coordination_metrics_table.key = {current_file_group_id_string};
+                    coordination_metrics_table.info_struct = info;
+                    coordination_metrics_table.data = tmp_coordination_metrics_table.row;
+                    coordination_metrics_table.header = tmp_coordination_metrics_table.header;
+                    coordination_metrics_table.cn = local_get_column_name_indices(tmp_coordination_metrics_table.header);
+                    coordination_metrics_table.cfg_struct = tmp_coordination_metrics_table.cfg_struct;
+                else
+                    % only add data if we actually calculated data
+                    if ~isempty(coordination_metrics_row) && ~isempty(coordination_metrics_row_header)
+                        coordination_metrics_table = fn_add_entry_to_table_by_key(coordination_metrics_table, tmp_coordination_metrics_table);
+                    end
+                end
+                % now save out the modified data
+                save(population_per_session_aggregates_FQN, 'coordination_metrics_table');
             end
-            % now save out the modified data
-            save(population_per_session_aggregates_FQN, 'coordination_metrics_table');
         end
         
         % now save the data
@@ -1943,11 +1972,13 @@ if isempty(tmp_key_idx)
     coordination_metrics_table.info_struct(end+1) = tmp_coordination_metrics_table.info_struct;
     coordination_metrics_table.key(end+1) = {tmp_coordination_metrics_table.key};
     coordination_metrics_table.data(end+1, :) = tmp_coordination_metrics_table.row;
+    coordination_metrics_table.cfg_struct(end+1) = tmp_coordination_metrics_table.cfg_struct;
 else
     % we have seen this before so update
     coordination_metrics_table.infostruct(tmp_key_idx) = tmp_coordination_metrics_table.info_struct;
     coordination_metrics_table.key(tmp_key_idx) = {tmp_coordination_metrics_table.key};
     coordination_metrics_table.data(tmp_key_idx, :) = tmp_coordination_metrics_table.row;
+    coordination_metrics_table.cfg_struct(tmp_key_idx) = tmp_coordination_metrics_table.cfg_struct;
 end
 
 return
