@@ -644,6 +644,7 @@ for iGroup = 1 : length(GroupNameList)
             end
             
             
+            coordination_metrics_table = [];
             if exist(population_per_session_aggregates_FQN, 'file')
                 load(population_per_session_aggregates_FQN); % contains coordination_metrics_table
             else
@@ -656,8 +657,9 @@ for iGroup = 1 : length(GroupNameList)
             % one, as the caculation is costly.
             
             % find the index of the current key
-            recalc_coordination_metrics = 0;
+            recalc_coordination_metrics = 1;
             if isfield(coordination_metrics_table, 'key') && ~isempty(coordination_metrics_table.key)
+                %stored_coordination_metrics_cfg = [];
                 tmp_key_idx = find(strcmp(coordination_metrics_table.key, current_file_group_id_string));
                 if ~isempty(tmp_key_idx)
                     stored_coordination_metrics_cfg = coordination_metrics_table.cfg_struct(tmp_key_idx);
