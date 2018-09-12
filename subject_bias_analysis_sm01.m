@@ -17,6 +17,7 @@ LineWidth = 1.2;
 
 
 ProcessNewestFirst = 1;
+ProcessFirstOnly = 0;
 RunSingleSessionAnalysis = 1;
 
 % human subjects
@@ -125,13 +126,17 @@ ExperimentFileFQN_list = {fullfile(experimentFolder, '20170602/20170602T151337.A
 
 ExperimentFileFQN_list = {fullfile(experimentFolder, '20171019/20171019T132932.A_Flaffus.B_Curius.SCP_01/20171019T132932.A_Flaffus.B_Curius.SCP_01.log')};
 
-ExperimentFileFQN_list = [];
-
 ExperimentFileFQN_list = {...
     fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171215/20171215T122633.A_SM.B_Curius.SCP_01.sessiondir/20171215T122633.A_SM.B_Curius.SCP_01.triallog.txt'), ...
     fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171221/20171221T135010.A_SM.B_Curius.SCP_01.sessiondir/20171221T135010.A_SM.B_Curius.SCP_01.triallog.txt'), ...
     fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171222/20171222T104137.A_SM.B_Curius.SCP_01.sessiondir/20171222T104137.A_SM.B_Curius.SCP_01.triallog.txt'), ...
     };
+
+ExperimentFileFQN_list = {...
+    fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171215/20171215T122633.A_SM.B_Curius.SCP_01.sessiondir/20180420T142213.A_TN.B_SM.SCP_01.triallog.txt'), ...
+    fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2018/180420/20180420T142213.A_TN.B_SM.SCP_01.sessiondir/20180420T142213.A_TN.B_SM.SCP_01.triallog.txt'), ...
+    };
+
 ExperimentFileFQN_list = [];
 
 
@@ -173,6 +178,10 @@ if (ProcessNewestFirst)
 	experimentFile = experimentFile(end:-1:1);
 end
 
+if (ProcessFirstOnly)
+    experimentFile = experimentFile(1);
+end
+    
 out_list = {};
 
 % make sure we always fill a fresh CoordinationSummary
