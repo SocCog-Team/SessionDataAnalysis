@@ -34,7 +34,7 @@ function [ output ] = fnAnalyzeJointTrials( SessionLogFQN, OutputBasePath, DataS
 
 output = [];
 ProcessReactionTimes = 1; % needs work...
-ForceParsingOfExperimentLog = 1; % rewrite the logfiles anyway
+ForceParsingOfExperimentLog = 1; % rewrite the logfiles anyway, unless the caller passed datastruct
 CLoseFiguresOnReturn = 1;
 CleanOutputDir = 0;
 SaveMat4CoordinationCheck = 1;
@@ -52,12 +52,18 @@ CoordinationSummaryFileName = 'CoordinationSummary.txt';
 
 TitleSeparator = '_';
 
+
+
+
+
 OutPutType = 'pdf';
 output_rect_fraction = 0.5; % default 0.5
 
 project_name = 'PrimateNeurobiology2018DPZ';
 DefaultAxesType = 'PrimateNeurobiology2018DPZ'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+
+project_name = 'SfN208';
 
 
 
@@ -67,6 +73,7 @@ ShowEffectorHandInBackground = 1;
 ShowFasterSideInBackground = 1;
 ShowSelectedSidePerSubjectInRewardPlotBG = 1;
 ShowTargetSideChoiceCombinations = 1;
+ShowOnlyTargetChoiceCombinations = 0;
 
 coordination_alpha = 0.05;  % the alpha value for all the tests for coordination
 RightEffectorColor = [0.75, 0.75, 0.75];
@@ -75,7 +82,12 @@ RightEffectorBGTransparency = 1; % 1 opaque
 SideAColor = [1 0 0];
 SideBColor = [0 0 1];
 SideABColor = [1 0 1];
+SideABColorDark = [0.4980 0 0.4980];
+
+SideARTColor = [1 0 0];
+SideBRTColor = [0 0 1];
 SideABEqualRTColor = [1 1 1];
+
 
 % INVISIBILITY/PARTIAL VIEW BLOCKING
 ShowInvisibility = 1;
@@ -111,6 +123,8 @@ DiffOtherColor = [0 1 0];%[0 0 1];
 % FIXME legend plotting is incomplete as it will also take patch objects
 % into account, so best plot the backgrounds last, but that requires the
 % ability to send the most recent plot to the back of an axis set
+RTCatPlotInvisible = 0; % do not show the per trial faster subject category plots, but still keep plot scaling compatible with
+
 PlotLegend = 0; % add a lengend to the plots?
 
 PlotRTBySameness = 1;
@@ -147,6 +161,49 @@ coordination_metrics_row_header = [];
 plot_transferentropy_per_trial = 1;
 plot_mutualinformation_per_trial = 1;
 
+% the following id a HACJK until we have a "proper" stability detector
+if strcmp(SessionLogFQN, fullfile(PathStr, '20171127T164730.A_20021.B_20022.SCP_01.triallog.txt'))
+    % for human pair number 6 we do only converge on a strategy after ~270
+    % trials before that each selected their own
+    coordination_metrics_cfg.stationarySegmentLength = 200-70;  % number of last trials supposedly corresponding to equilibrium state
+end
+
+if strcmp(SessionLogFQN, fullfile(PathStr, '20171121T162619.A_20017.B_10018.SCP_01'))
+    % we need to debug this session
+    disp('Please debug me: 20171121T162619.A_20017.B_10018.SCP_01');
+end    
+    
+
+switch project_name
+    case 'PrimateNeurobiology2018DPZ'
+        ShowSelectedSidePerSubjectInRewardPlotBG = 1;
+        ShowEffectorHandInBackground = 0;
+        project_line_width = 2;
+        show_coordination_results_in_fig_title = 0;
+        DefaultAxesType = 'PrimateNeurobiology2018DPZ'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+        DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+    case {'SfN208'}
+        ShowSelectedSidePerSubjectInRewardPlotBG = 1;
+        ShowEffectorHandInBackground = 0;
+        project_line_width = 0.5;
+        show_coordination_results_in_fig_title = 0;
+        OutPutType = 'png';
+        OutPutType = 'pdf';
+        ShowOnlyTargetChoiceCombinations = 1;
+        DefaultAxesType = 'SfN2018'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+        DefaultPaperSizeType = 'SfN2018.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+        %make the who-was-faster-plots effectively invisible but still
+        %scale the plot to accomodate the required space
+        %SideARTColor = [1 1 1];
+        %SideBRTColor = [1 1 1];
+        %SideABEqualRTColor = [1 1 1];
+        RTCatPlotInvisible = 1;
+        RTCatPlotInvisible = 0;
+
+        Add_AR_subplot_to_SoC_plot = 1;
+        InvisibleFigures = 1;
+end
+
 % no GUI means no figure windows possible, so try to work around that
 if (fnIsMatlabRunningInTextMode())
     InvisibleFigures = 1;
@@ -158,14 +215,6 @@ else
     figure_visibility_string = 'on';
 end
 
-
-switch project_name
-    case 'PrimateNeurobiology2018DPZ'
-        ShowSelectedSidePerSubjectInRewardPlotBG = 1;
-        ShowEffectorHandInBackground = 0;
-        project_line_width = 2;
-        show_coordination_results_in_fig_title = 0;
-end
 
 % this allows the caller to specify the Output directory
 if ~exist('OutputBasePath', 'var')
@@ -658,6 +707,7 @@ for iGroup = 1 : length(GroupNameList)
             
             % find the index of the current key
             recalc_coordination_metrics = 1;
+            tmp_key_idx = [];
             if isfield(coordination_metrics_table, 'key') && ~isempty(coordination_metrics_table.key)
                 %stored_coordination_metrics_cfg = [];
                 tmp_key_idx = find(strcmp(coordination_metrics_table.key, current_file_group_id_string));
@@ -672,6 +722,11 @@ for iGroup = 1 : length(GroupNameList)
             end
             
             if isempty(coordination_metrics_table) || (recalc_coordination_metrics)
+                if ~isempty(tmp_key_idx)
+                    disp(['Recalculating coordination_metrics for ', coordination_metrics_table.key{tmp_key_idx}]);
+                else
+                    disp(['Calculating coordination_metrics for ', current_file_group_id_string]);
+                end
                 [coordination_metrics_struct, coordination_metrics_row, coordination_metrics_row_header] = fn_compute_coordination_metrics_session(isOwnChoiceArray, sideChoiceObjectiveArray, PerTrialStruct, coordination_metrics_cfg);
                 if ~isempty(coordination_metrics_row_header)
                     tmp_coordination_metrics_table.key = current_file_group_id_string;
@@ -698,8 +753,30 @@ for iGroup = 1 : length(GroupNameList)
                 end
                 % now save out the modified data
                 save(population_per_session_aggregates_FQN, 'coordination_metrics_table');
+            else
+                tmp_coordination_metrics_table.key = coordination_metrics_table.key{tmp_key_idx};
+                tmp_coordination_metrics_table.info_struct = coordination_metrics_table.info_struct(tmp_key_idx);
+                tmp_coordination_metrics_table.row = coordination_metrics_table.data(tmp_key_idx, :);
+                tmp_coordination_metrics_table.header = coordination_metrics_table.header;
+                tmp_coordination_metrics_table.cfg_struct = coordination_metrics_table.cfg_struct(tmp_key_idx);
+                tmp_coordination_metrics_table.cn = coordination_metrics_table.cn;
             end
         end
+        
+        %if strcmp(SessionLogFQN, fullfile(PathStr, '20171127T164730.A_20021.B_20022.SCP_01.triallog.txt'))
+            % for human pair number 6 we do only converge on a strategy after ~270
+            % trials before that each selected their own
+        if ~isempty(tmp_coordination_metrics_table) && isfield(tmp_coordination_metrics_table, 'row')
+            MI_side = tmp_coordination_metrics_table.row(coordination_metrics_table.cn.miSide);
+            MI_target = tmp_coordination_metrics_table.row(coordination_metrics_table.cn.miTarget);
+            X = atand(MI_side/MI_target);
+            Y = sqrt(MI_side^2 + MI_target^2);
+            disp(['stationarySegmentLength: ', num2str(tmp_coordination_metrics_table.cfg_struct.stationarySegmentLength)]);
+            disp(['MI_side: ', num2str(MI_side, '%0.4f'), '; MI_target: ', num2str(MI_target, '%0.4f')]);
+            disp(['atand(MI_side/MI_target): ', num2str(X, '%0.4f'), '; sqrt(MI_side^2 + MI_target^2): ', num2str(Y, '%0.4f')]);
+        end
+        
+        
         
         % now save the data
         if (SaveMat4CoordinationCheck)
@@ -755,15 +832,25 @@ for iGroup = 1 : length(GroupNameList)
     StackedXData = {[FasterInititialHoldRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialHoldRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialHoldRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
         [FasterInititialTargetRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialTargetRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialTargetRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
         [FasterTargetAcquisition_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterTargetAcquisition_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualTargetAcquisition_AB(GoodTrialsIdx(JointTrialX_Vector)))]};
-    StackedRightEffectorColor = {[SideAColor; SideBColor; SideABEqualRTColor]; [SideAColor; SideBColor; SideABEqualRTColor]; [SideAColor; SideBColor; SideABEqualRTColor]};
+    StackedRightEffectorColor = {[SideARTColor; SideBRTColor; SideABEqualRTColor]; [SideARTColor; SideBRTColor; SideABEqualRTColor]; [SideARTColor; SideBRTColor; SideABEqualRTColor]};
     StackedRightEffectorBGTransparency = {[0.33]; [0.66]; [1.0]};
     
     
     % exclude the InititialHoldRelease as this is not that interesting
     StackedXData = {[FasterInititialTargetRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialTargetRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialTargetRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
         [FasterTargetAcquisition_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterTargetAcquisition_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualTargetAcquisition_AB(GoodTrialsIdx(JointTrialX_Vector)))]};
-    StackedRightEffectorColor = {[SideAColor; SideBColor; SideABEqualRTColor]; [SideAColor; SideBColor; SideABEqualRTColor]};
-    StackedRightEffectorBGTransparency = {[0.66]; [1.0]};
+    StackedRightEffectorColor = {[SideARTColor; SideBRTColor; SideABEqualRTColor]; ...
+        [SideARTColor; SideBRTColor; SideABEqualRTColor]};
+    StackedRightEffectorBGTransparency = {[0.66]; ...
+        [1.0]};
+    
+    % make these invisible?
+    if (RTCatPlotInvisible)
+        for iStackedCat = 1 : length(StackedRightEffectorBGTransparency)
+            StackedRightEffectorBGTransparency{iStackedCat} = 0.0;
+        end
+        TitleSetDescriptorString = [TitleSetDescriptorString, SeparatorString, 'invisRTCat'];
+    end
     
     
     % Show the value and side selection combinations
@@ -773,7 +860,14 @@ for iGroup = 1 : length(GroupNameList)
         [A_left_B_left_Color; A_right_B_right_Color; A_left_B_right_Color; A_right_B_left_Color]};
     StackedTargetSideBGTransparency = {[1.0], [1.0]};
     
-    
+    if (ShowOnlyTargetChoiceCombinations)
+        tmpStackedTargetSideXData{1} = StackedTargetSideXData{1};
+        StackedTargetSideXData = tmpStackedTargetSideXData;
+        tmpStackedTargetSideColor{1} = StackedTargetSideColor{1};
+        StackedTargetSideColor = tmpStackedTargetSideColor;
+        tmpStackedTargetSideBGTransparency{1} = StackedTargetSideBGTransparency{1};
+        StackedTargetSideBGTransparency = tmpStackedTargetSideBGTransparency;
+    end
     
     
     
@@ -992,6 +1086,7 @@ for iGroup = 1 : length(GroupNameList)
     end
     hold off
     %
+    SoC_axes_h = gca();
     set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
     %set(gca(), 'YLim', [0.0, 1.0]);
     set(gca(), 'YTick', [0, 0.5, 1]);
@@ -1011,6 +1106,57 @@ for iGroup = 1 : length(GroupNameList)
     CurrentTitleSetDescriptorString = TitleSetDescriptorString;
     outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SOC.highvalue.', OutPutType]);
     write_out_figure(Cur_fh_ShareOfOwnChoiceOverTrials, outfile_fqn);
+    
+    
+    if (exist('Add_AR_subplot_to_SoC_plot', 'var') && Add_AR_subplot_to_SoC_plot)
+        Cur_fh_AR_subplot = figure('Name', 'ShareOfOwnChoiceOverTrials.ARsubplot', 'visible', figure_visibility_string);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+        hold on
+        %legend_list{end + 1} = 'running avg. AB smoothed';
+        if ~isempty(FilteredJointTrialX_Vector)
+            TmpMean = mean(AvgRewardByTrial_AB(GoodTrialsIdx));
+            line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [3.5, 3.5], 'Color', [0.5 0.5 0.5], 'LineStyle', '--', 'LineWidth', project_line_width*0.5);
+            %legend_list{end + 1} = 'all trials avg. AB';
+        end
+        plot(FilteredJointTrialX_Vector, FilteredJointTrials_AvgRewardByTrial_AB(FilteredJointTrialX_Vector), 'Color', SideABColorDark, 'LineWidth', project_line_width);
+        
+        hold off
+        y_tick_list = [1.0, 3.0];
+        
+        set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
+        set(gca(), 'YLim', [0.8, 3.7]);
+        set(gca(), 'YTick', y_tick_list);
+        set(gca(),'TickLabelInterpreter','none');
+        xlabel( 'Number of trial');
+        ylabel( 'Reward');
+        ARsubplot_axes_h = gca();
+        
+        Cur_fh_ShareOfOwnChoiceOverTrials_AR = figure('Name', 'ShareOfOwnChoiceOverTrials.AR', 'visible', figure_visibility_string);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+        set(Cur_fh_ShareOfOwnChoiceOverTrials_AR, 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+
+        %hold on
+        % copy the SoC plot from its axes handle
+        SoC_ax_h = copyobj(SoC_axes_h, Cur_fh_ShareOfOwnChoiceOverTrials_AR);
+        xlabel(SoC_ax_h, '');
+        set(SoC_ax_h, 'XTickLabel', []);
+        % graft the SoC plot onto the subplot
+        masterplot_fh = subplot(4,1,[1,2,3], SoC_ax_h);        
+        
+        ARsubplot_ax_h = copyobj(ARsubplot_axes_h, Cur_fh_ShareOfOwnChoiceOverTrials_AR);
+        ARplot_fh = subplot(4,1,4, ARsubplot_ax_h);
+
+        %hold off
+        %write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
+        CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SOC.highvalue.AR.', OutPutType]);
+        write_out_figure(Cur_fh_ShareOfOwnChoiceOverTrials_AR, outfile_fqn);
+        
+    end
+    
+    
     
     %%
     % share of bottom choices (for humans)
@@ -1977,7 +2123,7 @@ if isempty(tmp_key_idx)
     coordination_metrics_table.cfg_struct(end+1) = tmp_coordination_metrics_table.cfg_struct;
 else
     % we have seen this before so update
-    coordination_metrics_table.infostruct(tmp_key_idx) = tmp_coordination_metrics_table.info_struct;
+    coordination_metrics_table.info_struct(tmp_key_idx) = tmp_coordination_metrics_table.info_struct;
     coordination_metrics_table.key(tmp_key_idx) = {tmp_coordination_metrics_table.key};
     coordination_metrics_table.data(tmp_key_idx, :) = tmp_coordination_metrics_table.row;
     coordination_metrics_table.cfg_struct(tmp_key_idx) = tmp_coordination_metrics_table.cfg_struct;
