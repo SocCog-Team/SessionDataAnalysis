@@ -51,9 +51,9 @@ function [partnerInluenceOnSide, partnerInluenceOnTarget] = ...
         isInfluence = 1;
       else  % if not - compute fisher test
         contMatrix = [nSameCase1, nSameCase2; nDifCase1, nDifCase2];
-        contMatrix
+        contMatrix;
         [isInfluence, p, stats] = fishertest(contMatrix, 'Alpha',0.01);
-        p
+        p;
       end  
       if (iTable == 1) 
         partnerInluenceOnTarget(i) = isInfluence;
