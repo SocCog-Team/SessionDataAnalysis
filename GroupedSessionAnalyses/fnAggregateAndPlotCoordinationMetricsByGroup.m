@@ -29,8 +29,10 @@ end
 
 
 % control variables
-plot_avererage_reward_by_group = 1;
+plot_avererage_reward_by_group = 0;
 confidence_interval_alpha = 0.05;
+plot_MI_space_scatterplot = 1;
+
 
 project_name = 'SfN208';
 CollectionName = 'Oxford2018';
@@ -101,7 +103,7 @@ if (plot_avererage_reward_by_group)
     AvgRewardByGroup.ci_halfwidth = calc_cihw(AvgRewardByGroup.stddev, AvgRewardByGroup.n, confidence_interval_alpha);
     
     FileName = CollectionName;
-    Cur_fh_avg_reward_by_group = figure('Name', 'RewardOverTrials', 'visible', figure_visibility_string);
+    Cur_fh_avg_reward_by_group = figure('Name', 'Average reward by group', 'visible', figure_visibility_string);
     fnFormatDefaultAxes(DefaultAxesType);
     [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
     set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
@@ -118,9 +120,9 @@ if (plot_avererage_reward_by_group)
         scatter_offset_list = (scatter_width * rand(size(AvgRewardByGroup_list{i_group}))) - (scatter_width * 0.5);
         if (length(x_list) > 1)
             x_list = x_list + scatter_offset_list;
-        end              
+        end
         
-        hold on 
+        hold on
         bar(i_group, AvgRewardByGroup.mean(i_group), 'FaceColor', group_struct_list{i_group}.color, 'EdgeColor', [0.25 0.25 0.25]);
         errorbar(i_group, AvgRewardByGroup.mean(i_group), AvgRewardByGroup.ci_halfwidth(i_group), 'Color', [0.25 0.25 0.25]);
         
@@ -133,23 +135,20 @@ if (plot_avererage_reward_by_group)
             scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
         else
             scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
-        end       
+        end
         hold off
     end
     
     
-        xlabel('Grouping', 'Interpreter', 'none');
-        ylabel('Average Reward', 'Interpreter', 'none');
-        set(gca, 'XLim', [1-0.8 (n_groups)+0.8]);
-        set(gca, 'XTick', []);
-        %set(gca, 'XTick', (1:1:n_groups));
-        %set(gca, 'XTickLabel', AvgRewardByGroup.group_labels, 'TickLabelInterpreter', 'none');
+    xlabel('Grouping', 'Interpreter', 'none');
+    ylabel('Average Reward', 'Interpreter', 'none');
+    set(gca, 'XLim', [1-0.8 (n_groups)+0.8]);
+    set(gca, 'XTick', []);
+    %set(gca, 'XTick', (1:1:n_groups));
+    %set(gca, 'XTickLabel', AvgRewardByGroup.group_labels, 'TickLabelInterpreter', 'none');
     
-         set(gca(), 'YLim', [0.9, 4.1]);
-         set(gca(), 'YTick', [1 1.5 2 2.5 3 3.5 4]);
-    %     set(gca(),'TickLabelInterpreter','none');
-    %     xlabel( 'Number of trial');
-    %     ylabel( 'Reward units');
+    set(gca(), 'YLim', [0.9, 4.1]);
+    set(gca(), 'YTick', [1 1.5 2 2.5 3 3.5 4]);
     %     if (PlotLegend)
     %         legend(legend_list, 'Interpreter', 'None');
     %     end
@@ -158,9 +157,85 @@ if (plot_avererage_reward_by_group)
     write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
     outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardByGroup.', 'pdf']);
     write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardByGroup.', 'fig']);
+    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
 end
 
 
+if (plot_MI_space_scatterplot)
+    % collect the actual data
+    MIs_by_group_miside_list =cell(size(group_struct_list)); % the actual MIside values per group
+    MIs_by_group_mitarget_list = cell(size(group_struct_list)); % the actual MIside values per group
+    
+    MIs_by_group.group_names = cell(size(group_struct_list));
+    MIs_by_group.group_labels = cell(size(group_struct_list));
+    MIs_by_group.vectorlength = cell(size(group_struct_list));
+    MIs_by_group.atan = cell(size(group_struct_list));
+    
+    % now collect the
+    for i_group = 1 : n_groups
+        MIs_by_group.group_names{i_group} = group_struct_list{i_group}.setName;
+        MIs_by_group.group_labels{i_group} = group_struct_list{i_group}.label;
+        current_group_data = metrics_by_group_list{i_group};
+        MIs_by_group_miside_list{i_group} = current_group_data(:, coordination_metrics_table.cn.miSide);
+        MIs_by_group_mitarget_list{i_group} = current_group_data(:, coordination_metrics_table.cn.miTarget);
+        MIs_by_group.vectorlength{i_group} = sqrt(MIs_by_group_miside_list{i_group}.^2 + MIs_by_group_mitarget_list{i_group}.^2);
+        tmp = atan(MIs_by_group_miside_list{i_group} ./ MIs_by_group_mitarget_list{i_group});
+        % since division by zero is undefined we need to special case of
+        % MI target == 0, here we just clamp to the extreme right value
+        tmp(MIs_by_group_mitarget_list{i_group} == 0) = pi()/2;
+        MIs_by_group.atan{i_group} = tmp;
+    end
+    
+    FileName = CollectionName;
+    Cur_fh_avg_reward_by_group = figure('Name', 'mutual information space plot', 'visible', figure_visibility_string);
+    fnFormatDefaultAxes(DefaultAxesType);
+    [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+    set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+    legend_list = {};
+    hold on
+    
+    for i_group = 1 : n_groups
+        current_group_name = group_struct_list{i_group}.setName;
+        legend_list{end+1} = current_group_name;
+        
+        ScatterSymbolSize = 25;
+        ScatterLineWidth = 0.75;
+        current_scatter_color = group_struct_list{i_group}.color;
+        %current_scatter_color = [0.5 0.5 0.5];
+        x_list = MIs_by_group.atan{i_group};
+        y_list = MIs_by_group.vectorlength{i_group};
+        if group_struct_list{i_group}.FilledSymbols
+            scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
+        else
+            scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
+        end
+    end
+    hold off
+    axis([-0.05, pi()/2+0.1, -0.05, 1.4]);
+    ylabel('Coordination strength (MI magnitude) [a.u.]', 'Interpreter', 'none');
+    xlabel('Coordination type (angle between MI`s) [degree]', 'Interpreter', 'none');
+    set( gca, 'xTick', [0, pi()/4, pi()/2], 'xTickLabel', {'Side-based (0)', 'Trial-by-trial (45)', 'Target-based (90)'});
+
+    %     if (PlotLegend)
+    %         legend(legend_list, 'Interpreter', 'None');
+    %     end
+    CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', OutPutType]);
+    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', 'pdf']);
+    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', 'fig']);
+    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+    
+    legend(legend_list, 'Interpreter', 'None');
+    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', OutPutType]);
+    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', 'pdf']);
+    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', 'fig']);
+    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);        
+end
 
 % how long did it take?
 timestamps.(mfilename).end = toc(timestamps.(mfilename).start);
@@ -516,7 +591,7 @@ switch group_collection_name
         ConfederateTrainedMacaques.color = [128 73 142]/255;
         ConfederateTrainedMacaques.Symbol = 'd';
         ConfederateTrainedMacaques.FilledSymbols = 0;
-
+        
         
         group_struct_list = {Humans, Macaques_early, Macaques_late, ConfederatesMacaques_early, ConfederatesMacaques_late, ConfederateTrainedMacaques};
     otherwise
