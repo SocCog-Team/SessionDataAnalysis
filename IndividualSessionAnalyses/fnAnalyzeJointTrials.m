@@ -684,7 +684,9 @@ for iGroup = 1 : length(GroupNameList)
         coordination_metrics_row_header = {};
         if (process_coordination_metrics)
             % save the per session population results
-            population_per_session_aggregates_FQN = fullfile(OutputPath, 'CoordinationCheck', ['ALL_SESSSION_METRICS.mat']);
+            %population_per_session_aggregates_FQN = fullfile(OutputPath, 'CoordinationCheck', ['ALL_SESSSION_METRICS.mat']);
+            % since we learned how to update this file, keep it
+            population_per_session_aggregates_FQN = fullfile(OutputPath, ['ALL_SESSSION_METRICS.mat']);
             % the next is used as session selector currently, so save out as
             % well
             current_file_group_id_string = ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice'];
@@ -1139,6 +1141,8 @@ for iGroup = 1 : length(GroupNameList)
 
         %hold on
         % copy the SoC plot from its axes handle
+        % hFigIAxes = findobj('Parent',fig_i,'Type','axes'); % use this to
+        % allow passing in a figure handle
         SoC_ax_h = copyobj(SoC_axes_h, Cur_fh_ShareOfOwnChoiceOverTrials_AR);
         xlabel(SoC_ax_h, '');
         set(SoC_ax_h, 'XTickLabel', []);
