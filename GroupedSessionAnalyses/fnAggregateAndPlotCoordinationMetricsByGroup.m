@@ -29,10 +29,10 @@ end
 
 
 % control variables
-plot_avererage_reward_by_group = 0;
+plot_avererage_reward_by_group = 1;
 confidence_interval_alpha = 0.05;
 plot_MI_space_scatterplot = 1;
-
+mark_flaffus_curius = 1;
 
 project_name = 'SfN208';
 CollectionName = 'Oxford2018';
@@ -71,8 +71,15 @@ metrics_by_group_list = cell(size(group_struct_list));
 for i_group = 1 : n_groups
     current_group = group_struct_list{i_group};
     % find the row indices for the current group members:
-    current_session_in_group_ldx = ismember(coordination_metrics_table.key, current_group.filenames);
-    metrics_by_group_list{i_group} = coordination_metrics_table.data(current_session_in_group_ldx, :);
+    [current_session_in_group_ldx, LocB] = ismember(coordination_metrics_table.key, current_group.filenames); 
+    % this is unfortunately unsorted, but we want to keep current_group.filenames order...
+    current_session_in_group_idx = find(current_session_in_group_ldx);
+    %order_idx = LocB(current_session_in_group_idx);
+    % this will only work if each session ID is unique...
+    [~, sort_key_2_filenames_order_idx] = sort(LocB(current_session_in_group_idx), 'ascend');
+    %coordination_metrics_table.key(current_session_in_group_idx(I))'
+    %current_group.filenames'
+    metrics_by_group_list{i_group} = coordination_metrics_table.data(current_session_in_group_idx(sort_key_2_filenames_order_idx), :);
 end
 
 TitleSetDescriptorString = '';
@@ -136,6 +143,19 @@ if (plot_avererage_reward_by_group)
         else
             scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
         end
+        
+        if (mark_flaffus_curius)
+            if strcmp(group_struct_list{i_group}.setName, 'Macaques early') || strcmp(group_struct_list{i_group}.setName, 'Macaques late')
+                for i_session = 1 : length(group_struct_list{i_group}.filenames)
+                    if ~isempty(strfind(group_struct_list{i_group}.filenames{i_session}, 'A_Flaffus.B_Curius'))
+                        dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+                        text(x_list(i_session)+dx, AvgRewardByGroup_list{i_group}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+                    end
+                end
+            end
+        end
+        
+        
         hold off
     end
     
@@ -210,13 +230,26 @@ if (plot_MI_space_scatterplot)
         else
             scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
         end
+        
+        if (mark_flaffus_curius)
+            if strcmp(group_struct_list{i_group}.setName, 'Macaques early') || strcmp(group_struct_list{i_group}.setName, 'Macaques late')
+                for i_session = 1 : length(group_struct_list{i_group}.filenames)
+                    if ~isempty(strfind(group_struct_list{i_group}.filenames{i_session}, 'A_Flaffus.B_Curius'))
+                        dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+                        text(x_list(i_session)+dx, y_list(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+                    end
+                end
+            end
+        end
+        
+        
     end
     hold off
     axis([-0.05, pi()/2+0.1, -0.05, 1.4]);
     ylabel('Coordination strength (MI magnitude) [a.u.]', 'Interpreter', 'none');
     xlabel('Coordination type (angle between MI`s) [degree]', 'Interpreter', 'none');
     set( gca, 'xTick', [0, pi()/4, pi()/2], 'xTickLabel', {'Side-based (0)', 'Trial-by-trial (45)', 'Target-based (90)'});
-
+    
     %     if (PlotLegend)
     %         legend(legend_list, 'Interpreter', 'None');
     %     end
@@ -234,7 +267,7 @@ if (plot_MI_space_scatterplot)
     outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', 'pdf']);
     write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
     outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', 'fig']);
-    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);        
+    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
 end
 
 % how long did it take?
