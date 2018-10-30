@@ -562,8 +562,9 @@ if (strcmp(raw_field_name, ' '))
 	disp('Found empty string as field name, replacing with "None"...');
 end
 
-% numeric names are not allowed, so 
-if ~isnan(str2double(sanitized_field_name))
+% numeric names are not allowed, so prefix a character string if the first
+% character can be cas to a non-NaN number
+if ~isnan(str2double(sanitized_field_name(1)))
     sanitized_field_name = [PrefixForNumbers, sanitized_field_name];
 end
 
