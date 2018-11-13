@@ -104,11 +104,13 @@ RightTargColorB = ([0 128 0] / 255);
 NoTargColorB = [1 0 0]; % these should not exist so make them stick out
 LeftTransparencyB = 0.5;
 
+
 % combinations of objective side choices
-A_right_B_left_Color = ([255 165 0] / 255);
-A_right_B_right_Color = [0.5 0.5 0.5];
-A_left_B_left_Color = [1 1 1];
-A_left_B_right_Color = [0 0.5 0];
+A_right_B_left_Color = [0 0.6 0]; % green "starboard", both sujective right
+A_right_B_right_Color = [0.3 0.3 0];  % dark yellow both right
+A_left_B_left_Color = [0.9 0.9 0];    % light yellow both left
+A_left_B_right_Color = [0.6 0 0]; % red "port side"/larboard, both subjectve left
+
 
 % 20180815 new colors..., for joint report the joint color (well blue
 % instead of yellow), for both same use magenta, and for both other use
@@ -161,7 +163,7 @@ coordination_metrics_row_header = [];
 plot_transferentropy_per_trial = 1;
 plot_mutualinformation_per_trial = 1;
 
-% the following id a HACJK until we have a "proper" stability detector
+% the following id a HACK until we have a "proper" stability detector
 if strcmp(SessionLogFQN, fullfile(PathStr, '20171127T164730.A_20021.B_20022.SCP_01.triallog.txt'))
     % for human pair number 6 we do only converge on a strategy after ~270
     % trials before that each selected their own
@@ -189,7 +191,7 @@ switch project_name
         show_coordination_results_in_fig_title = 0;
         OutPutType = 'png';
         OutPutType = 'pdf';
-        ShowOnlyTargetChoiceCombinations = 1;
+        ShowOnlyTargetChoiceCombinations = 0;
         DefaultAxesType = 'SfN2018'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
         DefaultPaperSizeType = 'SfN2018.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
         %make the who-was-faster-plots effectively invisible but still
@@ -199,7 +201,7 @@ switch project_name
         %SideABEqualRTColor = [1 1 1];
         RTCatPlotInvisible = 1;
         RTCatPlotInvisible = 0;
-
+        histogram_show_median = 0;
         Add_AR_subplot_to_SoC_plot = 1;
         InvisibleFigures = 1;
 end
@@ -517,6 +519,9 @@ for iGroup = 1 : length(GroupNameList)
     PreferableTargetSelected_B = zeros([NumTrials, 1]);
     PreferableTargetSelected_B(TrialSets.ByChoice.SideB.ProtoTargetValueHigh) = 1;
     
+    % how about solo trials
+    
+    
     A_selects_A = PreferableTargetSelected_A;
     B_selects_B = PreferableTargetSelected_B;
     A_selects_B = ~A_selects_A;
@@ -538,7 +543,7 @@ for iGroup = 1 : length(GroupNameList)
     SubjectiveLeftTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceLeft) = 1;
     SubjectiveLeftTargetSelected_B = zeros([NumTrials, 1]);
     SubjectiveLeftTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceLeft) = 1;
-    % for left/right also give objective and subjective
+    % these are objective sides
     LeftTargetSelected_A = zeros([NumTrials, 1]);
     LeftTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceScreenFromALeft) = 1;
     LeftTargetSelected_B = zeros([NumTrials, 1]);
@@ -829,13 +834,13 @@ for iGroup = 1 : length(GroupNameList)
     % remove the filter artifacts?
     FilteredJointTrialX_Vector = ((FilterHalfWidth + 1):1:(length(GoodTrialsIdx) - FilterHalfWidth));
     
-    % we need to have JointTrialX_Vector available
-    % Who is faster
-    StackedXData = {[FasterInititialHoldRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialHoldRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialHoldRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
-        [FasterInititialTargetRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialTargetRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialTargetRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
-        [FasterTargetAcquisition_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterTargetAcquisition_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualTargetAcquisition_AB(GoodTrialsIdx(JointTrialX_Vector)))]};
-    StackedRightEffectorColor = {[SideARTColor; SideBRTColor; SideABEqualRTColor]; [SideARTColor; SideBRTColor; SideABEqualRTColor]; [SideARTColor; SideBRTColor; SideABEqualRTColor]};
-    StackedRightEffectorBGTransparency = {[0.33]; [0.66]; [1.0]};
+%     % we need to have JointTrialX_Vector available
+%     % Who is faster
+%     StackedXData = {[FasterInititialHoldRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialHoldRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialHoldRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
+%         [FasterInititialTargetRelease_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterInititialTargetRelease_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualInititialTargetRelease_AB(GoodTrialsIdx(JointTrialX_Vector)))]; ...
+%         [FasterTargetAcquisition_A(GoodTrialsIdx(JointTrialX_Vector)) + (2 * FasterTargetAcquisition_B(GoodTrialsIdx(JointTrialX_Vector))) + (3 * EqualTargetAcquisition_AB(GoodTrialsIdx(JointTrialX_Vector)))]};
+%     StackedRightEffectorColor = {[SideARTColor; SideBRTColor; SideABEqualRTColor]; [SideARTColor; SideBRTColor; SideABEqualRTColor]; [SideARTColor; SideBRTColor; SideABEqualRTColor]};
+%     StackedRightEffectorBGTransparency = {[0.33]; [0.66]; [1.0]};
     
     
     % exclude the InititialHoldRelease as this is not that interesting
