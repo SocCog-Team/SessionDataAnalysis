@@ -619,6 +619,8 @@ for iGroup = 1 : length(GroupNameList)
     B_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
     AB_TargetAcquisitionRT_diff = A_TargetAcquisitionRT - B_TargetAcquisitionRT;
     
+    AB_TrialStartTimeMS = DataStruct.data(:, DataStruct.cn.Timestamp);
+    
     % Anton's coordination test
     if ~(IsSoloGroup)
         NumExplorationTrials = 49;
@@ -679,6 +681,8 @@ for iGroup = 1 : length(GroupNameList)
         PerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(TrialsInCurrentSetIdx);
         PerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(TrialsInCurrentSetIdx);
         PerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(TrialsInCurrentSetIdx);
+        
+        PerTrialStruct.AB_TrialStartTimeMS = AB_TrialStartTimeMS(TrialsInCurrentSetIdx);
         
         % to make sure that we recalculte the ccordination metrics if the
         % included trials change stor this into the cfg structure
