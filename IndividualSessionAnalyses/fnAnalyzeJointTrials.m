@@ -63,9 +63,9 @@ project_name = 'PrimateNeurobiology2018DPZ';
 DefaultAxesType = 'PrimateNeurobiology2018DPZ'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 
-project_name = 'SfN208';
+project_name = 'SfN2008';
 
-
+project_name = 'BoS_manuscript';
 
 [PathStr, FileName, ~] = fileparts(SessionLogFQN);
 
@@ -155,20 +155,23 @@ coordination_metrics_cfg.memoryLength = 1; % number of previous trials that affe
 coordination_metrics_cfg.minSampleNum = 6*(2.^(coordination_metrics_cfg.memoryLength+1))*(2.^coordination_metrics_cfg.memoryLength);
 coordination_metrics_cfg.stationarySegmentLength = 200;  % number of last trials supposedly corresponding to equilibrium state
 coordination_metrics_cfg.minStationarySegmentStart = 20; % earliest possible start of equilibrium state
-coordination_metrics_cfg.minDRT = 200; %minimal difference of reaction times allowing the slower partner to se the choice of the faster
+coordination_metrics_cfg.minDRT = 50; %minimal difference of reaction times allowing the slower partner to se the choice of the faster
 coordination_metrics_cfg.check_coordination_alpha = 5*10^-5;
 coordination_metrics_cfg.proficiencyThreshold = 2.75;
-coordination_metrics_cfg.version_counter = 1; % use this to enforce recalculation of the coordination_metrics
+coordination_metrics_cfg.pValueForFisherExactTests = 0.05;  % we use this for testing the ratio of 4 reward unit trials for the slowe and faster agent
+coordination_metrics_cfg.version_counter = 2; % use this to enforce recalculation of the coordination_metrics
 coordination_metrics_row_header = [];
 plot_transferentropy_per_trial = 1;
 plot_mutualinformation_per_trial = 1;
 
+% 20190220: disable hack to use the same trial selection logic for all
+% subjects
 % the following id a HACK until we have a "proper" stability detector
-if strcmp(SessionLogFQN, fullfile(PathStr, '20171127T164730.A_20021.B_20022.SCP_01.triallog.txt'))
+%if strcmp(SessionLogFQN, fullfile(PathStr, '20171127T164730.A_20021.B_20022.SCP_01.triallog.txt'))
     % for human pair number 6 we do only converge on a strategy after ~270
     % trials before that each selected their own
-    coordination_metrics_cfg.stationarySegmentLength = 200-70;  % number of last trials supposedly corresponding to equilibrium state
-end
+%    coordination_metrics_cfg.stationarySegmentLength = 200-70;  % number of last trials supposedly corresponding to equilibrium state
+%end
 
 if strcmp(SessionLogFQN, fullfile(PathStr, '20171121T162619.A_20017.B_10018.SCP_01'))
     % we need to debug this session
@@ -184,7 +187,7 @@ switch project_name
         show_coordination_results_in_fig_title = 0;
         DefaultAxesType = 'PrimateNeurobiology2018DPZ'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
         DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
-    case {'SfN208'}
+    case {'SfN2008'}
         ShowSelectedSidePerSubjectInRewardPlotBG = 1;
         ShowEffectorHandInBackground = 0;
         project_line_width = 0.5;
@@ -204,6 +207,27 @@ switch project_name
         histogram_show_median = 0;
         Add_AR_subplot_to_SoC_plot = 1;
         InvisibleFigures = 1;
+        
+    case 'BoS_manuscript'
+        ShowSelectedSidePerSubjectInRewardPlotBG = 1;
+        ShowEffectorHandInBackground = 0;
+        project_line_width = 0.5;
+        show_coordination_results_in_fig_title = 0;
+        OutPutType = 'png';
+        OutPutType = 'pdf';
+        ShowOnlyTargetChoiceCombinations = 0;
+        DefaultAxesType = 'BoS_manuscript'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+        DefaultPaperSizeType = 'BoS_manuscript.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+        %make the who-was-faster-plots effectively invisible but still
+        %scale the plot to accomodate the required space
+        %SideARTColor = [1 1 1];
+        %SideBRTColor = [1 1 1];
+        %SideABEqualRTColor = [1 1 1];
+        RTCatPlotInvisible = 0;
+        histogram_show_median = 0;
+        Add_AR_subplot_to_SoC_plot = 1;
+        InvisibleFigures = 1;
+        
 end
 
 % no GUI means no figure windows possible, so try to work around that
@@ -633,23 +657,29 @@ for iGroup = 1 : length(GroupNameList)
         if (length(TrialIdx) > (NumExplorationTrials + 1))
             TrialIdx = TrialIdx(NumExplorationTrials+1:end);
         end
-        isOwnChoice = [PreferableTargetSelected_A(TrialIdx)'; PreferableTargetSelected_B(TrialIdx)'];
-        
+        isOwnChoice = [PreferableTargetSelected_A(TrialIdx)'; PreferableTargetSelected_B(TrialIdx)'];    
+
         % for saving
         isOwnChoiceArray = [PreferableTargetSelected_A(GoodTrialsIdx)'; PreferableTargetSelected_B(GoodTrialsIdx)'];
+        isOwnChoiceFullArray = [PreferableTargetSelected_A(:)'; PreferableTargetSelected_B(:)'];
         
         switch ChoiceDimension
             case 'mixed'
                 sideChoice = [LeftTargetSelected_A(TrialIdx)'; LeftTargetSelected_B(TrialIdx)'];    % this requires the pysical stimulus side (aka objective position)
                 sideChoiceObjectiveArray = [LeftTargetSelected_A(GoodTrialsIdx)'; LeftTargetSelected_B(GoodTrialsIdx)'];
+                sideChoiceObjectiveFullArray = [LeftTargetSelected_A(:)'; LeftTargetSelected_B(:)'];
+                
                 sideChoiceSubjectiveArray = [SubjectiveLeftTargetSelected_A(GoodTrialsIdx)'; SubjectiveLeftTargetSelected_B(GoodTrialsIdx)'];
             case 'left_right'
                 sideChoice = [LeftTargetSelected_A(TrialIdx)'; LeftTargetSelected_B(TrialIdx)'];    % this requires the pysical stimulus side (aka objective position)
                 sideChoiceObjectiveArray = [LeftTargetSelected_A(GoodTrialsIdx)'; LeftTargetSelected_B(GoodTrialsIdx)'];
+                sideChoiceObjectiveFullArray = [LeftTargetSelected_A(:)'; LeftTargetSelected_B(:)'];
+                
                 sideChoiceSubjectiveArray = [SubjectiveLeftTargetSelected_A(GoodTrialsIdx)'; SubjectiveLeftTargetSelected_B(GoodTrialsIdx)'];
             case {'bottom_top', 'top_bottom'}
                 sideChoice = [BottomTargetSelected_A(TrialIdx)'; BottomTargetSelected_B(TrialIdx)'];    % this requires the pysical stimulus side (aka objective position)
                 sideChoiceObjectiveArray = [BottomTargetSelected_A(GoodTrialsIdx)'; BottomTargetSelected_B(GoodTrialsIdx)'];
+                sideChoiceObjectiveFullArray = [BottomTargetSelected_A(:)'; BottomTargetSelected_B(:)'];
                 sideChoiceSubjectiveArray = [BottomTargetSelected_A(GoodTrialsIdx)'; BottomTargetSelected_B(GoodTrialsIdx)'];  %here subjective and objective are the same
         end
         [partnerInluenceOnSide, partnerInluenceOnTarget] = check_coordination_v1(isOwnChoice, sideChoice);
@@ -672,117 +702,81 @@ for iGroup = 1 : length(GroupNameList)
         TrialsInCurrentSetIdx = GoodTrialsIdx;
         
         % additional information for all the trials in the current set
-        PerTrialStruct.isTrialInvisible_AB = Invisible_AB(TrialsInCurrentSetIdx);
-        
+        PerTrialStruct.isTrialInvisible_AB = Invisible_AB(TrialsInCurrentSetIdx);       
         PerTrialStruct.A_InitialTargetReleaseRT = A_InitialTargetReleaseRT(TrialsInCurrentSetIdx);
         PerTrialStruct.B_InitialTargetReleaseRT = B_InitialTargetReleaseRT(TrialsInCurrentSetIdx);
         PerTrialStruct.AB_InitialTargetReleaseRT_diff = AB_InitialTargetReleaseRT_diff(TrialsInCurrentSetIdx);
-        
         PerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(TrialsInCurrentSetIdx);
         PerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(TrialsInCurrentSetIdx);
         PerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(TrialsInCurrentSetIdx);
+        PerTrialStruct.AB_TrialStartTimeMS = AB_TrialStartTimeMS(TrialsInCurrentSetIdx);        
+        PerTrialStruct.RewardByTrial_A = RewardByTrial_A(TrialsInCurrentSetIdx);
+        PerTrialStruct.RewardByTrial_B = RewardByTrial_B(TrialsInCurrentSetIdx);
         
-        PerTrialStruct.AB_TrialStartTimeMS = AB_TrialStartTimeMS(TrialsInCurrentSetIdx);
+        
+        FullPerTrialStruct.isTrialInvisible_AB = Invisible_AB(:);       
+        FullPerTrialStruct.A_InitialTargetReleaseRT = A_InitialTargetReleaseRT(:);
+        FullPerTrialStruct.B_InitialTargetReleaseRT = B_InitialTargetReleaseRT(:);
+        FullPerTrialStruct.AB_InitialTargetReleaseRT_diff = AB_InitialTargetReleaseRT_diff(:);
+        FullPerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(:);
+        FullPerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(:);
+        FullPerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(:);
+        FullPerTrialStruct.AB_TrialStartTimeMS = AB_TrialStartTimeMS(:);
+        FullPerTrialStruct.RewardByTrial_A = RewardByTrial_A(:);
+        FullPerTrialStruct.RewardByTrial_B = RewardByTrial_B(:);
+
+        
         
         % to make sure that we recalculte the ccordination metrics if the
-        % included trials change stor this into the cfg structure
+        % included trials change store this into the cfg structure
         coordination_metrics_cfg.TrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
+  
         
-        coordination_metrics_struct = struct();
-        coordination_metrics_row = [];
-        coordination_metrics_row_header = {};
         if (process_coordination_metrics)
-            % save the per session population results
-            %population_per_session_aggregates_FQN = fullfile(OutputPath, 'CoordinationCheck', ['ALL_SESSSION_METRICS.mat']);
-            % since we learned how to update this file, keep it
-            population_per_session_aggregates_FQN = fullfile(OutputPath, ['ALL_SESSSION_METRICS.mat']);
             % the next is used as session selector currently, so save out as
             % well
             current_file_group_id_string = ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice'];
             if ~exist(fullfile(OutputPath, 'CoordinationCheck'), 'dir')
                 mkdir(fullfile(OutputPath, 'CoordinationCheck'));
             end
+  
             
             
-            coordination_metrics_table = [];
-            if exist(population_per_session_aggregates_FQN, 'file')
-                load(population_per_session_aggregates_FQN); % contains coordination_metrics_table
-            else
-                coordination_metrics_table = [];
-            end
-            tmp_coordination_metrics_table = struct();
+            PopulationAggregateName = ['ALL_SESSSION_METRICS.late200.mat'];
+            use_all_trials = 0;
+            prefix_string = '';
+            suffix_string = '';
+            CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
+            [coordination_metrics_table, cur_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+                OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
             
-            % now only (re-)calculate the coordination_metrics if the
-            % current coordination_metrics_cfg does not match the existing
-            % one, as the caculation is costly.
+            PopulationAggregateName = ['ALL_SESSSION_METRICS.all_joint_choice_trials.mat'];
+            use_all_trials = 1;
+            prefix_string = '';
+            suffix_string = '';
+            CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
+            [full_coordination_metrics_table, full_cur_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+                OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
+            % do this for all trials only (for per trial plots)
+            cur_coordination_metrics_struct = full_cur_coordination_metrics_table.coordination_metrics_struct;
+  
+            %TODO add this specifically for the visibility trials (do not calculate per_trial values?)
             
-            % find the index of the current key
-            recalc_coordination_metrics = 1;
-            tmp_key_idx = [];
-            if isfield(coordination_metrics_table, 'key') && ~isempty(coordination_metrics_table.key)
-                %stored_coordination_metrics_cfg = [];
-                tmp_key_idx = find(strcmp(coordination_metrics_table.key, current_file_group_id_string));
-                if ~isempty(tmp_key_idx)
-                    stored_coordination_metrics_cfg = coordination_metrics_table.cfg_struct(tmp_key_idx);
-                    cfg_is_equal = isequaln(stored_coordination_metrics_cfg, coordination_metrics_cfg);
-                    recalc_coordination_metrics = ~(cfg_is_equal);
-                    if (cfg_is_equal)
-                        disp(['Keeping already computed coordination_metrics for ', coordination_metrics_table.key{tmp_key_idx}]);
-                    end
-                end             
-            end
             
-            if isempty(coordination_metrics_table) || (recalc_coordination_metrics)
-                if ~isempty(tmp_key_idx)
-                    disp(['Recalculating coordination_metrics for ', coordination_metrics_table.key{tmp_key_idx}]);
-                else
-                    disp(['Calculating coordination_metrics for ', current_file_group_id_string]);
-                end
-                [coordination_metrics_struct, coordination_metrics_row, coordination_metrics_row_header] = fn_compute_coordination_metrics_session(isOwnChoiceArray, sideChoiceObjectiveArray, PerTrialStruct, coordination_metrics_cfg);
-                if ~isempty(coordination_metrics_row_header)
-                    tmp_coordination_metrics_table.key = current_file_group_id_string;
-                    tmp_coordination_metrics_table.info_struct = info;
-                    tmp_coordination_metrics_table.row = coordination_metrics_row;
-                    tmp_coordination_metrics_table.header = coordination_metrics_row_header;
-                    tmp_coordination_metrics_table.cfg_struct = coordination_metrics_cfg;
-                end
-                
-                
-                % now store the tmp_coordination_metrics_table into the coordination_metrics_table
-                if isempty(coordination_metrics_table)
-                    coordination_metrics_table.key = {current_file_group_id_string};
-                    coordination_metrics_table.info_struct = info;
-                    coordination_metrics_table.data = tmp_coordination_metrics_table.row;
-                    coordination_metrics_table.header = tmp_coordination_metrics_table.header;
-                    coordination_metrics_table.cn = local_get_column_name_indices(tmp_coordination_metrics_table.header);
-                    coordination_metrics_table.cfg_struct = tmp_coordination_metrics_table.cfg_struct;
-                else
-                    % only add data if we actually calculated data
-                    if ~isempty(coordination_metrics_row) && ~isempty(coordination_metrics_row_header)
-                        coordination_metrics_table = fn_add_entry_to_table_by_key(coordination_metrics_table, tmp_coordination_metrics_table);
-                    end
-                end
-                % now save out the modified data
-                save(population_per_session_aggregates_FQN, 'coordination_metrics_table');
-            else
-                tmp_coordination_metrics_table.key = coordination_metrics_table.key{tmp_key_idx};
-                tmp_coordination_metrics_table.info_struct = coordination_metrics_table.info_struct(tmp_key_idx);
-                tmp_coordination_metrics_table.row = coordination_metrics_table.data(tmp_key_idx, :);
-                tmp_coordination_metrics_table.header = coordination_metrics_table.header;
-                tmp_coordination_metrics_table.cfg_struct = coordination_metrics_table.cfg_struct(tmp_key_idx);
-                tmp_coordination_metrics_table.cn = coordination_metrics_table.cn;
-            end
+
         end
         
         %if strcmp(SessionLogFQN, fullfile(PathStr, '20171127T164730.A_20021.B_20022.SCP_01.triallog.txt'))
             % for human pair number 6 we do only converge on a strategy after ~270
             % trials before that each selected their own
-        if ~isempty(tmp_coordination_metrics_table) && isfield(tmp_coordination_metrics_table, 'row')
-            MI_side = tmp_coordination_metrics_table.row(coordination_metrics_table.cn.miSide);
-            MI_target = tmp_coordination_metrics_table.row(coordination_metrics_table.cn.miTarget);
+        if ~isempty(cur_coordination_metrics_table) && isfield(cur_coordination_metrics_table, 'row')
+            MI_side = cur_coordination_metrics_table.row(coordination_metrics_table.cn.miSide);
+            MI_target = cur_coordination_metrics_table.row(coordination_metrics_table.cn.miTarget);
             X = atand(MI_side/MI_target);
             Y = sqrt(MI_side^2 + MI_target^2);
-            disp(['stationarySegmentLength: ', num2str(tmp_coordination_metrics_table.cfg_struct.stationarySegmentLength)]);
+            disp(['stationarySegmentLength: ', num2str(cur_coordination_metrics_table.cfg_struct.stationarySegmentLength)]);
             disp(['MI_side: ', num2str(MI_side, '%0.4f'), '; MI_target: ', num2str(MI_target, '%0.4f')]);
             disp(['atand(MI_side/MI_target): ', num2str(X, '%0.4f'), '; sqrt(MI_side^2 + MI_target^2): ', num2str(Y, '%0.4f')]);
         end
@@ -795,15 +789,23 @@ for iGroup = 1 : length(GroupNameList)
             outfilename = fullfile(OutputPath, 'CoordinationCheck', current_outfilename);
             if ~exist(fullfile(OutputPath, 'CoordinationCheck'), 'dir')
                 mkdir(fullfile(OutputPath, 'CoordinationCheck'));
-            end
-            
+            end            
             
             % ATTENTION this includes the exploration trials!!!
             isOwnChoice = isOwnChoiceArray;
             isBottomChoice = sideChoiceObjectiveArray;
+            
+            cur_coordination_metrics_table_row = [];
+            cur_coordination_metrics_table_header = [];
+            if isfield(cur_coordination_metrics_table, 'row')
+                cur_coordination_metrics_table_row = cur_coordination_metrics_table.row;
+            end
+            if isfield(cur_coordination_metrics_table, 'header')
+                cur_coordination_metrics_table_header = cur_coordination_metrics_table.header;
+            end
             save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', ...
                 'TrialsInCurrentSetIdx', 'TrialSets', 'coordStruct', 'isOwnChoice', 'isBottomChoice', 'PerTrialStruct', ...
-                'coordination_metrics_struct', 'coordination_metrics_row', 'coordination_metrics_row_header');
+                'cur_coordination_metrics_struct', 'cur_coordination_metrics_table_row', 'cur_coordination_metrics_table_header');
         end
         
         
@@ -1368,7 +1370,7 @@ for iGroup = 1 : length(GroupNameList)
     end
     
     
-    if (plot_transferentropy_per_trial) && ~(IsSoloGroup) && exist('coordination_metrics_struct', 'var') && isfield(coordination_metrics_struct, 'per_trial') && ~isempty(coordination_metrics_struct.per_trial.targetTE1)
+    if (plot_transferentropy_per_trial) && ~(IsSoloGroup) && exist('cur_coordination_metrics_struct', 'var') && isfield(cur_coordination_metrics_struct, 'per_trial') && ~isempty(cur_coordination_metrics_struct.per_trial.targetTE1)
         %plot the transfer entropy
         % select the relevant trials:
         %FilteredJointTrials_PreferableTargetSelected_A = fnFilterByNamedKernel( PreferableTargetSelected_A(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
@@ -1405,16 +1407,16 @@ for iGroup = 1 : length(GroupNameList)
         
         
         if (ProcessSideA)
-            h1 = plot(coordination_metrics_struct.per_trial.localTargetTE1, 'Color', SideAColor*0.5, 'linewidth', project_line_width*0.5);
+            h1 = plot(cur_coordination_metrics_struct.per_trial.localTargetTE1, 'Color', SideAColor*0.5, 'linewidth', project_line_width*0.5);
             legend_list{end + 1} = 'local transfer entropy A->B';
-            h3 = plot(coordination_metrics_struct.per_trial.targetTE1, 'Color', SideAColor, 'linewidth', project_line_width);
+            h3 = plot(cur_coordination_metrics_struct.per_trial.targetTE1, 'Color', SideAColor, 'linewidth', project_line_width);
             legend_list{end + 1} = 'transfer entropy A->B';
         end
         
         if (ProcessSideB)
-            h2 = plot(coordination_metrics_struct.per_trial.localTargetTE2, 'Color', SideBColor*0.5, 'linewidth', project_line_width*0.5);
+            h2 = plot(cur_coordination_metrics_struct.per_trial.localTargetTE2, 'Color', SideBColor*0.5, 'linewidth', project_line_width*0.5);
             legend_list{end + 1} = 'local transfer entropy B->A';
-            h4 = plot(coordination_metrics_struct.per_trial.targetTE2, 'Color', SideBColor, 'linewidth', project_line_width);
+            h4 = plot(cur_coordination_metrics_struct.per_trial.targetTE2, 'Color', SideBColor, 'linewidth', project_line_width);
             legend_list{end + 1} = 'transfer entropy B->A';
         end
         
@@ -1442,7 +1444,7 @@ for iGroup = 1 : length(GroupNameList)
     end
     
     
-    if (plot_mutualinformation_per_trial) && ~(IsSoloGroup) && exist('coordination_metrics_struct', 'var') && isfield(coordination_metrics_struct, 'per_trial') && ~isempty(coordination_metrics_struct.per_trial.mutualInf)
+    if (plot_mutualinformation_per_trial) && ~(IsSoloGroup) && exist('cur_coordination_metrics_struct', 'var') && isfield(cur_coordination_metrics_struct, 'per_trial') && ~isempty(cur_coordination_metrics_struct.per_trial.mutualInf)
         %plot the mutual information
         % select the relevant trials:
         %FilteredJointTrials_PreferableTargetSelected_A = fnFilterByNamedKernel( PreferableTargetSelected_A(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
@@ -1478,11 +1480,11 @@ for iGroup = 1 : length(GroupNameList)
         
         
         if (ProcessSideA) && (ProcessSideB)
-            h1 = plot(coordination_metrics_struct.per_trial.locMutualInf, 'Color', SideABColor*0.5, 'linewidth', project_line_width*0.5);
+            h1 = plot(cur_coordination_metrics_struct.per_trial.locMutualInf, 'Color', SideABColor*0.5, 'linewidth', project_line_width*0.5);
             legend_list{end + 1} = 'local mutual information';
-            h3 = plot(coordination_metrics_struct.per_trial.mutualInf, 'Color', SideABColor, 'linewidth', project_line_width);
+            h3 = plot(cur_coordination_metrics_struct.per_trial.mutualInf, 'Color', SideABColor, 'linewidth', project_line_width);
             legend_list{end + 1} = 'mutual information';
-            plot([1, length(coordination_metrics_struct.per_trial.mutualInf)], [0 0], 'k--', 'linewidth', 1.2);
+            plot([1, length(cur_coordination_metrics_struct.per_trial.mutualInf)], [0 0], 'k--', 'linewidth', 1.2);
             %legend_list{end + 1} = '';
         end
         
@@ -2112,38 +2114,7 @@ return
 end
 
 
-function [ coordination_metrics_table ] = fn_add_entry_to_table_by_key( coordination_metrics_table, tmp_coordination_metrics_table )
 
-% get the column name structure
-if ~isfield(coordination_metrics_table, 'cn') || (isfield(coordination_metrics_table, 'cn') && isempty(coordination_metrics_table.cn))
-    coordination_metrics_table.cn = local_get_column_name_indices(coordination_metrics_table.header);
-end
-
-% only add data if the header match
-if ~isequal(coordination_metrics_table.header, tmp_coordination_metrics_table.header)
-    error('The existing data table and the to be added row data, have different columns/column order, which is not handled yet');
-end
-
-% find whether tmp_coordination_metrics_table.key is already in
-% coordination_metrics_table.key
-tmp_key_idx = find(strcmp(tmp_coordination_metrics_table.key, coordination_metrics_table.key));
-
-if isempty(tmp_key_idx)
-    % new data, just add at the end
-    coordination_metrics_table.info_struct(end+1) = tmp_coordination_metrics_table.info_struct;
-    coordination_metrics_table.key(end+1) = {tmp_coordination_metrics_table.key};
-    coordination_metrics_table.data(end+1, :) = tmp_coordination_metrics_table.row;
-    coordination_metrics_table.cfg_struct(end+1) = tmp_coordination_metrics_table.cfg_struct;
-else
-    % we have seen this before so update
-    coordination_metrics_table.info_struct(tmp_key_idx) = tmp_coordination_metrics_table.info_struct;
-    coordination_metrics_table.key(tmp_key_idx) = {tmp_coordination_metrics_table.key};
-    coordination_metrics_table.data(tmp_key_idx, :) = tmp_coordination_metrics_table.row;
-    coordination_metrics_table.cfg_struct(tmp_key_idx) = tmp_coordination_metrics_table.cfg_struct;
-end
-
-return
-end
 
 function [columnnames_struct, n_fields] = local_get_column_name_indices(name_list, start_val)
 % return a structure with each field for each member if the name_list cell
