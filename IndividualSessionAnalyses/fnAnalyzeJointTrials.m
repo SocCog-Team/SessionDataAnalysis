@@ -39,7 +39,7 @@ CLoseFiguresOnReturn = 1;
 CleanOutputDir = 0;
 SaveMat4CoordinationCheck = 1;
 SaveCoordinationSummary = 1;
-InvisibleFigures = 1;
+InvisibleFigures = 0;
 PruneOldCoordinationSummaryFiles = 0;
 
 process_IC = 1;
@@ -163,6 +163,11 @@ coordination_metrics_cfg.version_counter = 2; % use this to enforce recalculatio
 coordination_metrics_row_header = [];
 plot_transferentropy_per_trial = 1;
 plot_mutualinformation_per_trial = 1;
+
+plot_psee_antipreferredchoice_correlation_per_trial = 1;
+psee_antipreferredchoice_correlation_RT_name = 'pSee_iniTargRel'; % pSee_iniTargRel or pSee_TargAcq
+PseeColor = [0.9290, 0.6940, 0.1250];
+
 
 % 20190220: disable hack to use the same trial selection logic for all
 % subjects
@@ -756,11 +761,11 @@ for iGroup = 1 : length(GroupNameList)
             prefix_string = '';
             suffix_string = '';
             CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
-            [full_coordination_metrics_table, full_cur_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+            [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
                 OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
                 isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
             % do this for all trials only (for per trial plots)
-            cur_coordination_metrics_struct = full_cur_coordination_metrics_table.coordination_metrics_struct;
+            cur_coordination_metrics_struct = cur_full_coordination_metrics_table.coordination_metrics_struct;
   
             %TODO add this specifically for the visibility trials (do not calculate per_trial values?)
             
@@ -1370,6 +1375,108 @@ for iGroup = 1 : length(GroupNameList)
     end
     
     
+    
+    if (plot_psee_antipreferredchoice_correlation_per_trial) && ~(IsSoloGroup) && exist('cur_coordination_metrics_struct', 'var') && isfield(cur_coordination_metrics_struct, 'per_trial') && ~isempty(cur_coordination_metrics_struct.per_trial.pSee_iniTargRel)
+        % prepare the data
+        raw_accmodations_array = cur_coordination_metrics_struct.per_trial.full_isOtherChoice(:, CurTrialsInCurrentSetIdx);
+        raw_psee_array = cur_coordination_metrics_struct.per_trial.(psee_antipreferredchoice_correlation_RT_name);
+        
+        windowSize = 8;
+        filtered_psee_array = movmean(raw_psee_array, windowSize, 2);
+        filtered_accmodations_array = movmean(raw_accmodations_array, windowSize, 2);
+        
+        Cur_fh_PseeSotherCCorOverTrials = figure('Name', 'PseeAntipreferredChoiceCorrelationOverTrials', 'visible', figure_visibility_string);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+        legend_list = {};
+        
+        
+        subplot(2, 1, 1)
+        hold on
+        % for agent A
+        if (ShowInvisibility)
+            fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
+        if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+            y_lim = get(gca(), 'YLim');
+        end
+        fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
+        if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
+        end
+        
+        if (ProcessSideA)
+            h1 = plot(filtered_psee_array(1,:), 'Color', PseeColor, 'linewidth', project_line_width);
+            legend_list{end + 1} = 'probability to see partner''s choice';
+            h3 = plot(filtered_accmodations_array(1,:), 'Color', SideAColor, 'linewidth', project_line_width);
+            legend_list{end + 1} = 'share of Accommodate choices';
+        end        
+        corrCoefValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefValue(1), '%.2f');
+        corrPValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValue(1), '%.2f');
+        corrCoefAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefAveraged(1), '%.2f');
+        corrPValueAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValueAveraged(1), '%.2f');       
+        titleText = ['Agent A: ', corrCoefValue,  ' (', corrPValue,  ') / ', corrCoefAveraged, ' (', corrPValueAveraged, ')'];
+        title(titleText);
+        
+        set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
+        %set(gca(), 'YLim', [0.0, 1.0]);
+        set(gca(), 'YTick', [0, 0.5, 1]);
+        set(gca(),'TickLabelInterpreter','none');
+        xlabel( 'Number of trial');
+        ylabel( 'Probability');
+
+        hold off
+        
+        subplot(2, 1, 2)
+        hold on
+        % for agent B
+        if (ShowInvisibility)
+            fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
+        end
+        if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+            y_lim = get(gca(), 'YLim');
+        end
+        fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
+        if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
+            fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
+        end      
+        
+        if (ProcessSideB)
+            h2 = plot(filtered_psee_array(2, :), 'Color', PseeColor, 'linewidth', project_line_width);
+            legend_list{end + 1} = 'probability to see partner''s choice';
+            h4 = plot(filtered_accmodations_array(2, :), 'Color', SideBColor, 'linewidth', project_line_width);
+            legend_list{end + 1} = 'share of Accommodate choices';
+        end
+        corrCoefValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefValue(2), '%.2f');
+        corrPValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValue(2), '%.2f');
+        corrCoefAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefAveraged(2), '%.2f');
+        corrPValueAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValueAveraged(2), '%.2f');       
+        titleText = ['Agent B: ', corrCoefValue,  ' (', corrPValue,  ') / ', corrCoefAveraged, ' (', corrPValueAveraged, ')'];
+        title(titleText);
+
+        set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
+        %set(gca(), 'YLim', [0.0, 1.0]);
+        set(gca(), 'YTick', [0, 0.5, 1]);
+        set(gca(),'TickLabelInterpreter','none');
+        xlabel( 'Number of trial');
+        ylabel( 'Probability');
+        
+        hold off
+        %
+        if (PlotLegend)
+            legend(legend_list, 'Interpreter', 'None');
+        end
+
+        CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.PseeSotherCCor.', psee_antipreferredchoice_correlation_RT_name, '.', OutPutType]);
+        write_out_figure(Cur_fh_PseeSotherCCorOverTrials, outfile_fqn);              
+    end
+    
+    
+    
     if (plot_transferentropy_per_trial) && ~(IsSoloGroup) && exist('cur_coordination_metrics_struct', 'var') && isfield(cur_coordination_metrics_struct, 'per_trial') && ~isempty(cur_coordination_metrics_struct.per_trial.targetTE1)
         %plot the transfer entropy
         % select the relevant trials:
@@ -1396,15 +1503,10 @@ for iGroup = 1 : length(GroupNameList)
             fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
             y_lim = get(gca(), 'YLim');
         end
-        
         fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
-        
-        
         if (ShowFasterSideInBackground) && (ProcessSideA && ProcessSideB)
             fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
         end
-        
-        
         
         if (ProcessSideA)
             h1 = plot(cur_coordination_metrics_struct.per_trial.localTargetTE1, 'Color', SideAColor*0.5, 'linewidth', project_line_width*0.5);
@@ -1412,7 +1514,6 @@ for iGroup = 1 : length(GroupNameList)
             h3 = plot(cur_coordination_metrics_struct.per_trial.targetTE1, 'Color', SideAColor, 'linewidth', project_line_width);
             legend_list{end + 1} = 'transfer entropy A->B';
         end
-        
         if (ProcessSideB)
             h2 = plot(cur_coordination_metrics_struct.per_trial.localTargetTE2, 'Color', SideBColor*0.5, 'linewidth', project_line_width*0.5);
             legend_list{end + 1} = 'local transfer entropy B->A';
