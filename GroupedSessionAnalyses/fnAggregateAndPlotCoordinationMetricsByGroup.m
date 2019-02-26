@@ -35,11 +35,16 @@ end
 plot_avererage_reward_by_group = 0;
 confidence_interval_alpha = 0.05;
 plot_MI_space_scatterplot = 1;
-MI_space_set_list = {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque'};
+MI_space_set_list = {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque'}; % the set names to display
+MI_space_set_list = {'Humans', 'Macaques_late', 'HumansOpaque', 'Humans50_50'}; % the set names to display
+MI_space_set_list = {'GoodHumans', 'Macaques_late', 'BadHumans'}; % the set names to display
+
 mark_flaffus_curius = 1;
 
 plot_coordination_metrics_for_each_group = 1;
 plot_coordination_metrics_for_each_group_graph_type = 'line';% bar or line
+
+plot_AR_scatter_by_trainig_state = 1;
 
 plot_blocked_confederate_data = 0;
 
@@ -292,6 +297,72 @@ if (plot_MI_space_scatterplot)
     write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
 end
 
+if (plot_AR_scatter_by_trainig_state)
+    % for early and late macaques plot AR_late versus AR_early
+    
+    for i_group = 1 : n_groups
+        current_group_label = group_struct_list{i_group}.setLabel;
+        if ~ismember(current_group_label, {'Macaques_early', 'Macaques_late'})
+            % nothing to do here
+            continue
+        end
+        % collect the data lines for the current group
+        current_group_data = metrics_by_group_list{i_group};
+        % now collect the actual data of interest
+        % averaged reward
+        AVG_rewardA = current_group_data(:, coordination_metrics_table.cn.playerReward_A);
+        AVG_rewardB = current_group_data(:, coordination_metrics_table.cn.playerReward_B);
+        AVG_rewardAB = current_group_data(:, coordination_metrics_table.cn.averReward);
+        
+        if strcmp(current_group_label, 'Macaques_early')
+           early_AVG_rewardAB = AVG_rewardAB;
+        end
+        if strcmp(current_group_label, 'Macaques_late')
+           late_AVG_rewardAB = AVG_rewardAB;
+        end
+    end
+    % create the plot
+    FileName = CollectionName;
+    Cur_fh_cAvgRewardScatter_for_naive_macaques = figure('Name', 'AverageReward early/ate scatter-plot', 'visible', figure_visibility_string);
+    fnFormatDefaultAxes(DefaultAxesType);
+    [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+    set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+    legend_list = {};
+    hold on
+    
+    ScatterSymbolSize = 25;
+    ScatterLineWidth = 0.75;
+    ScatterMaker = 'o';
+    current_scatter_color = group_struct_list{i_group}.color;
+    %current_scatter_color = [0.5 0.5 0.5];
+    x_list = early_AVG_rewardAB;
+    y_list = late_AVG_rewardAB;
+    
+    scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, ScatterMaker, 'LineWidth', ScatterLineWidth);
+    plot([0 4], [0 4], 'Color', [0.5 0.5 0.5], 'LineStyle', '--');
+    
+    ylabel('average reward early session', 'Interpreter', 'none');
+    xlabel('average reward late session', 'Interpreter', 'none');
+    %set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+    set(gca, 'Ylim', [0 4]);
+    set(gca, 'XLim', [0 4]);
+    
+    hold off
+    % save out the results
+    current_group_label = 'naive_macaques';
+    CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label];
+    if ~strcmp(OutPutType, 'pdf')
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', OutPutType]);
+        write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+    end
+    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'pdf']);
+    write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'fig']);
+    write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+    
+end
+
+
 
 if (plot_blocked_confederate_data)
     for i_group = 1 : n_groups
@@ -327,7 +398,7 @@ if (plot_blocked_confederate_data)
         % Mutual Informatin
         MI_side = current_group_data(:, coordination_metrics_table.cn.miSide);
         MI_target = current_group_data(:, coordination_metrics_table.cn.miTarget);
-        % averafed reward
+        % averaged reward
         AVG_rewardA = current_group_data(:, coordination_metrics_table.cn.playerReward_A);
         AVG_rewardB = current_group_data(:, coordination_metrics_table.cn.playerReward_B);
         AVG_rewardAB = current_group_data(:, coordination_metrics_table.cn.averReward);
@@ -951,6 +1022,84 @@ switch group_collection_name
         Humans50_55__80_20.color = ([142 205 253]/255) * 1/5;
         Humans50_55__80_20.Symbol = '+';
         Humans50_55__80_20.FilledSymbols = 0;       
+ 
+        Humans50_50.setName = 'Humans 50_50';
+        Humans50_50.setLabel = 'Humans50_50';
+        Humans50_50.label = {'Humans', '', ''};
+        Humans50_50.filenames = {...        
+            'DATA_20181030T155123.A_181030ID0061S1.B_181030ID0062S1.SCP_01.triallog.A.181030ID0061S1.B.181030ID0062S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181031T135826.A_181031ID63S1.B_181031ID64S1.SCP_01.triallog.A.181031ID63S1.B.181031ID64S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181031T170224.A_181031ID65S1.B_181031ID66S1.SCP_01.triallog.A.181031ID65S1.B.181031ID66S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181101T133927.A_181101ID67S1.B_181101ID68S1.SCP_01.triallog.A.181101ID67S1.B.181101ID68S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181102T131833.A_181102ID69S1.B_181102ID70S1.SCP_01.triallog.A.181102ID69S1.B.181102ID70S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            };
+         Humans50_50.Captions = {...
+            '81030_50', ...
+            '81031_50', ...
+            '81031_50', ...
+            '81101_50', ...
+            '81102_50', ...
+            };
+        Humans50_50.color = ([142 205 253]/255) * 1/5;
+        Humans50_50.Symbol = '+';
+        Humans50_50.FilledSymbols = 0;    
+
+        % these are selected on the basis of havin understood the color to
+        % value associations, either from solo training or from later joint
+        % trials
+        GoodHumans.setName = 'Humans';
+        GoodHumans.setLabel = 'Humans';
+        GoodHumans.label = {'Humans', '', ''};
+        GoodHumans.filenames = {...
+            'DATA_20171116T164137.A_20015.B_10016.SCP_01.triallog.A.20015.B.10016_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171123T165158.A_20019.B_10020.SCP_01.triallog.A.20019.B.10020_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171127T164730.A_20021.B_20022.SCP_01.triallog.A.20021.B.20022_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171128T165159.A_20024.B_10023.SCP_01.triallog.A.20024.B.10023_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171130T164300.A_20027.B_10028.SCP_01.triallog.A.20027.B.10028_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171205T163542.A_20029.B_10030.SCP_01.triallog.A.20029.B.10030_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181030T155123.A_181030ID0061S1.B_181030ID0062S1.SCP_01.triallog.A.181030ID0061S1.B.181030ID0062S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181031T170224.A_181031ID65S1.B_181031ID66S1.SCP_01.triallog.A.181031ID65S1.B.181031ID66S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181101T133927.A_181101ID67S1.B_181101ID68S1.SCP_01.triallog.A.181101ID67S1.B.181101ID68S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181102T131833.A_181102ID69S1.B_181102ID70S1.SCP_01.triallog.A.181102ID69S1.B.181102ID70S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            };
+        GoodHumans.Captions = {...
+            '15vs16', ...
+            '19vs20', ...
+            '21vs22', ...
+            '24vs23', ...
+            '27vs28', ...
+            '29vs30', ...
+            '81030_50', ...
+            '81031_50', ...
+            '81101_50', ...
+            '81102_50', ...
+            };
+        GoodHumans.color = ([142 205 253]/255) * 1/5;
+        GoodHumans.Symbol = '+';
+        GoodHumans.FilledSymbols = 0;        
+        
+      
+        BadHumans.setName = 'BadHumans';
+        BadHumans.setLabel = 'BadHumans';
+        BadHumans.label = {'BadHumans', '', ''};
+        BadHumans.filenames = {...
+            'DATA_20171113T162815.A_20011.B_10012.SCP_01.triallog.A.20011.B.10012_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171115T165545.A_20013.B_10014.SCP_01.triallog.A.20013.B.10014_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171121T165717.A_10018.B_20017.SCP_01.triallog.A.10018.B.20017_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171130T145412.A_20025.B_20026.SCP_01.triallog.A.20025.B.20026_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181031T135826.A_181031ID63S1.B_181031ID64S1.SCP_01.triallog.A.181031ID63S1.B.181031ID64S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            };
+        BadHumans.Captions = {...
+            '11vs12', ...
+            '13vs14', ...
+            '18vs17', ...
+            '25vs26', ...
+            '81031_50', ...
+            };
+        BadHumans.color = [1 0 0]; %([142 205 253]/255) * 1/5;
+        BadHumans.Symbol = '+';
+        BadHumans.FilledSymbols = 0;        
+        
         
         Macaques_early.setName = 'Macaques early';
         Macaques_early.setLabel = 'Macaques_early';
@@ -1284,6 +1433,7 @@ switch group_collection_name
             'DATA_20190220T090318.A_Elmo.B_JK.SCP_01.triallog.A.Elmo.B.JK_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20190222T144413.A_Elmo.B_SM.SCP_01.triallog.A.Elmo.B.SM_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20190225T093605.A_Elmo.B_JK.SCP_01.triallog.A.Elmo.B.JK_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20190226T095145.A_Elmo.B_JK.SCP_01.triallog.A.Elmo.B.JK_IC_JointTrials.isOwnChoice_sideChoice', ...
             };
         ConfederateElmoSM.Captions = {...
             '81121', ...
@@ -1319,6 +1469,7 @@ switch group_collection_name
             '90219JK_20_80', ...
             '90222SM_50_50', ...
             '90225JK', ...
+            '90226JK', ...
             };
         ConfederateElmoSM.color = [192 157 169]/255;
         ConfederateElmoSM.Symbol = 'none';
@@ -1370,7 +1521,7 @@ switch group_collection_name
         group_struct_list = {Humans, Macaques_early, Macaques_late, teslaElmoNaive, ...
             ConfederatesMacaques_early, ConfederatesMacaques_late, ConfederateTrainedMacaques, ...
             ConfederateSMCurius, ConfederateSMFlaffus, ConfederateSMCuriusBlocked, ConfederateSMFlaffusBlocked, ...
-            FlaffusCuriusNaive, ConfederateElmoSM, ConfederateTNLinus, HumansOpaque, Humans50_55__80_20};
+            FlaffusCuriusNaive, ConfederateElmoSM, ConfederateTNLinus, HumansOpaque, Humans50_55__80_20, Humans50_50, GoodHumans, BadHumans};
     otherwise
         disp(['Encountered unhandled group_collection_name: ', group_collection_name]);
 end
