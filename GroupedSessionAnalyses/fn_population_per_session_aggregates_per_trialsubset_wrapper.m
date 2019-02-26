@@ -43,7 +43,7 @@ if isfield(coordination_metrics_table, 'key') && ~isempty(coordination_metrics_t
         end
     end
 end
-%recalc_coordination_metrics = 1;
+recalc_coordination_metrics = 1;
 if isempty(coordination_metrics_table) || (recalc_coordination_metrics)
     if ~isempty(tmp_key_idx)
         disp(['Recalculating coordination_metrics for ', coordination_metrics_table.key{tmp_key_idx}]);
