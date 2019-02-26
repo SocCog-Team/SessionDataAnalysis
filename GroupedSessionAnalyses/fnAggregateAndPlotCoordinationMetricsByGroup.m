@@ -14,7 +14,7 @@ output_args = [];
 if ~exist('session_metrics_datafile_fqn', 'var') || isempty(session_metrics_datafile_fqn)
     InputPath = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'taskcontroller', 'SCP_DATA', 'ANALYSES', 'hms-beagle2', '2018');
     InputPath = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'taskcontroller', 'SCP_DATA', 'ANALYSES', 'hms-beagle2', '2019');
-    session_metrics_datafile_fqn = fullfile(InputPath, ['ALL_SESSSION_METRICS.mat']);
+    session_metrics_datafile_fqn = fullfile(InputPath, ['ALL_SESSSION_METRICS.late200.mat']);
 end
 
 [OutputPath, FileName, FileExt] = fileparts(session_metrics_datafile_fqn);
@@ -34,7 +34,8 @@ end
 % control variables
 plot_avererage_reward_by_group = 0;
 confidence_interval_alpha = 0.05;
-plot_MI_space_scatterplot = 0;
+plot_MI_space_scatterplot = 1;
+MI_space_set_list = {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque'};
 mark_flaffus_curius = 1;
 
 plot_coordination_metrics_for_each_group = 1;
@@ -195,7 +196,7 @@ end
 
 if (plot_MI_space_scatterplot)
     % collect the actual data
-    MIs_by_group_miside_list =cell(size(group_struct_list)); % the actual MIside values per group
+    MIs_by_group_miside_list = cell(size(group_struct_list)); % the actual MIside values per group
     MIs_by_group_mitarget_list = cell(size(group_struct_list)); % the actual MItarget values per group
     
     MIs_by_group.group_names = cell(size(group_struct_list));
@@ -227,6 +228,16 @@ if (plot_MI_space_scatterplot)
     hold on
     
     for i_group = 1 : n_groups
+        
+        current_group_label = group_struct_list{i_group}.setLabel;
+        if ~ismember(current_group_label, MI_space_set_list)
+            continue;
+        end
+        
+        if strcmp(group_struct_list{i_group}.Symbol, 'none')
+            % skip sets no symbol, as scatter does not tolerate 
+           continue 
+        end
         current_group_name = group_struct_list{i_group}.setName;
         legend_list{end+1} = current_group_name;
         
@@ -546,6 +557,7 @@ if (plot_coordination_metrics_for_each_group)
         instance_list = {'AVG_rewardA', 'AVG_rewardAB', 'AVG_rewardB'};
         color_list = {[1,0,0], [0.5,0,0.5], [0,0,1]};
         symbol_list = {'o', 'none', 's'};
+        plot([(0.2) (size(x_vec_arr, 1)+0.9)], [3.5 3.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
         [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
         % label the axes
         ylabel('Average reward', 'Interpreter', 'none');
@@ -1270,6 +1282,8 @@ switch group_collection_name
             'DATA_20190215T085907.A_Elmo.B_JK.SCP_01.triallog.A.Elmo.B.JK_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20190218T121447.A_Elmo.B_SM.SCP_01.triallog.A.Elmo.B.SM_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20190220T090318.A_Elmo.B_JK.SCP_01.triallog.A.Elmo.B.JK_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20190222T144413.A_Elmo.B_SM.SCP_01.triallog.A.Elmo.B.SM_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20190225T093605.A_Elmo.B_JK.SCP_01.triallog.A.Elmo.B.JK_IC_JointTrials.isOwnChoice_sideChoice', ...
             };
         ConfederateElmoSM.Captions = {...
             '81121', ...
@@ -1303,6 +1317,8 @@ switch group_collection_name
             '90215JK_20_80', ...
             '90218SM_20_80', ...
             '90219JK_20_80', ...
+            '90222SM_50_50', ...
+            '90225JK', ...
             };
         ConfederateElmoSM.color = [192 157 169]/255;
         ConfederateElmoSM.Symbol = 'none';
@@ -1327,6 +1343,7 @@ switch group_collection_name
             'DATA_20190218T144912.A_TN.B_Linus.SCP_01.triallog.A.TN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20190219T134152.A_TN.B_Linus.SCP_01.triallog.A.TN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20190220T112728.A_TN.B_Linus.SCP_01.triallog.A.TN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20190225T110752.A_TN.B_Linus.SCP_01.triallog.A.TN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
             };
         ConfederateTNLinus.Captions = {...
             '90129', ...
@@ -1343,6 +1360,7 @@ switch group_collection_name
             '90218', ...
             '90219', ...
             '90220', ...
+            '90225', ...
             };
         ConfederateTNLinus.color = [192 157 169]/255;
         ConfederateTNLinus.Symbol = 'none';
