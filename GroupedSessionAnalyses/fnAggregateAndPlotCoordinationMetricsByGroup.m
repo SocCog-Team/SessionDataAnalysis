@@ -339,13 +339,13 @@ if (plot_AR_scatter_by_trainig_state)
     y_list = late_AVG_rewardAB;
     
     scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, ScatterMaker, 'LineWidth', ScatterLineWidth);
-    plot([0 4], [0 4], 'Color', [0.5 0.5 0.5], 'LineStyle', '--');
-    
-    ylabel('average reward early session', 'Interpreter', 'none');
-    xlabel('average reward late session', 'Interpreter', 'none');
+    plot([0.9 3.6], [0.9 3.6], 'Color', [0.5 0.5 0.5], 'LineStyle', '--');
+    axis equal
+    xlabel('average reward early session', 'Interpreter', 'none');
+    ylabel('average reward late session', 'Interpreter', 'none');
     %set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-    set(gca, 'Ylim', [0 4]);
-    set(gca, 'XLim', [0 4]);
+    set(gca, 'Ylim', [0.9 3.6]);
+    set(gca, 'XLim', [0.9 3.6]);
     
     hold off
     % save out the results
@@ -376,7 +376,8 @@ if (plot_blocked_confederate_data)
         
         
         %if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaques'})
-        if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque'})
+        if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque', ...
+                'Humans50_55__80_20', 'Humans50_50', 'GoodHumans', 'BadHumans'})
             cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
         else
             disp('Doh...');
@@ -1047,8 +1048,8 @@ switch group_collection_name
         % these are selected on the basis of havin understood the color to
         % value associations, either from solo training or from later joint
         % trials
-        GoodHumans.setName = 'Humans';
-        GoodHumans.setLabel = 'Humans';
+        GoodHumans.setName = 'GoodHumans';
+        GoodHumans.setLabel = 'GoodHumans';
         GoodHumans.label = {'Humans', '', ''};
         GoodHumans.filenames = {...
             'DATA_20171116T164137.A_20015.B_10016.SCP_01.triallog.A.20015.B.10016_IC_JointTrials.isOwnChoice_sideChoice', ...
