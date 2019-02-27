@@ -88,7 +88,7 @@ else
     tmp_coordination_metrics_table.row = coordination_metrics_table.data(tmp_key_idx, :);
     tmp_coordination_metrics_table.header = coordination_metrics_table.header;
     tmp_coordination_metrics_table.cfg_struct = coordination_metrics_table.cfg_struct(tmp_key_idx);
-    tmp_coordination_metrics_table.coordination_metrics_struct = coordination_metrics_table.cfg_struct(tmp_key_idx);
+    tmp_coordination_metrics_table.coordination_metrics_struct = coordination_metrics_table.coordination_metrics_struct(tmp_key_idx);
     tmp_coordination_metrics_table.cn = coordination_metrics_table.cn;
 end
 
