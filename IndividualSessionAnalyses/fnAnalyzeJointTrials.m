@@ -22,6 +22,8 @@ function [ output ] = fnAnalyzeJointTrials( SessionLogFQN, OutputBasePath, DataS
 %       d) choice of other actor in last trial(s)
 %   ANOVA?
 %   Create plot showing categorical information for all trials
+%   Also calculate the aggregated coordination measures for the first 200
+%   trials
 
 %
 % DONE:
