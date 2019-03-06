@@ -2,6 +2,10 @@ function [ output_args ] = fnAggregateAndPlotCoordinationMetricsByGroup( session
 %FNAGGREGATEANDPLOTCOORDINATIONMETRICSBYGROUP Summary of this function goes here
 %   Detailed explanation goes here
 
+% TODO:
+%   add scatter plot of the AR faster vs AR slower for all groups
+
+
 timestamps.(mfilename).start = tic;
 disp(['Starting: ', mfilename]);
 dbstop if error
@@ -44,7 +48,7 @@ end
 
 
 % control variables
-plot_avererage_reward_by_group = 0;
+plot_avererage_reward_by_group = 1;
 confidence_interval_alpha = 0.05;
 plot_MI_space_scatterplot = 1;
 MI_space_set_list = {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque'}; % the set names to display
@@ -65,6 +69,8 @@ plot_coordination_metrics_for_each_group = 1;
 plot_coordination_metrics_for_each_group_graph_type = 'line';% bar or line
 
 plot_AR_scatter_by_trainig_state = 1;
+plot_AR_scatter_by_session_state_early_late = 1;
+
 
 plot_blocked_confederate_data = 0;
 
@@ -208,10 +214,17 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
             ScatterLineWidth = 0.75;
             current_scatter_color = group_struct_list{i_group}.color;
             current_scatter_color = [0.5 0.5 0.5];
+            
+            current_marker = group_struct_list{i_group}.Symbol;
+            if strcmp(group_struct_list{i_group}.Symbol, 'none')
+                % skip sets no symbol, as scatter does not tolerate
+                current_marker = 'p';
+            end          
+            
             if group_struct_list{i_group}.FilledSymbols
-                scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
+                scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, current_marker, 'filled', 'LineWidth', ScatterLineWidth);
             else
-                scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
+                scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, current_marker, 'LineWidth', ScatterLineWidth);
             end
             
             if (mark_flaffus_curius)
@@ -472,7 +485,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
             
             %if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaques'})
             if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque', ...
-                    'Humans50_55__80_20', 'Humans50_50', 'GoodHumans', 'BadHumans'})
+                    'Humans50_55__80_20', 'Humans50_50', 'GoodHumans', 'BadHumans', 'HumansTransparent'})
                 cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
             else
                 disp('Doh...');
@@ -646,7 +659,8 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
             end
             
             %if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaques'})
-            if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late'})
+            if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', ...
+                    'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', })
                 cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
             else
                 disp('Doh...');
@@ -807,6 +821,87 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
         end
     end
 end
+
+% rest the output path for across metric file plots
+OutputPath = fullfile(InputPath, 'AggregatePlots');
+
+% stuff comparing different session metrics files/sets
+if (plot_AR_scatter_by_session_state_early_late)
+    % for early and late macaques plot AR_late versus AR_early
+        
+    cur_session_metrics_datafile_IDtag = 'first100';
+    early_coordination_metrics_table = session_metrics.(cur_session_metrics_datafile_IDtag).coordination_metrics_table;
+    early_metrics_by_group_list = session_metrics.(cur_session_metrics_datafile_IDtag).metrics_by_group_list;
+    cur_session_metrics_datafile_IDtag = 'last200';
+    late_coordination_metrics_table = session_metrics.(cur_session_metrics_datafile_IDtag).coordination_metrics_table;
+    late_metrics_by_group_list = session_metrics.(cur_session_metrics_datafile_IDtag).metrics_by_group_list;
+    
+    
+    for i_group = 1 : n_groups
+        
+        if sum(ismember({'last200', 'first100'}, session_metrics_datafile_IDtag_list)) < 2
+            disp(['plot_AR_scatter_by_session_state_early_late: could not find both last200 and first100 session_metrics_data']);
+            continue
+        end
+        
+        
+        current_group_label
+        metrics_by_group_list = early_metrics_by_group_list;
+        current_group_label = group_struct_list{i_group}.setLabel;
+        % collect the data lines for the current group
+        current_group_data = metrics_by_group_list{i_group};
+        
+        
+        
+        % now collect the actual data of interest
+        % averaged reward
+        
+        early_AVG_rewardAB = early_metrics_by_group_list{i_group}(:, early_coordination_metrics_table.cn.averReward);
+        late_AVG_rewardAB = late_metrics_by_group_list{i_group}(:, late_coordination_metrics_table.cn.averReward);
+        
+        % create the plot
+        FileName = CollectionName;
+        Cur_fh_cAvgRewardScatter_for_naive_macaques = figure('Name', 'AverageReward early/late scatter-plot', 'visible', figure_visibility_string);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+        legend_list = {};
+        hold on
+        
+        ScatterSymbolSize = 25;
+        ScatterLineWidth = 0.75;
+        ScatterMaker = 'o';
+        current_scatter_color = group_struct_list{i_group}.color;
+        %current_scatter_color = [0.5 0.5 0.5];
+        x_list = early_AVG_rewardAB;
+        y_list = late_AVG_rewardAB;
+        
+        scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, ScatterMaker, 'LineWidth', ScatterLineWidth);
+        plot([0.9 3.6], [0.9 3.6], 'Color', [0.5 0.5 0.5], 'LineStyle', '--');
+        axis equal
+        xlabel('average reward first 100 trials', 'Interpreter', 'none');
+        ylabel('average reward late 200 trials', 'Interpreter', 'none');
+        %set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+        set(gca, 'Ylim', [0.9 3.6]);
+        set(gca, 'XLim', [0.9 3.6]);
+        
+        hold off
+        % save out the results
+        CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label];
+        if ~strcmp(OutPutType, 'pdf')
+            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', OutPutType]);
+            write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+        end
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'pdf']);
+        write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'fig']);
+        write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+    end
+end
+
+
+
+
 % close all figues?
 if (close_figures_at_end)
     close all;
@@ -1282,7 +1377,7 @@ switch group_collection_name
             'C.L', ...
             'T.E', ...
             'T.F', ...
-            'T.C', ...
+            'T.C', ...scatter
             'C.E', ...
             'M.C', ...
             'F.C', ...
