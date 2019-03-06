@@ -15,6 +15,9 @@ if ~exist('session_metrics_datafile_fqn', 'var') || isempty(session_metrics_data
     InputPath = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'taskcontroller', 'SCP_DATA', 'ANALYSES', 'hms-beagle2', '2018');
     InputPath = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'taskcontroller', 'SCP_DATA', 'ANALYSES', 'hms-beagle2', '2019');
     session_metrics_datafile_fqn = fullfile(InputPath, ['ALL_SESSSION_METRICS.late200.mat']);
+    session_metrics_datafile_fqn = fullfile(InputPath, ['ALL_SESSSION_METRICS.last200.mat']);
+    session_metrics_datafile_full_fqn = fullfile(InputPath, ['ALL_SESSSION_METRICS.all_joint_choice_trials.mat']);
+    session_metrics_datafile_fisrt100_fqn = fullfile(InputPath, ['ALL_SESSSION_METRICS.first100.mat']);
 end
 
 [OutputPath, FileName, FileExt] = fileparts(session_metrics_datafile_fqn);
@@ -37,9 +40,17 @@ confidence_interval_alpha = 0.05;
 plot_MI_space_scatterplot = 1;
 MI_space_set_list = {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque'}; % the set names to display
 MI_space_set_list = {'Humans', 'Macaques_late', 'HumansOpaque', 'Humans50_50'}; % the set names to display
-MI_space_set_list = {'GoodHumans', 'Macaques_late', 'BadHumans'}; % the set names to display
+MI_space_set_list = {'GoodHumans', 'Macaques_late', 'BadHumans'}; % the set names to display HumansEC:= without the session without solo training
+% paper
+MI_space_set_list = {'HumansOpaque', 'HumansTransparent', 'Macaques_late', 'ConfederateTrainedMacaques'}; % the set names to display
 
-mark_flaffus_curius = 1;
+
+MI_jitter_x_on_collision = 1;
+mark_flaffus_curius = 0;
+MI_mark_all = 0;
+MI_normalize_coordination_strength_50_50 = 1;
+MI_threshold = [];
+
 
 plot_coordination_metrics_for_each_group = 1;
 plot_coordination_metrics_for_each_group_graph_type = 'line';% bar or line
@@ -47,6 +58,9 @@ plot_coordination_metrics_for_each_group_graph_type = 'line';% bar or line
 plot_AR_scatter_by_trainig_state = 1;
 
 plot_blocked_confederate_data = 0;
+
+copy_plots_to_outdir_by_group = 0;
+
 
 XLabelRotation_degree = 45; % rotate the session labels to allow non-numeric labels on denser plots?
 close_figures_at_end = 1;
@@ -69,6 +83,31 @@ if (InvisibleFigures)
     figure_visibility_string = 'off';
 else
     figure_visibility_string = 'on';
+end
+
+
+% just copy the individual figures for all sessions of a group into a named
+% subdirectory, to allow easier selection
+if (copy_plots_to_outdir_by_group)
+    for i_group = 1 : length(group_struct_list)
+        current_group = group_struct_list{i_group};
+        current_setname = current_group.setLabel;
+        outdir = fullfile(OutputPath, '..', 'SessionSetPlots', current_setname);
+        if ~exist(outdir, 'dir')
+            mkdir(outdir)
+        end
+        % loop over all files
+        current_session_id_list = current_group.filenames;
+        for i_stem = 1 : length(current_session_id_list)
+            current_proto_stem = current_session_id_list{i_stem};
+            current_proto_stem = regexprep(current_proto_stem, '_IC_JointTrials.isOwnChoice_sideChoice$', '');
+            current_stem = regexprep(current_proto_stem, '^DATA_', '');
+            disp(['Processing: ', current_stem]);
+            [status, message] = copyfile(fullfile(InputPath, [current_stem, '*']), [outdir, filesep]);
+        end
+    end
+    disp('Copied all plots...');
+    return
 end
 
 
@@ -98,6 +137,9 @@ for i_group = 1 : n_groups
     %current_group.filenames'
     metrics_by_group_list{i_group} = coordination_metrics_table.data(current_session_in_group_idx(sort_key_2_filenames_order_idx), :);
 end
+
+
+
 
 TitleSetDescriptorString = '';
 
@@ -169,6 +211,12 @@ if (plot_avererage_reward_by_group)
                         text(x_list(i_session)+dx, AvgRewardByGroup_list{i_group}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
                     end
                 end
+            end
+        end
+        if (MI_mark_all)
+            for i_session = 1 : length(group_struct_list{i_group}.filenames)
+                dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+                text(x_list(i_session)+dx, AvgRewardByGroup_list{i_group}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
             end
         end
         
@@ -244,7 +292,7 @@ if (plot_MI_space_scatterplot)
            continue 
         end
         current_group_name = group_struct_list{i_group}.setName;
-        legend_list{end+1} = current_group_name;
+        legend_list{end+1} = current_group_name;        
         
         ScatterSymbolSize = 25;
         ScatterLineWidth = 0.75;
@@ -252,6 +300,27 @@ if (plot_MI_space_scatterplot)
         %current_scatter_color = [0.5 0.5 0.5];
         x_list = MIs_by_group.atan{i_group};
         y_list = MIs_by_group.vectorlength{i_group};
+        
+        orig_x_list = x_list;
+        if (MI_jitter_x_on_collision)
+            % to display all individial values as scatter plots randomize the
+            % positions for each group
+            scatter_width = 0.1;
+            scatter_offset_list = (scatter_width * rand(size(x_list))) - (scatter_width * 0.5);            
+            if (length(x_list) > 1)
+                x_list = x_list + scatter_offset_list;
+                negative_x_idx = find(x_list < 0);
+                x_list(negative_x_idx) = 0;
+            end
+        end
+        orig_y_list = y_list;
+        if (MI_normalize_coordination_strength_50_50)
+            for i_x = 1 : length(orig_x_list)
+                cur_orig_x = orig_x_list(i_x);
+                cur_y_adjust_factor = sqrt(tan(min([cur_orig_x, (0.5 * pi - cur_orig_x)])) + 1);
+                y_list(i_x) = orig_y_list(i_x) / cur_y_adjust_factor;
+            end         
+        end        
         if group_struct_list{i_group}.FilledSymbols
             scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
         else
@@ -269,11 +338,26 @@ if (plot_MI_space_scatterplot)
             end
         end
         
+        if (MI_mark_all)
+            for i_session = 1 : length(group_struct_list{i_group}.filenames)
+                dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+                text(x_list(i_session)+dx, y_list(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+            end
+        end
+        
         
     end
+    if ~isempty(MI_threshold)
+       plot([-0.05, pi()/2+0.1], [MI_threshold, MI_threshold], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--'); 
+    end
+    
     hold off
     axis([-0.05, pi()/2+0.1, -0.05, 1.4]);
     ylabel('Coordination strength (MI magnitude) [a.u.]', 'Interpreter', 'none');
+    if (MI_normalize_coordination_strength_50_50)
+        axis([-0.05, pi()/2+0.1, -0.05, 1.05]);
+        ylabel('normalized coordination strength', 'Interpreter', 'none');
+    end
     xlabel('Coordination type (angle between MI`s) [degree]', 'Interpreter', 'none');
     set( gca, 'xTick', [0, pi()/4, pi()/2], 'xTickLabel', {'Side-based (0)', 'Trial-by-trial (45)', 'Target-based (90)'});
     
@@ -993,6 +1077,38 @@ switch group_collection_name
         Humans.Symbol = '+';
         Humans.FilledSymbols = 0;
 
+        % exclude the
+        % DATA_20171113T162815.A_20011.B_10012.SCP_01.triallog.A.20011.B.10012_IC_JointTrials.isOwnChoice_sideChoice
+        % session without solo training
+        HumansEC.setName = 'Humans';
+        HumansEC.setLabel = 'Humans';
+        HumansEC.label = {'Humans', '', ''};
+        HumansEC.filenames = {...
+            'DATA_20171115T165545.A_20013.B_10014.SCP_01.triallog.A.20013.B.10014_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171116T164137.A_20015.B_10016.SCP_01.triallog.A.20015.B.10016_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171121T165717.A_10018.B_20017.SCP_01.triallog.A.10018.B.20017_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171123T165158.A_20019.B_10020.SCP_01.triallog.A.20019.B.10020_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171127T164730.A_20021.B_20022.SCP_01.triallog.A.20021.B.20022_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171128T165159.A_20024.B_10023.SCP_01.triallog.A.20024.B.10023_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171130T145412.A_20025.B_20026.SCP_01.triallog.A.20025.B.20026_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171130T164300.A_20027.B_10028.SCP_01.triallog.A.20027.B.10028_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171205T163542.A_20029.B_10030.SCP_01.triallog.A.20029.B.10030_IC_JointTrials.isOwnChoice_sideChoice', ...
+            };
+        HumansEC.Captions = {...
+            '13vs14', ...
+            '15vs16', ...
+            '18vs17', ...
+            '19vs20', ...
+            '21vs22', ...
+            '24vs23', ...
+            '25vs26', ...
+            '27vs28', ...
+            '29vs30', ...
+            };
+        HumansEC.color = ([142 205 253]/255) * 1/5;
+        HumansEC.Symbol = '+';
+        HumansEC.FilledSymbols = 0;        
+        
         Humans50_55__80_20.setName = 'Humans 50_55 80_20';
         Humans50_55__80_20.setLabel = 'Humans50_55__80_20';
         Humans50_55__80_20.label = {'Humans', '', ''};
@@ -1130,6 +1246,14 @@ switch group_collection_name
         Macaques_early.FilledSymbols = 0;
         
         
+        % exchanged DATA_20180531T104356.A_Tesla.B_Curius.SCP_01.triallog.A.Tesla.B.Curius_IC_JointTrials.isOwnChoice_sideChoice
+        % with
+        % DATA_20180530T153325.A_Tesla.B_Curius.SCP_01.triallog.A.Tesla.B.Curius_IC_JointTrials.isOwnChoice_sideChoice,
+        % as the former only has ~120 trials while the latter has 250 
+        % exchanged DATA_20171107T131228.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice
+        % with DATA_20171103T143324.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice
+        % the latter has a change of effectir hand that interferred with
+        % behavior
         Macaques_late.setName = 'Macaques late';
         Macaques_late.setLabel = 'Macaques_late';
         Macaques_late.label = {'Macaques', 'late', ''};
@@ -1137,10 +1261,10 @@ switch group_collection_name
             'DATA_20181211T134136.A_Curius.B_Linus.SCP_01.triallog.A.Curius.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20180524T103704.A_Tesla.B_Elmo.SCP_01.triallog.A.Tesla.B.Elmo_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20180509T122330.A_Tesla.B_Flaffus.SCP_01.triallog.A.Tesla.B.Flaffus_IC_JointTrials.isOwnChoice_sideChoice', ...
-            'DATA_20180531T104356.A_Tesla.B_Curius.SCP_01.triallog.A.Tesla.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20180530T153325.A_Tesla.B_Curius.SCP_01.triallog.A.Tesla.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20180615T111344.A_Curius.B_Elmo.SCP_01.triallog.A.Curius.B.Elmo_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20180214T171119.A_Magnus.B_Curius.SCP_01.triallog.A.Magnus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
-            'DATA_20171107T131228.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171103T143324.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20180125T155742.A_Magnus.B_Flaffus.SCP_01.triallog.A.Magnus.B.Flaffus_IC_JointTrials.isOwnChoice_sideChoice', ...
             };
         Macaques_late.Captions = { ...
@@ -1436,6 +1560,8 @@ switch group_collection_name
             'DATA_20190225T093605.A_Elmo.B_JK.SCP_01.triallog.A.Elmo.B.JK_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20190226T095145.A_Elmo.B_JK.SCP_01.triallog.A.Elmo.B.JK_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20190227T092114.A_Elmo.B_JK.SCP_01.triallog.A.Elmo.B.JK_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20190228T085108.A_Elmo.B_JK.SCP_01.triallog.A.Elmo.B.JK_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20190301T093255.A_Elmo.B_SM.SCP_01.triallog.A.Elmo.B.SM_IC_JointTrials.isOwnChoice_sideChoice', ...
             };
         ConfederateElmoSM.Captions = {...
             '81121', ...
@@ -1473,6 +1599,8 @@ switch group_collection_name
             '90225JK', ...
             '90226JK', ...
             '90227JK', ...
+            '90228JK', ...
+            '90301SM', ...
             };
         ConfederateElmoSM.color = [192 157 169]/255;
         ConfederateElmoSM.Symbol = 'none';
@@ -1500,6 +1628,7 @@ switch group_collection_name
             'DATA_20190225T110752.A_TN.B_Linus.SCP_01.triallog.A.TN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20190226T134808.A_TN.B_Linus.SCP_01.triallog.A.TN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20190227T140358.A_TN.B_Linus.SCP_01.triallog.A.TN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20190228T114901.A_TN.B_Linus.SCP_01.triallog.A.TN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
             };
         ConfederateTNLinus.Captions = {...
             '90129', ...
@@ -1519,16 +1648,58 @@ switch group_collection_name
             '90225', ...
             '90226', ...
             '90227', ...
+            '90228', ...
             };
         ConfederateTNLinus.color = [192 157 169]/255;
         ConfederateTNLinus.Symbol = 'none';
         ConfederateTNLinus.FilledSymbols = 1;
-               
+
+        % excluded: 'DATA_20171113T162815.A_20011.B_10012.SCP_01.triallog.A.20011.B.10012_IC_JointTrials.isOwnChoice_sideChoice', ...
+        % no solo training
+        HumansTransparent.setName = 'Humans transparent';
+        HumansTransparent.setLabel = 'HumansTransparent';
+        HumansTransparent.label = {'Humans', '', ''};
+        HumansTransparent.filenames = {...
+            'DATA_20171115T165545.A_20013.B_10014.SCP_01.triallog.A.20013.B.10014_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171116T164137.A_20015.B_10016.SCP_01.triallog.A.20015.B.10016_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171121T165717.A_10018.B_20017.SCP_01.triallog.A.10018.B.20017_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171123T165158.A_20019.B_10020.SCP_01.triallog.A.20019.B.10020_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171127T164730.A_20021.B_20022.SCP_01.triallog.A.20021.B.20022_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171128T165159.A_20024.B_10023.SCP_01.triallog.A.20024.B.10023_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171130T145412.A_20025.B_20026.SCP_01.triallog.A.20025.B.20026_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171130T164300.A_20027.B_10028.SCP_01.triallog.A.20027.B.10028_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20171205T163542.A_20029.B_10030.SCP_01.triallog.A.20029.B.10030_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181030T155123.A_181030ID0061S1.B_181030ID0062S1.SCP_01.triallog.A.181030ID0061S1.B.181030ID0062S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181031T135826.A_181031ID63S1.B_181031ID64S1.SCP_01.triallog.A.181031ID63S1.B.181031ID64S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181031T170224.A_181031ID65S1.B_181031ID66S1.SCP_01.triallog.A.181031ID65S1.B.181031ID66S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181101T133927.A_181101ID67S1.B_181101ID68S1.SCP_01.triallog.A.181101ID67S1.B.181101ID68S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181102T131833.A_181102ID69S1.B_181102ID70S1.SCP_01.triallog.A.181102ID69S1.B.181102ID70S1_IC_JointTrials.isOwnChoice_sideChoice', ...
+            };
+        HumansTransparent.Captions = {...
+            '13vs14', ...
+            '15vs16', ...
+            '18vs17', ...
+            '19vs20', ...
+            '21vs22', ...
+            '24vs23', ...
+            '25vs26', ...
+            '27vs28', ...
+            '29vs30', ...
+            '61v62_50', ...
+            '63v64_50', ...
+            '65v66_50', ...
+            '67v68_50', ...
+            '69v70_50', ...
+            };
+        HumansTransparent.color = ([142 205 253]/255);
+        HumansTransparent.Symbol = 's';
+        HumansTransparent.FilledSymbols = 1;        
         
-        group_struct_list = {Humans, Macaques_early, Macaques_late, teslaElmoNaive, ...
+        
+        group_struct_list = {HumansOpaque, HumansTransparent, Humans, Macaques_early, Macaques_late, teslaElmoNaive, ...
             ConfederatesMacaques_early, ConfederatesMacaques_late, ConfederateTrainedMacaques, ...
             ConfederateSMCurius, ConfederateSMFlaffus, ConfederateSMCuriusBlocked, ConfederateSMFlaffusBlocked, ...
-            FlaffusCuriusNaive, ConfederateElmoSM, ConfederateTNLinus, HumansOpaque, Humans50_55__80_20, Humans50_50, GoodHumans, BadHumans};
+            FlaffusCuriusNaive, ConfederateElmoSM, ConfederateTNLinus, Humans50_55__80_20, Humans50_50, GoodHumans, BadHumans};
     otherwise
         disp(['Encountered unhandled group_collection_name: ', group_collection_name]);
 end
