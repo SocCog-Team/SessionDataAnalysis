@@ -16,8 +16,17 @@ if ~exist('session_metrics_datafile_fqn', 'var') || isempty(session_metrics_data
     InputPath = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'taskcontroller', 'SCP_DATA', 'ANALYSES', 'hms-beagle2', '2019');
     session_metrics_datafile_fqn = fullfile(InputPath, ['ALL_SESSSION_METRICS.late200.mat']);
     session_metrics_datafile_fqn = fullfile(InputPath, ['ALL_SESSSION_METRICS.last200.mat']);
-    session_metrics_datafile_full_fqn = fullfile(InputPath, ['ALL_SESSSION_METRICS.all_joint_choice_trials.mat']);
-    session_metrics_datafile_fisrt100_fqn = fullfile(InputPath, ['ALL_SESSSION_METRICS.first100.mat']);
+    
+    session_metrics_datafile_fqn_list = {...
+        fullfile(InputPath, ['ALL_SESSSION_METRICS.last200.mat']), ...
+        fullfile(InputPath, ['ALL_SESSSION_METRICS.all_joint_choice_trials.mat']), ...
+        fullfile(InputPath, ['ALL_SESSSION_METRICS.first100.mat']),...
+        };
+    session_metrics_datafile_IDtag_list = {...
+        'last200', ...
+        'all_joint_choice_trials', ...
+        'first100', ...
+        };
 end
 
 [OutputPath, FileName, FileExt] = fileparts(session_metrics_datafile_fqn);
@@ -47,7 +56,7 @@ MI_space_set_list = {'HumansOpaque', 'HumansTransparent', 'Macaques_late', 'Conf
 
 MI_jitter_x_on_collision = 1;
 mark_flaffus_curius = 0;
-MI_mark_all = 0;
+MI_mark_all = 1;
 MI_normalize_coordination_strength_50_50 = 1;
 MI_threshold = [];
 
@@ -111,7 +120,15 @@ if (copy_plots_to_outdir_by_group)
 end
 
 
-
+% loop, load, and group-select all defined session_metric_input files
+n_groups = length(group_struct_list);
+for i_session_metric_file = 1: length(session_metrics_datafile_fqn_list)
+    cur_session_metrics_datafile_fqn = session_metrics_datafile_fqn_list{i_session_metric_file};
+    cur_session_metrics_datafile_IDtag = session_metrics_datafile_IDtag_list{i_session_metric_file};
+    session_metrics.(cur_session_metrics_datafile_IDtag) = load(cur_session_metrics_datafile_fqn);
+    cur_coordination_metrics_table = session_metrics.(cur_session_metrics_datafile_IDtag).coordination_metrics_table;
+    session_metrics.(cur_session_metrics_datafile_IDtag).metrics_by_group_list = fn_extract_metrics_by_group(group_struct_list, cur_coordination_metrics_table);
+end
 
 
 % TODO, load the ALL_SESSION_METRICS.mat and extract the desired metric
@@ -121,681 +138,675 @@ end
 % load the coordination_metrics_table
 load(session_metrics_datafile_fqn);
 
-% extract the subsets of rows for the sessions in each group
-n_groups = length(group_struct_list);
-metrics_by_group_list = cell(size(group_struct_list));
-for i_group = 1 : n_groups
-    current_group = group_struct_list{i_group};
-    % find the row indices for the current group members:
-    [current_session_in_group_ldx, LocB] = ismember(coordination_metrics_table.key, current_group.filenames);
-    % this is unfortunately unsorted, but we want to keep current_group.filenames order...
-    current_session_in_group_idx = find(current_session_in_group_ldx);
-    %order_idx = LocB(current_session_in_group_idx);
-    % this will only work if each session ID is unique...
-    [~, sort_key_2_filenames_order_idx] = sort(LocB(current_session_in_group_idx), 'ascend');
-    %coordination_metrics_table.key(current_session_in_group_idx(I))'
-    %current_group.filenames'
-    metrics_by_group_list{i_group} = coordination_metrics_table.data(current_session_in_group_idx(sort_key_2_filenames_order_idx), :);
-end
+metrics_by_group_list = fn_extract_metrics_by_group(group_struct_list, coordination_metrics_table);
 
 
-
-
-TitleSetDescriptorString = '';
-
-% create the plot for averaged average reward per group
-if (plot_avererage_reward_by_group)
-    % collect the actual data
-    AvgRewardByGroup_list = cell(size(group_struct_list)); % the actual reward values
-    AvgRewardByGroup.mean = zeros(size(group_struct_list));
-    AvgRewardByGroup.stddev = zeros(size(group_struct_list));
-    AvgRewardByGroup.n = zeros(size(group_struct_list));
-    AvgRewardByGroup.sem = zeros(size(group_struct_list));
-    AvgRewardByGroup.ci_halfwidth = zeros(size(group_struct_list));
-    AvgRewardByGroup.group_names = cell(size(group_struct_list));
-    AvgRewardByGroup.group_labels = cell(size(group_struct_list));
+for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
+    cur_session_metrics_datafile_fqn = session_metrics_datafile_fqn_list{i_session_metric_file};
+    cur_session_metrics_datafile_IDtag = session_metrics_datafile_IDtag_list{i_session_metric_file};
     
-    % now collect the
-    for i_group = 1 : n_groups
-        AvgRewardByGroup.group_names{i_group} = group_struct_list{i_group}.setName;
-        AvgRewardByGroup.group_labels{i_group} = group_struct_list{i_group}.label;
-        current_group_data = metrics_by_group_list{i_group};
-        AvgRewardByGroup_list{i_group} = current_group_data(:, coordination_metrics_table.cn.averReward); % the actual reward values
-        AvgRewardByGroup.mean(i_group) = mean(current_group_data(:, coordination_metrics_table.cn.averReward));
-        AvgRewardByGroup.stddev(i_group) = std(current_group_data(:, coordination_metrics_table.cn.averReward));
-        AvgRewardByGroup.n(i_group) = size(current_group_data, 1);
-        AvgRewardByGroup.sem(i_group) = AvgRewardByGroup.stddev(i_group)/sqrt(AvgRewardByGroup.n(i_group));
-    end
-    AvgRewardByGroup.ci_halfwidth = calc_cihw(AvgRewardByGroup.stddev, AvgRewardByGroup.n, confidence_interval_alpha);
+    coordination_metrics_table = session_metrics.(cur_session_metrics_datafile_IDtag).coordination_metrics_table;
+    metrics_by_group_list = session_metrics.(cur_session_metrics_datafile_IDtag).metrics_by_group_list;
     
-    FileName = CollectionName;
-    Cur_fh_avg_reward_by_group = figure('Name', 'Average reward by group', 'visible', figure_visibility_string);
-    fnFormatDefaultAxes(DefaultAxesType);
-    [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-    set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
-    legend_list = {};
-    %hold on
+    OutputPath = fullfile(InputPath, 'AggregatePlots', cur_session_metrics_datafile_IDtag);
     
-    for i_group = 1 : n_groups
-        current_group_name = group_struct_list{i_group}.setName;
+    
+    
+    TitleSetDescriptorString = '';
+    
+    % create the plot for averaged average reward per group
+    if (plot_avererage_reward_by_group)
+        % collect the actual data
+        AvgRewardByGroup_list = cell(size(group_struct_list)); % the actual reward values
+        AvgRewardByGroup.mean = zeros(size(group_struct_list));
+        AvgRewardByGroup.stddev = zeros(size(group_struct_list));
+        AvgRewardByGroup.n = zeros(size(group_struct_list));
+        AvgRewardByGroup.sem = zeros(size(group_struct_list));
+        AvgRewardByGroup.ci_halfwidth = zeros(size(group_struct_list));
+        AvgRewardByGroup.group_names = cell(size(group_struct_list));
+        AvgRewardByGroup.group_labels = cell(size(group_struct_list));
         
-        % to display all individial values as scatter plots randomize the
-        % positions for each group
-        scatter_width = 0.6;
-        x_list = ones(size(AvgRewardByGroup_list{i_group})) * i_group;
-        scatter_offset_list = (scatter_width * rand(size(AvgRewardByGroup_list{i_group}))) - (scatter_width * 0.5);
-        if (length(x_list) > 1)
-            x_list = x_list + scatter_offset_list;
+        % now collect the
+        for i_group = 1 : n_groups
+            AvgRewardByGroup.group_names{i_group} = group_struct_list{i_group}.setName;
+            AvgRewardByGroup.group_labels{i_group} = group_struct_list{i_group}.label;
+            current_group_data = metrics_by_group_list{i_group};
+            AvgRewardByGroup_list{i_group} = current_group_data(:, coordination_metrics_table.cn.averReward); % the actual reward values
+            AvgRewardByGroup.mean(i_group) = mean(current_group_data(:, coordination_metrics_table.cn.averReward));
+            AvgRewardByGroup.stddev(i_group) = std(current_group_data(:, coordination_metrics_table.cn.averReward));
+            AvgRewardByGroup.n(i_group) = size(current_group_data, 1);
+            AvgRewardByGroup.sem(i_group) = AvgRewardByGroup.stddev(i_group)/sqrt(AvgRewardByGroup.n(i_group));
         end
+        AvgRewardByGroup.ci_halfwidth = calc_cihw(AvgRewardByGroup.stddev, AvgRewardByGroup.n, confidence_interval_alpha);
         
-        hold on
-        bar(i_group, AvgRewardByGroup.mean(i_group), 'FaceColor', group_struct_list{i_group}.color, 'EdgeColor', [0.25 0.25 0.25]);
-        errorbar(i_group, AvgRewardByGroup.mean(i_group), AvgRewardByGroup.ci_halfwidth(i_group), 'Color', [0.25 0.25 0.25]);
+        FileName = CollectionName;
+        Cur_fh_avg_reward_by_group = figure('Name', 'Average reward by group', 'visible', figure_visibility_string);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+        legend_list = {};
+        %hold on
         
-        %
-        ScatterSymbolSize = 25;
-        ScatterLineWidth = 0.75;
-        current_scatter_color = group_struct_list{i_group}.color;
-        current_scatter_color = [0.5 0.5 0.5];
-        if group_struct_list{i_group}.FilledSymbols
-            scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
-        else
-            scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
-        end
-        
-        if (mark_flaffus_curius)
-            if strcmp(group_struct_list{i_group}.setName, 'Macaques early') || strcmp(group_struct_list{i_group}.setName, 'Macaques late')
-                for i_session = 1 : length(group_struct_list{i_group}.filenames)
-                    if ~isempty(strfind(group_struct_list{i_group}.filenames{i_session}, 'A_Flaffus.B_Curius'))
-                        dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
-                        text(x_list(i_session)+dx, AvgRewardByGroup_list{i_group}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
-                    end
-                end
-            end
-        end
-        if (MI_mark_all)
-            for i_session = 1 : length(group_struct_list{i_group}.filenames)
-                dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
-                text(x_list(i_session)+dx, AvgRewardByGroup_list{i_group}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
-            end
-        end
-        
-        
-        hold off
-    end
-    
-    
-    xlabel('Grouping', 'Interpreter', 'none');
-    ylabel('Average Reward', 'Interpreter', 'none');
-    set(gca, 'XLim', [1-0.8 (n_groups)+0.8]);
-    set(gca, 'XTick', []);
-    %set(gca, 'XTick', (1:1:n_groups));
-    %set(gca, 'XTickLabel', AvgRewardByGroup.group_labels, 'TickLabelInterpreter', 'none');
-    
-    set(gca(), 'YLim', [0.9, 4.1]);
-    set(gca(), 'YTick', [1 1.5 2 2.5 3 3.5 4]);
-    %     if (PlotLegend)
-    %         legend(legend_list, 'Interpreter', 'None');
-    %     end
-    CurrentTitleSetDescriptorString = TitleSetDescriptorString;
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardByGroup.', OutPutType]);
-    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardByGroup.', 'pdf']);
-    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardByGroup.', 'fig']);
-    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-end
-
-
-if (plot_MI_space_scatterplot)
-    % collect the actual data
-    MIs_by_group_miside_list = cell(size(group_struct_list)); % the actual MIside values per group
-    MIs_by_group_mitarget_list = cell(size(group_struct_list)); % the actual MItarget values per group
-    
-    MIs_by_group.group_names = cell(size(group_struct_list));
-    MIs_by_group.group_labels = cell(size(group_struct_list));
-    MIs_by_group.vectorlength = cell(size(group_struct_list));
-    MIs_by_group.atan = cell(size(group_struct_list));
-    
-    % now collect the
-    for i_group = 1 : n_groups
-        MIs_by_group.group_names{i_group} = group_struct_list{i_group}.setName;
-        MIs_by_group.group_labels{i_group} = group_struct_list{i_group}.label;
-        current_group_data = metrics_by_group_list{i_group};
-        MIs_by_group_miside_list{i_group} = current_group_data(:, coordination_metrics_table.cn.miSide);
-        MIs_by_group_mitarget_list{i_group} = current_group_data(:, coordination_metrics_table.cn.miTarget);
-        MIs_by_group.vectorlength{i_group} = sqrt(MIs_by_group_miside_list{i_group}.^2 + MIs_by_group_mitarget_list{i_group}.^2);
-        tmp = atan(MIs_by_group_miside_list{i_group} ./ MIs_by_group_mitarget_list{i_group});
-        % since division by zero is undefined we need to special case of
-        % MI target == 0, here we just clamp to the extreme right value
-        tmp(MIs_by_group_mitarget_list{i_group} == 0) = pi()/2;
-        MIs_by_group.atan{i_group} = tmp;
-    end
-    
-    FileName = CollectionName;
-    Cur_fh_avg_reward_by_group = figure('Name', 'mutual information space plot', 'visible', figure_visibility_string);
-    fnFormatDefaultAxes(DefaultAxesType);
-    [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-    set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
-    legend_list = {};
-    hold on
-    
-    for i_group = 1 : n_groups
-        
-        current_group_label = group_struct_list{i_group}.setLabel;
-        if ~ismember(current_group_label, MI_space_set_list)
-            continue;
-        end
-        
-        if strcmp(group_struct_list{i_group}.Symbol, 'none')
-            % skip sets no symbol, as scatter does not tolerate 
-           continue 
-        end
-        current_group_name = group_struct_list{i_group}.setName;
-        legend_list{end+1} = current_group_name;        
-        
-        ScatterSymbolSize = 25;
-        ScatterLineWidth = 0.75;
-        current_scatter_color = group_struct_list{i_group}.color;
-        %current_scatter_color = [0.5 0.5 0.5];
-        x_list = MIs_by_group.atan{i_group};
-        y_list = MIs_by_group.vectorlength{i_group};
-        
-        orig_x_list = x_list;
-        if (MI_jitter_x_on_collision)
+        for i_group = 1 : n_groups
+            current_group_name = group_struct_list{i_group}.setName;
+            
             % to display all individial values as scatter plots randomize the
             % positions for each group
-            scatter_width = 0.1;
-            scatter_offset_list = (scatter_width * rand(size(x_list))) - (scatter_width * 0.5);            
+            scatter_width = 0.6;
+            x_list = ones(size(AvgRewardByGroup_list{i_group})) * i_group;
+            scatter_offset_list = (scatter_width * rand(size(AvgRewardByGroup_list{i_group}))) - (scatter_width * 0.5);
             if (length(x_list) > 1)
                 x_list = x_list + scatter_offset_list;
-                negative_x_idx = find(x_list < 0);
-                x_list(negative_x_idx) = 0;
             end
-        end
-        orig_y_list = y_list;
-        if (MI_normalize_coordination_strength_50_50)
-            for i_x = 1 : length(orig_x_list)
-                cur_orig_x = orig_x_list(i_x);
-                cur_y_adjust_factor = sqrt(tan(min([cur_orig_x, (0.5 * pi - cur_orig_x)])) + 1);
-                y_list(i_x) = orig_y_list(i_x) / cur_y_adjust_factor;
-            end         
-        end        
-        if group_struct_list{i_group}.FilledSymbols
-            scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
-        else
-            scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
-        end
-        
-        if (mark_flaffus_curius)
-            if strcmp(group_struct_list{i_group}.setName, 'Macaques early') || strcmp(group_struct_list{i_group}.setName, 'Macaques late')
-                for i_session = 1 : length(group_struct_list{i_group}.filenames)
-                    if ~isempty(strfind(group_struct_list{i_group}.filenames{i_session}, 'A_Flaffus.B_Curius'))
-                        dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
-                        text(x_list(i_session)+dx, y_list(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+            
+            hold on
+            bar(i_group, AvgRewardByGroup.mean(i_group), 'FaceColor', group_struct_list{i_group}.color, 'EdgeColor', [0.25 0.25 0.25]);
+            errorbar(i_group, AvgRewardByGroup.mean(i_group), AvgRewardByGroup.ci_halfwidth(i_group), 'Color', [0.25 0.25 0.25]);
+            
+            %
+            ScatterSymbolSize = 25;
+            ScatterLineWidth = 0.75;
+            current_scatter_color = group_struct_list{i_group}.color;
+            current_scatter_color = [0.5 0.5 0.5];
+            if group_struct_list{i_group}.FilledSymbols
+                scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
+            else
+                scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
+            end
+            
+            if (mark_flaffus_curius)
+                if strcmp(group_struct_list{i_group}.setName, 'Macaques early') || strcmp(group_struct_list{i_group}.setName, 'Macaques late')
+                    for i_session = 1 : length(group_struct_list{i_group}.filenames)
+                        if ~isempty(strfind(group_struct_list{i_group}.filenames{i_session}, 'A_Flaffus.B_Curius'))
+                            dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+                            text(x_list(i_session)+dx, AvgRewardByGroup_list{i_group}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+                        end
                     end
                 end
             end
+            if (MI_mark_all)
+                for i_session = 1 : length(group_struct_list{i_group}.filenames)
+                    dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+                    text(x_list(i_session)+dx, AvgRewardByGroup_list{i_group}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+                end
+            end
+            
+            
+            hold off
         end
         
-        if (MI_mark_all)
-            for i_session = 1 : length(group_struct_list{i_group}.filenames)
-                dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
-                text(x_list(i_session)+dx, y_list(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+        
+        xlabel('Grouping', 'Interpreter', 'none');
+        ylabel('Average Reward', 'Interpreter', 'none');
+        set(gca, 'XLim', [1-0.8 (n_groups)+0.8]);
+        set(gca, 'XTick', []);
+        %set(gca, 'XTick', (1:1:n_groups));
+        %set(gca, 'XTickLabel', AvgRewardByGroup.group_labels, 'TickLabelInterpreter', 'none');
+        
+        set(gca(), 'YLim', [0.9, 4.1]);
+        set(gca(), 'YTick', [1 1.5 2 2.5 3 3.5 4]);
+        %     if (PlotLegend)
+        %         legend(legend_list, 'Interpreter', 'None');
+        %     end
+        CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardByGroup.', OutPutType]);
+        write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardByGroup.', 'pdf']);
+        write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardByGroup.', 'fig']);
+        write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+    end
+    
+    
+    if (plot_MI_space_scatterplot)
+        % collect the actual data
+        MIs_by_group_miside_list = cell(size(group_struct_list)); % the actual MIside values per group
+        MIs_by_group_mitarget_list = cell(size(group_struct_list)); % the actual MItarget values per group
+        
+        MIs_by_group.group_names = cell(size(group_struct_list));
+        MIs_by_group.group_labels = cell(size(group_struct_list));
+        MIs_by_group.vectorlength = cell(size(group_struct_list));
+        MIs_by_group.atan = cell(size(group_struct_list));
+        
+        % now collect the
+        for i_group = 1 : n_groups
+            MIs_by_group.group_names{i_group} = group_struct_list{i_group}.setName;
+            MIs_by_group.group_labels{i_group} = group_struct_list{i_group}.label;
+            current_group_data = metrics_by_group_list{i_group};
+            MIs_by_group_miside_list{i_group} = current_group_data(:, coordination_metrics_table.cn.miSide);
+            MIs_by_group_mitarget_list{i_group} = current_group_data(:, coordination_metrics_table.cn.miTarget);
+            MIs_by_group.vectorlength{i_group} = sqrt(MIs_by_group_miside_list{i_group}.^2 + MIs_by_group_mitarget_list{i_group}.^2);
+            tmp = atan(MIs_by_group_miside_list{i_group} ./ MIs_by_group_mitarget_list{i_group});
+            % since division by zero is undefined we need to special case of
+            % MI target == 0, here we just clamp to the extreme right value
+            tmp(MIs_by_group_mitarget_list{i_group} == 0) = pi()/2;
+            MIs_by_group.atan{i_group} = tmp;
+        end
+        
+        FileName = CollectionName;
+        Cur_fh_avg_reward_by_group = figure('Name', 'mutual information space plot', 'visible', figure_visibility_string);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+        legend_list = {};
+        hold on
+        
+        for i_group = 1 : n_groups
+            
+            current_group_label = group_struct_list{i_group}.setLabel;
+            if ~ismember(current_group_label, MI_space_set_list)
+                continue;
+            end
+            
+            if strcmp(group_struct_list{i_group}.Symbol, 'none')
+                % skip sets no symbol, as scatter does not tolerate
+                continue
+            end
+            current_group_name = group_struct_list{i_group}.setName;
+            legend_list{end+1} = current_group_name;
+            
+            ScatterSymbolSize = 25;
+            ScatterLineWidth = 0.75;
+            current_scatter_color = group_struct_list{i_group}.color;
+            %current_scatter_color = [0.5 0.5 0.5];
+            x_list = MIs_by_group.atan{i_group};
+            y_list = MIs_by_group.vectorlength{i_group};
+            
+            orig_x_list = x_list;
+            if (MI_jitter_x_on_collision)
+                % to display all individial values as scatter plots randomize the
+                % positions for each group
+                scatter_width = 0.1;
+                scatter_offset_list = (scatter_width * rand(size(x_list))) - (scatter_width * 0.5);
+                if (length(x_list) > 1)
+                    x_list = x_list + scatter_offset_list;
+                    negative_x_idx = find(x_list < 0);
+                    x_list(negative_x_idx) = 0;
+                end
+            end
+            orig_y_list = y_list;
+            if (MI_normalize_coordination_strength_50_50)
+                for i_x = 1 : length(orig_x_list)
+                    cur_orig_x = orig_x_list(i_x);
+                    cur_y_adjust_factor = sqrt(tan(min([cur_orig_x, (0.5 * pi - cur_orig_x)])) + 1);
+                    y_list(i_x) = orig_y_list(i_x) / cur_y_adjust_factor;
+                end
+            end
+            if group_struct_list{i_group}.FilledSymbols
+                scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
+            else
+                scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
+            end
+            
+            if (mark_flaffus_curius)
+                if strcmp(group_struct_list{i_group}.setName, 'Macaques early') || strcmp(group_struct_list{i_group}.setName, 'Macaques late')
+                    for i_session = 1 : length(group_struct_list{i_group}.filenames)
+                        if ~isempty(strfind(group_struct_list{i_group}.filenames{i_session}, 'A_Flaffus.B_Curius'))
+                            dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+                            text(x_list(i_session)+dx, y_list(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+                        end
+                    end
+                end
+            end
+            
+            if (MI_mark_all)
+                for i_session = 1 : length(group_struct_list{i_group}.filenames)
+                    dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+                    text(x_list(i_session)+dx, y_list(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+                end
+            end
+            
+            
+        end
+        if ~isempty(MI_threshold)
+            plot([-0.05, pi()/2+0.1], [MI_threshold, MI_threshold], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+        end
+        
+        hold off
+        axis([-0.05, pi()/2+0.1, -0.05, 1.4]);
+        ylabel('Coordination strength (MI magnitude) [a.u.]', 'Interpreter', 'none');
+        if (MI_normalize_coordination_strength_50_50)
+            axis([-0.05, pi()/2+0.1, -0.05, 1.05]);
+            ylabel('normalized coordination strength', 'Interpreter', 'none');
+        end
+        xlabel('Coordination type (angle between MI`s) [degree]', 'Interpreter', 'none');
+        set( gca, 'xTick', [0, pi()/4, pi()/2], 'xTickLabel', {'Side-based (0)', 'Trial-by-trial (45)', 'Target-based (90)'});
+        
+        %     if (PlotLegend)
+        %         legend(legend_list, 'Interpreter', 'None');
+        %     end
+        CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', OutPutType]);
+        write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', 'pdf']);
+        write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', 'fig']);
+        write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+        
+        legend(legend_list, 'Interpreter', 'None');
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', OutPutType]);
+        write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', 'pdf']);
+        write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', 'fig']);
+        write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+    end
+    
+    if (plot_AR_scatter_by_trainig_state)
+        % for early and late macaques plot AR_late versus AR_early
+        
+        for i_group = 1 : n_groups
+            current_group_label = group_struct_list{i_group}.setLabel;
+            if ~ismember(current_group_label, {'Macaques_early', 'Macaques_late'})
+                % nothing to do here
+                continue
+            end
+            % collect the data lines for the current group
+            current_group_data = metrics_by_group_list{i_group};
+            % now collect the actual data of interest
+            % averaged reward
+            AVG_rewardA = current_group_data(:, coordination_metrics_table.cn.playerReward_A);
+            AVG_rewardB = current_group_data(:, coordination_metrics_table.cn.playerReward_B);
+            AVG_rewardAB = current_group_data(:, coordination_metrics_table.cn.averReward);
+            
+            if strcmp(current_group_label, 'Macaques_early')
+                early_AVG_rewardAB = AVG_rewardAB;
+            end
+            if strcmp(current_group_label, 'Macaques_late')
+                late_AVG_rewardAB = AVG_rewardAB;
             end
         end
+        % create the plot
+        FileName = CollectionName;
+        Cur_fh_cAvgRewardScatter_for_naive_macaques = figure('Name', 'AverageReward early/ate scatter-plot', 'visible', figure_visibility_string);
+        fnFormatDefaultAxes(DefaultAxesType);
+        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+        legend_list = {};
+        hold on
         
+        ScatterSymbolSize = 25;
+        ScatterLineWidth = 0.75;
+        ScatterMaker = 'o';
+        current_scatter_color = group_struct_list{i_group}.color;
+        %current_scatter_color = [0.5 0.5 0.5];
+        x_list = early_AVG_rewardAB;
+        y_list = late_AVG_rewardAB;
         
-    end
-    if ~isempty(MI_threshold)
-       plot([-0.05, pi()/2+0.1], [MI_threshold, MI_threshold], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--'); 
-    end
-    
-    hold off
-    axis([-0.05, pi()/2+0.1, -0.05, 1.4]);
-    ylabel('Coordination strength (MI magnitude) [a.u.]', 'Interpreter', 'none');
-    if (MI_normalize_coordination_strength_50_50)
-        axis([-0.05, pi()/2+0.1, -0.05, 1.05]);
-        ylabel('normalized coordination strength', 'Interpreter', 'none');
-    end
-    xlabel('Coordination type (angle between MI`s) [degree]', 'Interpreter', 'none');
-    set( gca, 'xTick', [0, pi()/4, pi()/2], 'xTickLabel', {'Side-based (0)', 'Trial-by-trial (45)', 'Target-based (90)'});
-    
-    %     if (PlotLegend)
-    %         legend(legend_list, 'Interpreter', 'None');
-    %     end
-    CurrentTitleSetDescriptorString = TitleSetDescriptorString;
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', OutPutType]);
-    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', 'pdf']);
-    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', 'fig']);
-    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-    
-    legend(legend_list, 'Interpreter', 'None');
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', OutPutType]);
-    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', 'pdf']);
-    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', 'fig']);
-    write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-end
-
-if (plot_AR_scatter_by_trainig_state)
-    % for early and late macaques plot AR_late versus AR_early
-    
-    for i_group = 1 : n_groups
-        current_group_label = group_struct_list{i_group}.setLabel;
-        if ~ismember(current_group_label, {'Macaques_early', 'Macaques_late'})
-            % nothing to do here
-            continue
-        end
-        % collect the data lines for the current group
-        current_group_data = metrics_by_group_list{i_group};
-        % now collect the actual data of interest
-        % averaged reward
-        AVG_rewardA = current_group_data(:, coordination_metrics_table.cn.playerReward_A);
-        AVG_rewardB = current_group_data(:, coordination_metrics_table.cn.playerReward_B);
-        AVG_rewardAB = current_group_data(:, coordination_metrics_table.cn.averReward);
+        scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, ScatterMaker, 'LineWidth', ScatterLineWidth);
+        plot([0.9 3.6], [0.9 3.6], 'Color', [0.5 0.5 0.5], 'LineStyle', '--');
+        axis equal
+        xlabel('average reward early session', 'Interpreter', 'none');
+        ylabel('average reward late session', 'Interpreter', 'none');
+        %set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+        set(gca, 'Ylim', [0.9 3.6]);
+        set(gca, 'XLim', [0.9 3.6]);
         
-        if strcmp(current_group_label, 'Macaques_early')
-           early_AVG_rewardAB = AVG_rewardAB;
+        hold off
+        % save out the results
+        current_group_label = 'naive_macaques';
+        CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label];
+        if ~strcmp(OutPutType, 'pdf')
+            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', OutPutType]);
+            write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
         end
-        if strcmp(current_group_label, 'Macaques_late')
-           late_AVG_rewardAB = AVG_rewardAB;
-        end
-    end
-    % create the plot
-    FileName = CollectionName;
-    Cur_fh_cAvgRewardScatter_for_naive_macaques = figure('Name', 'AverageReward early/ate scatter-plot', 'visible', figure_visibility_string);
-    fnFormatDefaultAxes(DefaultAxesType);
-    [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-    set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
-    legend_list = {};
-    hold on
-    
-    ScatterSymbolSize = 25;
-    ScatterLineWidth = 0.75;
-    ScatterMaker = 'o';
-    current_scatter_color = group_struct_list{i_group}.color;
-    %current_scatter_color = [0.5 0.5 0.5];
-    x_list = early_AVG_rewardAB;
-    y_list = late_AVG_rewardAB;
-    
-    scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, ScatterMaker, 'LineWidth', ScatterLineWidth);
-    plot([0.9 3.6], [0.9 3.6], 'Color', [0.5 0.5 0.5], 'LineStyle', '--');
-    axis equal
-    xlabel('average reward early session', 'Interpreter', 'none');
-    ylabel('average reward late session', 'Interpreter', 'none');
-    %set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-    set(gca, 'Ylim', [0.9 3.6]);
-    set(gca, 'XLim', [0.9 3.6]);
-    
-    hold off
-    % save out the results
-    current_group_label = 'naive_macaques';
-    CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label];
-    if ~strcmp(OutPutType, 'pdf')
-        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', OutPutType]);
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'pdf']);
         write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'fig']);
+        write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+        
     end
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'pdf']);
-    write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
-    outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'fig']);
-    write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
     
-end
-
-
-
-if (plot_blocked_confederate_data)
-    for i_group = 1 : n_groups
-        current_group_label = group_struct_list{i_group}.setLabel;
-        cur_plot_coordination_metrics_for_each_group_graph_type = plot_coordination_metrics_for_each_group_graph_type;
-        
-        % here we only want to ook at the blocked experiments
-        if ~ismember(current_group_label, {'ConfederateSMCuriusBlocked', 'ConfederateSMFlaffusBlocked'})
-            continue
-        end
-        
-        
-        %if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaques'})
-        if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque', ...
-                'Humans50_55__80_20', 'Humans50_50', 'GoodHumans', 'BadHumans'})
-            cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
-        else
-            disp('Doh...');
-        end
-        
-        
-        % collect the data lines for the current group
-        current_group_data = metrics_by_group_list{i_group};
-        % now collect the actual data of interest
-        
-        error('Not impleented yet');
-        
-        
-        % Share of Own Choices
-        SOC_targetA = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_A);
-        SOC_targetB = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_B);
-        SOC_sideA = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_A);
-        SOC_sideB = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_B);
-        % Mutual Informatin
-        MI_side = current_group_data(:, coordination_metrics_table.cn.miSide);
-        MI_target = current_group_data(:, coordination_metrics_table.cn.miTarget);
-        % averaged reward
-        AVG_rewardA = current_group_data(:, coordination_metrics_table.cn.playerReward_A);
-        AVG_rewardB = current_group_data(:, coordination_metrics_table.cn.playerReward_B);
-        AVG_rewardAB = current_group_data(:, coordination_metrics_table.cn.averReward);
-        % non-random reward component
-        Non_random_reward = current_group_data(:, coordination_metrics_table.cn.dltReward);
-        Non_random_reward_significance = current_group_data(:, coordination_metrics_table.cn.dltSignif);
-        Non_random_reward_CI_lower = current_group_data(:, coordination_metrics_table.cn.dltConfInterval_Lower);
-        Non_random_reward_CI_upper = current_group_data(:, coordination_metrics_table.cn.dltConfInterval_Upper);
-        Non_random_reward_CI_hw = (Non_random_reward_CI_upper - Non_random_reward);
-        
-        % create the plot
-        FileName = CollectionName;
-        Cur_fh_coordination_metrics_for_each_group = figure('Name', 'Coordination Metrics plot', 'visible', figure_visibility_string);
-        fnFormatDefaultAxes(DefaultAxesType);
-        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
-        legend_list = {};
-        %hold on
-        
-        % SOC target
-        current_axis_h = subplot(2, 3, 1);
-        x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
-        y_vec_arr = [SOC_targetA, SOC_targetB];
-        instance_list = {'SOC_targetA', 'SOC_targetB'};
-        color_list = {[1,0,0], [0,0,1]};
-        symbol_list = {'o', 's'};
-        plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('Share of Own Choices', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [0 1.1]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        
-        % SOC side
-        current_axis_h = subplot(2, 3, 2);
-        x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
-        y_vec_arr = [SOC_sideA, SOC_sideB];
-        instance_list = {'SOC_sideA', 'SOC_sideB'};
-        color_list = {[1,0,0], [0,0,1]};
-        symbol_list = {'o', 's'};
-        plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('Share of obj. left Choices', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [0 1.1]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        
-        
-        % AVG reward
-        current_axis_h = subplot(2, 3, 3);
-        x_vec_arr = [(1:1:length(AVG_rewardA));(1:1:length(AVG_rewardAB)); (1:1:length(AVG_rewardB)); ]';
-        y_vec_arr = [AVG_rewardA, AVG_rewardAB, AVG_rewardB];
-        instance_list = {'AVG_rewardA', 'AVG_rewardAB', 'AVG_rewardB'};
-        color_list = {[1,0,0], [0.5,0,0.5], [0,0,1]};
-        symbol_list = {'o', 'none', 's'};
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('Average reward', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [0.9 4.1]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        
-        % MI target
-        current_axis_h = subplot(2, 3, 4);
-        x_vec_arr = [(1:1:length(MI_target))]';
-        y_vec_arr = [MI_target];
-        instance_list = {'MI_target'};
-        color_list = {[0.5,0,0.5]};
-        symbol_list = {'d'};
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('MI target', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [0 1.1]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        
-        % MI side
-        current_axis_h = subplot(2, 3, 5);
-        x_vec_arr = [(1:1:length(MI_side))]';
-        y_vec_arr = [MI_side];
-        instance_list = {'MI_side'};
-        color_list = {[0.5,0,0.5]};
-        symbol_list = {'d'};
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('MI side', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [0 1.1]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        
-        % non-random reward
-        current_axis_h = subplot(2, 3, 6);
-        x_vec_arr = [(1:1:length(Non_random_reward))]';
-        y_vec_arr = [Non_random_reward];
-        instance_list = {'Non_random_reward'};
-        color_list = {[0.5,0,0.5]};
-        symbol_list = {'d'};
-        plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0 0], 'Color', [0 0 0], 'Marker', 'none');
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('Non-random reward', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [-0.2 1.2]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        % add the CI
-        hold on
-        errorbar(x_vec_arr, y_vec_arr, Non_random_reward_CI_hw, 'LineStyle', 'none', 'Color', [0,0,0], 'LineWidth', 1.0);
-        hold off
-        
-        
-        % save out the results
-        current_group_name = group_struct_list{i_group}.setName;
-        CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label, '.', cur_plot_coordination_metrics_for_each_group_graph_type];
-        if ~strcmp(OutPutType, 'pdf')
-            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', OutPutType]);
+    
+    
+    if (plot_blocked_confederate_data)
+        for i_group = 1 : n_groups
+            current_group_label = group_struct_list{i_group}.setLabel;
+            cur_plot_coordination_metrics_for_each_group_graph_type = plot_coordination_metrics_for_each_group_graph_type;
+            
+            % here we only want to ook at the blocked experiments
+            if ~ismember(current_group_label, {'ConfederateSMCuriusBlocked', 'ConfederateSMFlaffusBlocked'})
+                continue
+            end
+            
+            
+            %if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaques'})
+            if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque', ...
+                    'Humans50_55__80_20', 'Humans50_50', 'GoodHumans', 'BadHumans'})
+                cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
+            else
+                disp('Doh...');
+            end
+            
+            
+            % collect the data lines for the current group
+            current_group_data = metrics_by_group_list{i_group};
+            % now collect the actual data of interest
+            
+            error('Not impleented yet');
+            
+            
+            % Share of Own Choices
+            SOC_targetA = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_A);
+            SOC_targetB = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_B);
+            SOC_sideA = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_A);
+            SOC_sideB = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_B);
+            % Mutual Informatin
+            MI_side = current_group_data(:, coordination_metrics_table.cn.miSide);
+            MI_target = current_group_data(:, coordination_metrics_table.cn.miTarget);
+            % averaged reward
+            AVG_rewardA = current_group_data(:, coordination_metrics_table.cn.playerReward_A);
+            AVG_rewardB = current_group_data(:, coordination_metrics_table.cn.playerReward_B);
+            AVG_rewardAB = current_group_data(:, coordination_metrics_table.cn.averReward);
+            % non-random reward component
+            Non_random_reward = current_group_data(:, coordination_metrics_table.cn.dltReward);
+            Non_random_reward_significance = current_group_data(:, coordination_metrics_table.cn.dltSignif);
+            Non_random_reward_CI_lower = current_group_data(:, coordination_metrics_table.cn.dltConfInterval_Lower);
+            Non_random_reward_CI_upper = current_group_data(:, coordination_metrics_table.cn.dltConfInterval_Upper);
+            Non_random_reward_CI_hw = (Non_random_reward_CI_upper - Non_random_reward);
+            
+            % create the plot
+            FileName = CollectionName;
+            Cur_fh_coordination_metrics_for_each_group = figure('Name', 'Coordination Metrics plot', 'visible', figure_visibility_string);
+            fnFormatDefaultAxes(DefaultAxesType);
+            [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+            set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+            legend_list = {};
+            %hold on
+            
+            % SOC target
+            current_axis_h = subplot(2, 3, 1);
+            x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
+            y_vec_arr = [SOC_targetA, SOC_targetB];
+            instance_list = {'SOC_targetA', 'SOC_targetB'};
+            color_list = {[1,0,0], [0,0,1]};
+            symbol_list = {'o', 's'};
+            plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('Share of Own Choices', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [0 1.1]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            
+            % SOC side
+            current_axis_h = subplot(2, 3, 2);
+            x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
+            y_vec_arr = [SOC_sideA, SOC_sideB];
+            instance_list = {'SOC_sideA', 'SOC_sideB'};
+            color_list = {[1,0,0], [0,0,1]};
+            symbol_list = {'o', 's'};
+            plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('Share of obj. left Choices', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [0 1.1]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            
+            
+            % AVG reward
+            current_axis_h = subplot(2, 3, 3);
+            x_vec_arr = [(1:1:length(AVG_rewardA));(1:1:length(AVG_rewardAB)); (1:1:length(AVG_rewardB)); ]';
+            y_vec_arr = [AVG_rewardA, AVG_rewardAB, AVG_rewardB];
+            instance_list = {'AVG_rewardA', 'AVG_rewardAB', 'AVG_rewardB'};
+            color_list = {[1,0,0], [0.5,0,0.5], [0,0,1]};
+            symbol_list = {'o', 'none', 's'};
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('Average reward', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [0.9 4.1]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            
+            % MI target
+            current_axis_h = subplot(2, 3, 4);
+            x_vec_arr = [(1:1:length(MI_target))]';
+            y_vec_arr = [MI_target];
+            instance_list = {'MI_target'};
+            color_list = {[0.5,0,0.5]};
+            symbol_list = {'d'};
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('MI target', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [0 1.1]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            
+            % MI side
+            current_axis_h = subplot(2, 3, 5);
+            x_vec_arr = [(1:1:length(MI_side))]';
+            y_vec_arr = [MI_side];
+            instance_list = {'MI_side'};
+            color_list = {[0.5,0,0.5]};
+            symbol_list = {'d'};
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('MI side', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [0 1.1]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            
+            % non-random reward
+            current_axis_h = subplot(2, 3, 6);
+            x_vec_arr = [(1:1:length(Non_random_reward))]';
+            y_vec_arr = [Non_random_reward];
+            instance_list = {'Non_random_reward'};
+            color_list = {[0.5,0,0.5]};
+            symbol_list = {'d'};
+            plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0 0], 'Color', [0 0 0], 'Marker', 'none');
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('Non-random reward', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [-0.2 1.2]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            % add the CI
+            hold on
+            errorbar(x_vec_arr, y_vec_arr, Non_random_reward_CI_hw, 'LineStyle', 'none', 'Color', [0,0,0], 'LineWidth', 1.0);
+            hold off
+            
+            
+            % save out the results
+            current_group_name = group_struct_list{i_group}.setName;
+            CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label, '.', cur_plot_coordination_metrics_for_each_group_graph_type];
+            if ~strcmp(OutPutType, 'pdf')
+                outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', OutPutType]);
+                write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            end
+            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', 'pdf']);
             write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', 'fig']);
+            write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            
+            %         legend(legend_list, 'Interpreter', 'None');
+            %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', OutPutType]);
+            %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', 'pdf']);
+            %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', 'fig']);
+            %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
         end
-        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', 'pdf']);
-        write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
-        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', 'fig']);
-        write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
-        
-        %         legend(legend_list, 'Interpreter', 'None');
-        %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', OutPutType]);
-        %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
-        %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', 'pdf']);
-        %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
-        %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', 'fig']);
-        %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+    end
+    %
+    if (plot_coordination_metrics_for_each_group)
+        for i_group = 1 : n_groups
+            current_group_label = group_struct_list{i_group}.setLabel;
+            cur_plot_coordination_metrics_for_each_group_graph_type = plot_coordination_metrics_for_each_group_graph_type;
+            
+            % here we only want to ook at the blocked experiments
+            if ismember(current_group_label, {'ConfederateSMCuriusBlocked', 'ConfederateSMFlaffusBlocked'})
+                continue
+            end
+            
+            %if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaques'})
+            if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late'})
+                cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
+            else
+                disp('Doh...');
+            end
+            
+            
+            % collect the data lines for the current group
+            current_group_data = metrics_by_group_list{i_group};
+            % now collect the actual data of interest
+            % Share of Own Choices
+            SOC_targetA = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_A);
+            SOC_targetB = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_B);
+            SOC_sideA = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_A);
+            SOC_sideB = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_B);
+            % Mutual Informatin
+            MI_side = current_group_data(:, coordination_metrics_table.cn.miSide);
+            MI_target = current_group_data(:, coordination_metrics_table.cn.miTarget);
+            % averafed reward
+            AVG_rewardA = current_group_data(:, coordination_metrics_table.cn.playerReward_A);
+            AVG_rewardB = current_group_data(:, coordination_metrics_table.cn.playerReward_B);
+            AVG_rewardAB = current_group_data(:, coordination_metrics_table.cn.averReward);
+            % non-random reward component
+            Non_random_reward = current_group_data(:, coordination_metrics_table.cn.dltReward);
+            Non_random_reward_significance = current_group_data(:, coordination_metrics_table.cn.dltSignif);
+            Non_random_reward_CI_lower = current_group_data(:, coordination_metrics_table.cn.dltConfInterval_Upper);
+            Non_random_reward_CI_upper = current_group_data(:, coordination_metrics_table.cn.dltConfInterval_Lower);
+            Non_random_reward_CI_hw = (Non_random_reward_CI_upper - Non_random_reward);
+            
+            % create the plot
+            FileName = CollectionName;
+            Cur_fh_coordination_metrics_for_each_group = figure('Name', 'Coordination Metrics plot', 'visible', figure_visibility_string);
+            fnFormatDefaultAxes(DefaultAxesType);
+            [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+            set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+            legend_list = {};
+            %hold on
+            
+            % SOC target
+            current_axis_h = subplot(2, 3, 1);
+            x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
+            y_vec_arr = [SOC_targetA, SOC_targetB];
+            instance_list = {'SOC_targetA', 'SOC_targetB'};
+            color_list = {[1,0,0], [0,0,1]};
+            symbol_list = {'o', 's'};
+            plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('Share of Own Choices', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [0 1.1]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            
+            % SOC side
+            current_axis_h = subplot(2, 3, 2);
+            x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
+            y_vec_arr = [SOC_sideA, SOC_sideB];
+            instance_list = {'SOC_sideA', 'SOC_sideB'};
+            color_list = {[1,0,0], [0,0,1]};
+            symbol_list = {'o', 's'};
+            plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('Share of obj. left Choices', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [0 1.1]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            
+            
+            % AVG reward
+            current_axis_h = subplot(2, 3, 3);
+            x_vec_arr = [(1:1:length(AVG_rewardA));(1:1:length(AVG_rewardAB)); (1:1:length(AVG_rewardB)); ]';
+            y_vec_arr = [AVG_rewardA, AVG_rewardAB, AVG_rewardB];
+            instance_list = {'AVG_rewardA', 'AVG_rewardAB', 'AVG_rewardB'};
+            color_list = {[1,0,0], [0.5,0,0.5], [0,0,1]};
+            symbol_list = {'o', 'none', 's'};
+            plot([(0.2) (size(x_vec_arr, 1)+0.9)], [3.5 3.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('Average reward', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [0.9 4.1]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            
+            % MI target
+            current_axis_h = subplot(2, 3, 4);
+            x_vec_arr = [(1:1:length(MI_target))]';
+            y_vec_arr = [MI_target];
+            instance_list = {'MI_target'};
+            color_list = {[0.5,0,0.5]};
+            symbol_list = {'d'};
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('MI target', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [0 1.1]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            
+            % MI side
+            current_axis_h = subplot(2, 3, 5);
+            x_vec_arr = [(1:1:length(MI_side))]';
+            y_vec_arr = [MI_side];
+            instance_list = {'MI_side'};
+            color_list = {[0.5,0,0.5]};
+            symbol_list = {'d'};
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('MI side', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [0 1.1]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            
+            % non-random reward
+            current_axis_h = subplot(2, 3, 6);
+            x_vec_arr = [(1:1:length(Non_random_reward))]';
+            y_vec_arr = [Non_random_reward];
+            instance_list = {'Non_random_reward'};
+            color_list = {[0.5,0,0.5]};
+            symbol_list = {'d'};
+            plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0 0], 'Color', [0 0 0], 'Marker', 'none');
+            [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+            % label the axes
+            ylabel('Non-random reward', 'Interpreter', 'none');
+            xlabel('Session ID', 'Interpreter', 'none');
+            set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+            set(gca, 'Ylim', [-0.2 1.2]);
+            set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+            % add the CI
+            hold on
+            errorbar(x_vec_arr, y_vec_arr, Non_random_reward_CI_hw, 'LineStyle', 'none', 'Color', [0,0,0], 'LineWidth', 1.0);
+            hold off
+            
+            
+            % save out the results
+            current_group_name = group_struct_list{i_group}.setName;
+            CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label, '.', cur_plot_coordination_metrics_for_each_group_graph_type];
+            if ~strcmp(OutPutType, 'pdf')
+                outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', OutPutType]);
+                write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            end
+            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', 'pdf']);
+            write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', 'fig']);
+            write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            
+            %         legend(legend_list, 'Interpreter', 'None');
+            %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', OutPutType]);
+            %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', 'pdf']);
+            %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', 'fig']);
+            %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+            
+        end
     end
 end
-%
-if (plot_coordination_metrics_for_each_group)
-    for i_group = 1 : n_groups
-        current_group_label = group_struct_list{i_group}.setLabel;
-        cur_plot_coordination_metrics_for_each_group_graph_type = plot_coordination_metrics_for_each_group_graph_type;
-        
-        % here we only want to ook at the blocked experiments
-        if ismember(current_group_label, {'ConfederateSMCuriusBlocked', 'ConfederateSMFlaffusBlocked'})
-            continue
-        end
-        
-        %if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaques'})
-        if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late'})
-            cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
-        else
-            disp('Doh...');
-        end
-        
-        
-        % collect the data lines for the current group
-        current_group_data = metrics_by_group_list{i_group};
-        % now collect the actual data of interest
-        % Share of Own Choices
-        SOC_targetA = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_A);
-        SOC_targetB = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_B);
-        SOC_sideA = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_A);
-        SOC_sideB = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_B);
-        % Mutual Informatin
-        MI_side = current_group_data(:, coordination_metrics_table.cn.miSide);
-        MI_target = current_group_data(:, coordination_metrics_table.cn.miTarget);
-        % averafed reward
-        AVG_rewardA = current_group_data(:, coordination_metrics_table.cn.playerReward_A);
-        AVG_rewardB = current_group_data(:, coordination_metrics_table.cn.playerReward_B);
-        AVG_rewardAB = current_group_data(:, coordination_metrics_table.cn.averReward);
-        % non-random reward component
-        Non_random_reward = current_group_data(:, coordination_metrics_table.cn.dltReward);
-        Non_random_reward_significance = current_group_data(:, coordination_metrics_table.cn.dltSignif);
-        Non_random_reward_CI_lower = current_group_data(:, coordination_metrics_table.cn.dltConfInterval_Upper);
-        Non_random_reward_CI_upper = current_group_data(:, coordination_metrics_table.cn.dltConfInterval_Lower);
-        Non_random_reward_CI_hw = (Non_random_reward_CI_upper - Non_random_reward);
-        
-        % create the plot
-        FileName = CollectionName;
-        Cur_fh_coordination_metrics_for_each_group = figure('Name', 'Coordination Metrics plot', 'visible', figure_visibility_string);
-        fnFormatDefaultAxes(DefaultAxesType);
-        [output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-        set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
-        legend_list = {};
-        %hold on
-        
-        % SOC target
-        current_axis_h = subplot(2, 3, 1);
-        x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
-        y_vec_arr = [SOC_targetA, SOC_targetB];
-        instance_list = {'SOC_targetA', 'SOC_targetB'};
-        color_list = {[1,0,0], [0,0,1]};
-        symbol_list = {'o', 's'};
-        plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('Share of Own Choices', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [0 1.1]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        
-        % SOC side
-        current_axis_h = subplot(2, 3, 2);
-        x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
-        y_vec_arr = [SOC_sideA, SOC_sideB];
-        instance_list = {'SOC_sideA', 'SOC_sideB'};
-        color_list = {[1,0,0], [0,0,1]};
-        symbol_list = {'o', 's'};
-        plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('Share of obj. left Choices', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [0 1.1]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        
-        
-        % AVG reward
-        current_axis_h = subplot(2, 3, 3);
-        x_vec_arr = [(1:1:length(AVG_rewardA));(1:1:length(AVG_rewardAB)); (1:1:length(AVG_rewardB)); ]';
-        y_vec_arr = [AVG_rewardA, AVG_rewardAB, AVG_rewardB];
-        instance_list = {'AVG_rewardA', 'AVG_rewardAB', 'AVG_rewardB'};
-        color_list = {[1,0,0], [0.5,0,0.5], [0,0,1]};
-        symbol_list = {'o', 'none', 's'};
-        plot([(0.2) (size(x_vec_arr, 1)+0.9)], [3.5 3.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('Average reward', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [0.9 4.1]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        
-        % MI target
-        current_axis_h = subplot(2, 3, 4);
-        x_vec_arr = [(1:1:length(MI_target))]';
-        y_vec_arr = [MI_target];
-        instance_list = {'MI_target'};
-        color_list = {[0.5,0,0.5]};
-        symbol_list = {'d'};
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('MI target', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [0 1.1]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        
-        % MI side
-        current_axis_h = subplot(2, 3, 5);
-        x_vec_arr = [(1:1:length(MI_side))]';
-        y_vec_arr = [MI_side];
-        instance_list = {'MI_side'};
-        color_list = {[0.5,0,0.5]};
-        symbol_list = {'d'};
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('MI side', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [0 1.1]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        
-        % non-random reward
-        current_axis_h = subplot(2, 3, 6);
-        x_vec_arr = [(1:1:length(Non_random_reward))]';
-        y_vec_arr = [Non_random_reward];
-        instance_list = {'Non_random_reward'};
-        color_list = {[0.5,0,0.5]};
-        symbol_list = {'d'};
-        plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0 0], 'Color', [0 0 0], 'Marker', 'none');
-        [current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
-        % label the axes
-        ylabel('Non-random reward', 'Interpreter', 'none');
-        xlabel('Session ID', 'Interpreter', 'none');
-        set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
-        set(gca, 'Ylim', [-0.2 1.2]);
-        set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
-        % add the CI
-        hold on
-        errorbar(x_vec_arr, y_vec_arr, Non_random_reward_CI_hw, 'LineStyle', 'none', 'Color', [0,0,0], 'LineWidth', 1.0);
-        hold off
-        
-        
-        % save out the results
-        current_group_name = group_struct_list{i_group}.setName;
-        CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label, '.', cur_plot_coordination_metrics_for_each_group_graph_type];
-        if ~strcmp(OutPutType, 'pdf')
-            outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', OutPutType]);
-            write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
-        end
-        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', 'pdf']);
-        write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
-        outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.', 'fig']);
-        write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
-        
-        %         legend(legend_list, 'Interpreter', 'None');
-        %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', OutPutType]);
-        %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
-        %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', 'pdf']);
-        %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
-        %         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', 'fig']);
-        %         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
-        
-    end
-end
-
 % close all figues?
 if (close_figures_at_end)
     close all;
@@ -1028,7 +1039,7 @@ switch group_collection_name
         HumansOpaque.setName = 'Humans Opaque';
         HumansOpaque.setLabel = 'HumansOpaque';
         HumansOpaque.label = {'Humans', 'Opaque', ''};
-        HumansOpaque.filenames = {...            
+        HumansOpaque.filenames = {...
             'DATA_20170425T160951.A_21001.B_22002.SCP_00.triallog.A.21001.B.22002_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20170426T102304.A_21003.B_22004.SCP_00.triallog.A.21003.B.22004_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20170426T133343.A_21005.B_12006.SCP_00.triallog.A.21005.B.12006_IC_JointTrials.isOwnChoice_sideChoice', ...
@@ -1045,7 +1056,7 @@ switch group_collection_name
         HumansOpaque.color = ([142 205 253]/255) * 1/5;
         HumansOpaque.Symbol = '+';
         HumansOpaque.FilledSymbols = 0;
-
+        
         Humans.setName = 'Humans';
         Humans.setLabel = 'Humans';
         Humans.label = {'Humans', '', ''};
@@ -1076,7 +1087,7 @@ switch group_collection_name
         Humans.color = ([142 205 253]/255) * 1/5;
         Humans.Symbol = '+';
         Humans.FilledSymbols = 0;
-
+        
         % exclude the
         % DATA_20171113T162815.A_20011.B_10012.SCP_01.triallog.A.20011.B.10012_IC_JointTrials.isOwnChoice_sideChoice
         % session without solo training
@@ -1107,12 +1118,12 @@ switch group_collection_name
             };
         HumansEC.color = ([142 205 253]/255) * 1/5;
         HumansEC.Symbol = '+';
-        HumansEC.FilledSymbols = 0;        
+        HumansEC.FilledSymbols = 0;
         
         Humans50_55__80_20.setName = 'Humans 50_55 80_20';
         Humans50_55__80_20.setLabel = 'Humans50_55__80_20';
         Humans50_55__80_20.label = {'Humans', '', ''};
-        Humans50_55__80_20.filenames = {...        
+        Humans50_55__80_20.filenames = {...
             'DATA_20181030T155123.A_181030ID0061S1.B_181030ID0062S1.SCP_01.triallog.A.181030ID0061S1.B.181030ID0062S1_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20181030T164218.A_181030ID0061S1.B_181030ID0062S1.SCP_01.triallog.A.181030ID0061S1.B.181030ID0062S1_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20181031T135826.A_181031ID63S1.B_181031ID64S1.SCP_01.triallog.A.181031ID63S1.B.181031ID64S1_IC_JointTrials.isOwnChoice_sideChoice', ...
@@ -1124,7 +1135,7 @@ switch group_collection_name
             'DATA_20181102T131833.A_181102ID69S1.B_181102ID70S1.SCP_01.triallog.A.181102ID69S1.B.181102ID70S1_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20181102T135956.A_181102ID69S1.B_181102ID70S1.SCP_01.triallog.A.181102ID69S1.B.181102ID70S1_IC_JointTrials.isOwnChoice_sideChoice', ...
             };
-         Humans50_55__80_20.Captions = {...
+        Humans50_55__80_20.Captions = {...
             '81030_50', ...
             '81030_80', ...
             '81031_50', ...
@@ -1138,19 +1149,19 @@ switch group_collection_name
             };
         Humans50_55__80_20.color = ([142 205 253]/255) * 1/5;
         Humans50_55__80_20.Symbol = '+';
-        Humans50_55__80_20.FilledSymbols = 0;       
- 
+        Humans50_55__80_20.FilledSymbols = 0;
+        
         Humans50_50.setName = 'Humans 50_50';
         Humans50_50.setLabel = 'Humans50_50';
         Humans50_50.label = {'Humans', '', ''};
-        Humans50_50.filenames = {...        
+        Humans50_50.filenames = {...
             'DATA_20181030T155123.A_181030ID0061S1.B_181030ID0062S1.SCP_01.triallog.A.181030ID0061S1.B.181030ID0062S1_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20181031T135826.A_181031ID63S1.B_181031ID64S1.SCP_01.triallog.A.181031ID63S1.B.181031ID64S1_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20181031T170224.A_181031ID65S1.B_181031ID66S1.SCP_01.triallog.A.181031ID65S1.B.181031ID66S1_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20181101T133927.A_181101ID67S1.B_181101ID68S1.SCP_01.triallog.A.181101ID67S1.B.181101ID68S1_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20181102T131833.A_181102ID69S1.B_181102ID70S1.SCP_01.triallog.A.181102ID69S1.B.181102ID70S1_IC_JointTrials.isOwnChoice_sideChoice', ...
             };
-         Humans50_50.Captions = {...
+        Humans50_50.Captions = {...
             '81030_50', ...
             '81031_50', ...
             '81031_50', ...
@@ -1159,8 +1170,8 @@ switch group_collection_name
             };
         Humans50_50.color = ([142 205 253]/255) * 1/5;
         Humans50_50.Symbol = '+';
-        Humans50_50.FilledSymbols = 0;    
-
+        Humans50_50.FilledSymbols = 0;
+        
         % these are selected on the basis of havin understood the color to
         % value associations, either from solo training or from later joint
         % trials
@@ -1193,9 +1204,9 @@ switch group_collection_name
             };
         GoodHumans.color = ([142 205 253]/255) * 1/5;
         GoodHumans.Symbol = '+';
-        GoodHumans.FilledSymbols = 0;        
+        GoodHumans.FilledSymbols = 0;
         
-      
+        
         BadHumans.setName = 'BadHumans';
         BadHumans.setLabel = 'BadHumans';
         BadHumans.label = {'BadHumans', '', ''};
@@ -1215,7 +1226,7 @@ switch group_collection_name
             };
         BadHumans.color = [1 0 0]; %([142 205 253]/255) * 1/5;
         BadHumans.Symbol = '+';
-        BadHumans.FilledSymbols = 0;        
+        BadHumans.FilledSymbols = 0;
         
         
         Macaques_early.setName = 'Macaques early';
@@ -1249,7 +1260,7 @@ switch group_collection_name
         % exchanged DATA_20180531T104356.A_Tesla.B_Curius.SCP_01.triallog.A.Tesla.B.Curius_IC_JointTrials.isOwnChoice_sideChoice
         % with
         % DATA_20180530T153325.A_Tesla.B_Curius.SCP_01.triallog.A.Tesla.B.Curius_IC_JointTrials.isOwnChoice_sideChoice,
-        % as the former only has ~120 trials while the latter has 250 
+        % as the former only has ~120 trials while the latter has 250
         % exchanged DATA_20171107T131228.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice
         % with DATA_20171103T143324.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice
         % the latter has a change of effectir hand that interferred with
@@ -1653,7 +1664,7 @@ switch group_collection_name
         ConfederateTNLinus.color = [192 157 169]/255;
         ConfederateTNLinus.Symbol = 'none';
         ConfederateTNLinus.FilledSymbols = 1;
-
+        
         % excluded: 'DATA_20171113T162815.A_20011.B_10012.SCP_01.triallog.A.20011.B.10012_IC_JointTrials.isOwnChoice_sideChoice', ...
         % no solo training
         HumansTransparent.setName = 'Humans transparent';
@@ -1693,7 +1704,7 @@ switch group_collection_name
             };
         HumansTransparent.color = ([142 205 253]/255);
         HumansTransparent.Symbol = 's';
-        HumansTransparent.FilledSymbols = 1;        
+        HumansTransparent.FilledSymbols = 1;
         
         
         group_struct_list = {HumansOpaque, HumansTransparent, Humans, Macaques_early, Macaques_late, teslaElmoNaive, ...
@@ -1750,5 +1761,29 @@ for i_instance = 1 : n_instances
 end
 hold off
 
+return
+end
+
+function [ metrics_by_group_list ] = fn_extract_metrics_by_group( group_struct_list, cur_coordination_metrics_table )
+% this deals with extracting a properly sorted matrics table for each
+% group, where each row corresponds to the matching index of the group
+% member
+
+% extract the subsets of rows for the sessions in each group
+n_groups = length(group_struct_list);
+metrics_by_group_list = cell(size(group_struct_list));
+for i_group = 1 : n_groups
+    current_group = group_struct_list{i_group};
+    % find the row indices for the current group members:
+    [current_session_in_group_ldx, LocB] = ismember(cur_coordination_metrics_table.key, current_group.filenames);
+    % this is unfortunately unsorted, but we want to keep current_group.filenames order...
+    current_session_in_group_idx = find(current_session_in_group_ldx);
+    %order_idx = LocB(current_session_in_group_idx);
+    % this will only work if each session ID is unique...
+    [~, sort_key_2_filenames_order_idx] = sort(LocB(current_session_in_group_idx), 'ascend');
+    %coordination_metrics_table.key(current_session_in_group_idx(I))'
+    %current_group.filenames'
+    metrics_by_group_list{i_group} = cur_coordination_metrics_table.data(current_session_in_group_idx(sort_key_2_filenames_order_idx), :);
+end
 return
 end
