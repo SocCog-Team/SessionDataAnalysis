@@ -152,6 +152,8 @@ histogram_show_median = 1;
 histogram_use_histogram_func = 0;
 
 
+calc_solo_metrics = 0;
+
 % set parameters of the methods for checking the coordination metrics
 coordination_metrics_cfg.pValueForMI = 0.01;
 coordination_metrics_cfg.memoryLength = 1; % number of previous trials that affect the choices on the current trials
@@ -653,6 +655,55 @@ for iGroup = 1 : length(GroupNameList)
     
     AB_TrialStartTimeMS = DataStruct.data(:, DataStruct.cn.Timestamp);
     
+    % collect the final performance of solo/single IC trails
+    if (IsSoloGroup) && (calc_solo_metrics)
+        % the next we want to use as index/key
+        current_file_group_id_string = [FileName, '.', 'Solo'];
+        
+        PopulationSoloAggregateName = '';
+        population_per_session_solo_aggregates_FQN = fullfile(OutputPath, PopulationSoloAggregateName);
+        solo_metrics_table = [];
+        if exist(population_per_session_solo_aggregates_FQN, 'file')
+            load(population_per_session_solo_aggregates_FQN); % contains solo_metrics_table
+        end    
+        
+        % find the index of the current key
+        recalc_solo_metrics = 1;
+        exchange_cur_solo_metric = 0;
+        tmp_key_idx = [];
+        if isfield(solo_metrics_table, 'key') && ~isempty(solo_metrics_table.key)
+            %stored_coordination_metrics_cfg = [];
+            tmp_key_idx = find(strcmp(solo_metrics_table.key, current_file_group_id_string));
+            if ~isempty(tmp_key_idx)
+                exchange_cur_solo_metric = 1;
+            end
+        end
+
+        
+        if (recalc_solo_metrics)
+            % these are mutually exclusive, but can all coexist in the same
+            % triallog file
+            if ismember(CurrentGroup, {'IC_SoloTrialsSideA', 'IC_SoloTrialsSideB', 'IC_SingleSubjectTrialsSideA', 'IC_SingleSubjectTrialsSideB'})
+                % now get the average SOC and SLC for all trials as well as the last 25
+                % trials
+                if ismember(CurrentGroup, {'IC_SoloTrialsSideA', 'IC_SingleSubjectTrialsSideA'})
+                    cur_solo_SOC_A_avg_all = mean(PreferableTargetSelected_A(GoodTrialsIdx));
+                    cur_solo_SOC_A_avg_last = mean(PreferableTargetSelected_A(GoodTrialsIdx(max([1 (length(GoodTrialsIdx) - 25)]):end)));
+                    cur_solo_SOC_B_avg_all = mean(PreferableTargetSelected_B(GoodTrialsIdx));
+                    cur_solo_SOC_B_avg_last = mean(PreferableTargetSelected_B(GoodTrialsIdx(max([1 (length(GoodTrialsIdx) - 25)]):end)));
+                end
+                if ismember(CurrentGroup, {'IC_SoloTrialsSideB', 'IC_SingleSubjectTrialsSideB'})
+                    cur_solo_SLC_A_avg_all = mean(LeftTargetSelected_A(GoodTrialsIdx));
+                    cur_solo_SLC_A_avg_last = mean(LeftTargetSelected_A(GoodTrialsIdx(max([1 (length(GoodTrialsIdx) - 25)]):end)));
+                    cur_solo_SLC_B_avg_all = mean(LeftTargetSelected_A(GoodTrialsIdx));
+                    cur_solo_SLC_B_avg_last = mean(LeftTargetSelected_A(GoodTrialsIdx(max([1 (length(GoodTrialsIdx) - 25)]):end)));
+                end
+                
+                
+            end
+        end
+    end
+    
     % Anton's coordination test
     if ~(IsSoloGroup)
         NumExplorationTrials = 49;
@@ -749,10 +800,19 @@ for iGroup = 1 : length(GroupNameList)
             end
             
             
-            %TODO add first200 trials as well
+            %TODO add first100 trials as well
+            PopulationAggregateName = ['ALL_SESSSION_METRICS.first100.mat'];
+            use_all_trials = 1;
+            prefix_string = '';
+            suffix_string = '';
+            n_TrialsInCurrentSetIdx = length(TrialsInCurrentSetIdx);
+            CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx(1:(min([100 n_TrialsInCurrentSetIdx])));
+            [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+                OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
             
             
-            PopulationAggregateName = ['ALL_SESSSION_METRICS.late200.mat'];
+            PopulationAggregateName = ['ALL_SESSSION_METRICS.last200.mat'];
             use_all_trials = 0;
             prefix_string = '';
             suffix_string = '';
@@ -1772,7 +1832,7 @@ for iGroup = 1 : length(GroupNameList)
             
             if (PlotRTHistogramsByByPayoffMatrix)
                 
-                CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', histogram_RT_type_string];
+                CurrentTitleSetDescriptorString = TitleSetDescriptorString;
                 
                 % create the subsets: same own A, same own B, diff own, diff other
                 SameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0);
@@ -1844,12 +1904,12 @@ for iGroup = 1 : length(GroupNameList)
                     CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
                 end
                 
-                outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.', OutPutType]);
+                outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.', histogram_RT_type_string, '.', OutPutType]);
                 write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
                 
                 
                 legend(legend_list, 'Interpreter', 'None');
-                outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.legend.', OutPutType]);
+                outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.legend.', histogram_RT_type_string, '.', OutPutType]);
                 write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
             end
             
@@ -1859,7 +1919,7 @@ for iGroup = 1 : length(GroupNameList)
                 %SubjectiveLeftTargetSelected_A
                 %SubjectiveLeftTargetSelected_B
                 %RightHandUsed_A, RightHandUsed_B
-                CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', histogram_RT_type_string];
+                CurrentTitleSetDescriptorString = TitleSetDescriptorString;
                 
                 % create the subsets: same own A, same own B, diff own, diff other
                 Same_AleftBright = (SubjectiveLeftTargetSelected_A == 1) & (SubjectiveLeftTargetSelected_B == 0);
@@ -1932,12 +1992,12 @@ for iGroup = 1 : length(GroupNameList)
                     CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
                 end
                 
-                outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySide.', OutPutType]);
+                outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySide.', histogram_RT_type_string, '.', OutPutType]);
                 write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
                 
                 
                 legend(legend_list, 'Interpreter', 'None');
-                outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySide.legend.', OutPutType]);
+                outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySide.legend.', histogram_RT_type_string, '.', OutPutType]);
                 write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
                 
                 
