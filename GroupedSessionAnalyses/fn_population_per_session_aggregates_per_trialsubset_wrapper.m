@@ -39,16 +39,16 @@ if isfield(coordination_metrics_table, 'key') && ~isempty(coordination_metrics_t
         cfg_is_equal = isequaln(stored_coordination_metrics_cfg, coordination_metrics_cfg);
         recalc_coordination_metrics = ~(cfg_is_equal);
         if (cfg_is_equal)
-            disp(['Keeping already computed coordination_metrics for ', coordination_metrics_table.key{tmp_key_idx}]);
+            disp([PopulationAggregateName, ': Keeping already computed coordination_metrics for ', coordination_metrics_table.key{tmp_key_idx}]);
         end
     end
 end
 %recalc_coordination_metrics = 1;
 if isempty(coordination_metrics_table) || (recalc_coordination_metrics)
     if ~isempty(tmp_key_idx)
-        disp(['Recalculating coordination_metrics for ', coordination_metrics_table.key{tmp_key_idx}]);
+        disp([PopulationAggregateName, ': Recalculating coordination_metrics for ', coordination_metrics_table.key{tmp_key_idx}]);
     else
-        disp(['Calculating coordination_metrics for ', current_file_group_id_string]);
+        disp([PopulationAggregateName, ': Calculating coordination_metrics for ', current_file_group_id_string]);
     end
     %[coordination_metrics_struct, coordination_metrics_row, coordination_metrics_row_header] = fn_compute_coordination_metrics_session(isOwnChoiceArray, sideChoiceObjectiveArray, PerTrialStruct, coordination_metrics_cfg);
     
