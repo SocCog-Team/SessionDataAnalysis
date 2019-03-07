@@ -800,7 +800,73 @@ for iGroup = 1 : length(GroupNameList)
             end
             
             
-            %TODO add first100 trials as well
+            %TODO add this specifically for the visibility trials (do not calculate per_trial values?)
+            invisible_other_trial_idx = find(FullPerTrialStruct.isTrialInvisible_AB);
+            if ~isempty(invisible_other_trial_idx)
+                use_all_trials = 1;
+                prefix_string = '';
+                % trials woth visibility of the other's action blocked
+                CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, invisible_other_trial_idx);
+                [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+                    OutputPath, 'ALL_SESSSION_METRICS.invisible.mat', current_file_group_id_string, info, ...
+                    isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, '_invisible');
+                % if they exist, get visible_pre, visibile_blocked, visible_post
+                visibility_changes_lidx = diff(FullPerTrialStruct.isTrialInvisible_AB);
+                visibility_changes_idx = find([0; visibility_changes_lidx]); % extend by one to give the index to the first changed item index
+                n_visibility_changes = sum(abs(visibility_changes_lidx));
+                switch n_visibility_changes
+                    case 0
+                        % nothing to do, we saved the vis_blocked already
+                    case 1
+                        % 2 blocks, invisible already saved
+                        CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0)); 
+                        if (FullPerTrialStruct.isTrialInvisible_AB(1) == 0)
+                            suffix_string = 'visible_pre';
+                        else
+                            suffix_string = 'visible_post';
+                        end
+                        PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
+                        [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+                            OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+                            isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
+                    case 2
+                        % 3 blocks
+                        CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0)); 
+                        if (FullPerTrialStruct.isTrialInvisible_AB(1) == 0)
+                            % vis pre block
+                            vis_pre_trials_idx = find(CurTrialsInCurrentSetIdx < visibility_changes_idx(1));
+                            CurCurTrialsInCurrentSetIdx = CurTrialsInCurrentSetIdx(1:vis_pre_trials_idx(end));
+                            suffix_string = 'visible_pre';
+                            PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
+                            [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+                                OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+                                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);                         
+                            % vis_post block
+                            vis_post_trials_idx = find(CurTrialsInCurrentSetIdx >= visibility_changes_idx(2));
+                            CurCurTrialsInCurrentSetIdx = CurTrialsInCurrentSetIdx(vis_post_trials_idx(1):end);
+                            suffix_string = 'visible_post';
+                            PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
+                            [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+                                OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+                                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);   
+                        else
+                            error([mfilename, ': found 3 visibility block swith the first invisible, not handled yet.']);
+                        end                       
+                    otherwise
+                        % assume interleaved
+                        suffix_string = 'visible';
+                        CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0)); 
+                        PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
+                        [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+                            OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+                            isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
+                end
+            else
+                % for testing only!
+                return
+            end
+            
+            % add first100 trials as well (exploratory phase)
             PopulationAggregateName = ['ALL_SESSSION_METRICS.first100.mat'];
             use_all_trials = 1;
             prefix_string = '';
@@ -811,7 +877,7 @@ for iGroup = 1 : length(GroupNameList)
                 OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
                 isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
             
-            
+            % the final hopefully steady-state exploitation phase
             PopulationAggregateName = ['ALL_SESSSION_METRICS.last200.mat'];
             use_all_trials = 0;
             prefix_string = '';
@@ -821,6 +887,7 @@ for iGroup = 1 : length(GroupNameList)
                 OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
                 isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
             
+            % the whole enchilada
             PopulationAggregateName = ['ALL_SESSSION_METRICS.all_joint_choice_trials.mat'];
             use_all_trials = 1;
             prefix_string = '';
@@ -830,11 +897,7 @@ for iGroup = 1 : length(GroupNameList)
                 OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
                 isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
             % do this for all trials only (for per trial plots)
-            cur_coordination_metrics_struct = cur_full_coordination_metrics_table.coordination_metrics_struct;
-            
-            %TODO add this specifically for the visibility trials (do not calculate per_trial values?)
-            
-            
+            cur_coordination_metrics_struct = cur_full_coordination_metrics_table.coordination_metrics_struct;            
             
         end
         
