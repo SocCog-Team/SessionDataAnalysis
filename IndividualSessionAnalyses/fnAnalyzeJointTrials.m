@@ -863,7 +863,7 @@ for iGroup = 1 : length(GroupNameList)
                 end
             else
                 % for testing only!
-                return
+                %return
             end
             
             % add first100 trials as well (exploratory phase)
