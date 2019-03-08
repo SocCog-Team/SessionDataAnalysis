@@ -4,6 +4,8 @@ function [ output_args ] = fnAggregateAndPlotCoordinationMetricsByGroup( session
 
 % TODO:
 %   add scatter plot of the AR faster vs AR slower for all groups
+%   plots comparing the different phases in blocked experiements for NHP
+%   and humans
 
 
 timestamps.(mfilename).start = tic;
@@ -25,11 +27,17 @@ if ~exist('session_metrics_datafile_fqn', 'var') || isempty(session_metrics_data
         fullfile(InputPath, ['ALL_SESSSION_METRICS.last200.mat']), ...
         fullfile(InputPath, ['ALL_SESSSION_METRICS.all_joint_choice_trials.mat']), ...
         fullfile(InputPath, ['ALL_SESSSION_METRICS.first100.mat']),...
+        fullfile(InputPath, ['ALL_SESSSION_METRICS.visible_pre.mat']),...
+        fullfile(InputPath, ['ALL_SESSSION_METRICS.invisible.mat']),...
+        fullfile(InputPath, ['ALL_SESSSION_METRICS.visible_post.mat']),...
         };
     session_metrics_datafile_IDtag_list = {...
         'last200', ...
         'all_joint_choice_trials', ...
         'first100', ...
+        'visible_pre', ...
+        'invisible', ...
+        'visible_post', ...
         };
 end
 
@@ -45,17 +53,24 @@ end
 if ~exist('group_struct_list', 'var') || isempty(group_struct_list)
     group_struct_list = fn_get_session_group('BoS_human_monkey_2019');
 end
+group_struct_setlabel_list = cell(size(group_struct_list));
+for i_group = 1 : length(group_struct_list)
+    group_struct_setlabel_list{i_group} = group_struct_list{i_group}.setLabel;
+end
+
 
 
 % control variables
 plot_avererage_reward_by_group = 1;
+AR_by_group_setlabel_list = {'HumansTransparent', 'Macaques_early', 'Macaques_late', 'ConfederateTrainedMacaques'};
+
 confidence_interval_alpha = 0.05;
 plot_MI_space_scatterplot = 1;
 MI_space_set_list = {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque'}; % the set names to display
 MI_space_set_list = {'Humans', 'Macaques_late', 'HumansOpaque', 'Humans50_50'}; % the set names to display
 MI_space_set_list = {'GoodHumans', 'Macaques_late', 'BadHumans'}; % the set names to display HumansEC:= without the session without solo training
 % paper
-MI_space_set_list = {'HumansOpaque', 'HumansTransparent', 'Macaques_late', 'ConfederateTrainedMacaques'}; % the set names to display
+MI_space_set_list = {'HumansTransparent', 'Macaques_late', 'ConfederateTrainedMacaques'}; % the set names to display
 
 
 MI_jitter_x_on_collision = 1;
@@ -151,6 +166,12 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
     cur_session_metrics_datafile_fqn = session_metrics_datafile_fqn_list{i_session_metric_file};
     cur_session_metrics_datafile_IDtag = session_metrics_datafile_IDtag_list{i_session_metric_file};
     
+    if (ismember(cur_session_metrics_datafile_IDtag, {'visible_pre', 'invisible', 'visible_post'}))
+        disp([cur_session_metrics_datafile_IDtag, ': not handled by generic code']);
+        continue
+    end
+    
+    
     coordination_metrics_table = session_metrics.(cur_session_metrics_datafile_IDtag).coordination_metrics_table;
     metrics_by_group_list = session_metrics.(cur_session_metrics_datafile_IDtag).metrics_by_group_list;
     
@@ -162,26 +183,34 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
     
     % create the plot for averaged average reward per group
     if (plot_avererage_reward_by_group)
-        % collect the actual data
-        AvgRewardByGroup_list = cell(size(group_struct_list)); % the actual reward values
-        AvgRewardByGroup.mean = zeros(size(group_struct_list));
-        AvgRewardByGroup.stddev = zeros(size(group_struct_list));
-        AvgRewardByGroup.n = zeros(size(group_struct_list));
-        AvgRewardByGroup.sem = zeros(size(group_struct_list));
-        AvgRewardByGroup.ci_halfwidth = zeros(size(group_struct_list));
-        AvgRewardByGroup.group_names = cell(size(group_struct_list));
-        AvgRewardByGroup.group_labels = cell(size(group_struct_list));
+        % collect the actual data        
+        if isempty(AR_by_group_setlabel_list)
+            AR_by_group_setlabel_list = group_struct_setlabel_list;
+        end
+        sorted_set_lidx = ismember(group_struct_setlabel_list, AR_by_group_setlabel_list);
+        sorted_set_idx = find(sorted_set_lidx);
+        
+        AvgRewardByGroup_list = cell(size(AR_by_group_setlabel_list)); % the actual reward values
+        AvgRewardByGroup.mean = zeros(size(AR_by_group_setlabel_list));
+        AvgRewardByGroup.stddev = zeros(size(AR_by_group_setlabel_list));
+        AvgRewardByGroup.n = zeros(size(AR_by_group_setlabel_list));
+        AvgRewardByGroup.sem = zeros(size(AR_by_group_setlabel_list));
+        AvgRewardByGroup.ci_halfwidth = zeros(size(AR_by_group_setlabel_list));
+        AvgRewardByGroup.group_names = cell(size(AR_by_group_setlabel_list));
+        AvgRewardByGroup.group_labels = cell(size(AR_by_group_setlabel_list));
         
         % now collect the
-        for i_group = 1 : n_groups
-            AvgRewardByGroup.group_names{i_group} = group_struct_list{i_group}.setName;
-            AvgRewardByGroup.group_labels{i_group} = group_struct_list{i_group}.label;
+        for i_AR_set = 1 : length(AR_by_group_setlabel_list)
+            %if ~ismember(group_struct_list{i_group}.label, group_struct_label_list;         
+            i_group = sorted_set_idx(i_AR_set);
+            AvgRewardByGroup.group_names{i_AR_set} = group_struct_list{i_group}.setName;
+            AvgRewardByGroup.group_labels{i_AR_set} = group_struct_list{i_group}.label;
             current_group_data = metrics_by_group_list{i_group};
-            AvgRewardByGroup_list{i_group} = current_group_data(:, coordination_metrics_table.cn.averReward); % the actual reward values
-            AvgRewardByGroup.mean(i_group) = mean(current_group_data(:, coordination_metrics_table.cn.averReward));
-            AvgRewardByGroup.stddev(i_group) = std(current_group_data(:, coordination_metrics_table.cn.averReward));
-            AvgRewardByGroup.n(i_group) = size(current_group_data, 1);
-            AvgRewardByGroup.sem(i_group) = AvgRewardByGroup.stddev(i_group)/sqrt(AvgRewardByGroup.n(i_group));
+            AvgRewardByGroup_list{i_AR_set} = current_group_data(:, coordination_metrics_table.cn.averReward); % the actual reward values
+            AvgRewardByGroup.mean(i_AR_set) = mean(current_group_data(:, coordination_metrics_table.cn.averReward));
+            AvgRewardByGroup.stddev(i_AR_set) = std(current_group_data(:, coordination_metrics_table.cn.averReward));
+            AvgRewardByGroup.n(i_AR_set) = size(current_group_data, 1);
+            AvgRewardByGroup.sem(i_AR_set) = AvgRewardByGroup.stddev(i_AR_set)/sqrt(AvgRewardByGroup.n(i_AR_set));
         end
         AvgRewardByGroup.ci_halfwidth = calc_cihw(AvgRewardByGroup.stddev, AvgRewardByGroup.n, confidence_interval_alpha);
         
@@ -193,21 +222,22 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
         legend_list = {};
         %hold on
         
-        for i_group = 1 : n_groups
-            current_group_name = group_struct_list{i_group}.setName;
+        for i_AR_set = 1 : length(AR_by_group_setlabel_list)
+            current_group_name = AvgRewardByGroup.group_names{i_AR_set};
+            i_group = sorted_set_idx(i_AR_set);
             
             % to display all individial values as scatter plots randomize the
             % positions for each group
             scatter_width = 0.6;
-            x_list = ones(size(AvgRewardByGroup_list{i_group})) * i_group;
-            scatter_offset_list = (scatter_width * rand(size(AvgRewardByGroup_list{i_group}))) - (scatter_width * 0.5);
+            x_list = ones(size(AvgRewardByGroup_list{i_AR_set})) * i_AR_set;
+            scatter_offset_list = (scatter_width * rand(size(AvgRewardByGroup_list{i_AR_set}))) - (scatter_width * 0.5);
             if (length(x_list) > 1)
                 x_list = x_list + scatter_offset_list;
             end
             
             hold on
-            bar(i_group, AvgRewardByGroup.mean(i_group), 'FaceColor', group_struct_list{i_group}.color, 'EdgeColor', [0.25 0.25 0.25]);
-            errorbar(i_group, AvgRewardByGroup.mean(i_group), AvgRewardByGroup.ci_halfwidth(i_group), 'Color', [0.25 0.25 0.25]);
+            bar(i_AR_set, AvgRewardByGroup.mean(i_AR_set), 'FaceColor', group_struct_list{i_group}.color, 'EdgeColor', [0.25 0.25 0.25]);
+            errorbar(i_AR_set, AvgRewardByGroup.mean(i_AR_set), AvgRewardByGroup.ci_halfwidth(i_AR_set), 'Color', [0.25 0.25 0.25]);
             
             %
             ScatterSymbolSize = 25;
@@ -222,9 +252,9 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
             end          
             
             if group_struct_list{i_group}.FilledSymbols
-                scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, current_marker, 'filled', 'LineWidth', ScatterLineWidth);
+                scatter(x_list, AvgRewardByGroup_list{i_AR_set}, ScatterSymbolSize, current_scatter_color, current_marker, 'filled', 'LineWidth', ScatterLineWidth);
             else
-                scatter(x_list, AvgRewardByGroup_list{i_group}, ScatterSymbolSize, current_scatter_color, current_marker, 'LineWidth', ScatterLineWidth);
+                scatter(x_list, AvgRewardByGroup_list{i_AR_set}, ScatterSymbolSize, current_scatter_color, current_marker, 'LineWidth', ScatterLineWidth);
             end
             
             if (mark_flaffus_curius)
@@ -232,7 +262,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
                     for i_session = 1 : length(group_struct_list{i_group}.filenames)
                         if ~isempty(strfind(group_struct_list{i_group}.filenames{i_session}, 'A_Flaffus.B_Curius'))
                             dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
-                            text(x_list(i_session)+dx, AvgRewardByGroup_list{i_group}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+                            text(x_list(i_session)+dx, AvgRewardByGroup_list{i_AR_set}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
                         end
                     end
                 end
@@ -240,7 +270,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
             if (MI_mark_all)
                 for i_session = 1 : length(group_struct_list{i_group}.filenames)
                     dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
-                    text(x_list(i_session)+dx, AvgRewardByGroup_list{i_group}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+                    text(x_list(i_session)+dx, AvgRewardByGroup_list{i_AR_set}(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
                 end
             end
             
@@ -251,7 +281,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
         
         xlabel('Grouping', 'Interpreter', 'none');
         ylabel('Average Reward', 'Interpreter', 'none');
-        set(gca, 'XLim', [1-0.8 (n_groups)+0.8]);
+        set(gca, 'XLim', [1-0.8 (length(AR_by_group_setlabel_list))+0.8]);
         set(gca, 'XTick', []);
         %set(gca, 'XTick', (1:1:n_groups));
         %set(gca, 'XTickLabel', AvgRewardByGroup.group_labels, 'TickLabelInterpreter', 'none');
@@ -820,6 +850,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
             
         end
     end
+    % close all figues?
+    if (close_figures_at_end)
+        close all;
+    end
 end
 
 % rest the output path for across metric file plots
@@ -1336,6 +1370,7 @@ switch group_collection_name
             'DATA_20171108T140407.A_Magnus.B_Curius.SCP_01.triallog.A.Magnus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20171019T132932.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20171129T100056.A_Magnus.B_Flaffus.SCP_01.triallog.A.Magnus.B.Flaffus_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181023T103422.A_Linus.B_Elmo.SCP_01.triallog.A.Linus.B.Elmo_IC_JointTrials.isOwnChoice_sideChoice', ...
             };
         Macaques_early.Captions = { ...
             'C.L', ...
@@ -1346,6 +1381,7 @@ switch group_collection_name
             'M.C', ...
             'F.C', ...
             'M.F', ...
+            'L.E', ...
             };
         Macaques_early.color = [253 178 143]/255;
         Macaques_early.Symbol = 'o';
@@ -1372,6 +1408,7 @@ switch group_collection_name
             'DATA_20180214T171119.A_Magnus.B_Curius.SCP_01.triallog.A.Magnus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20171103T143324.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
             'DATA_20180125T155742.A_Magnus.B_Flaffus.SCP_01.triallog.A.Magnus.B.Flaffus_IC_JointTrials.isOwnChoice_sideChoice', ...
+            'DATA_20181120T083354.A_Linus.B_Elmo.SCP_01.triallog.A.Linus.B.Elmo_IC_JointTrials.isOwnChoice_sideChoice', ...            
             };
         Macaques_late.Captions = { ...
             'C.L', ...
@@ -1382,6 +1419,7 @@ switch group_collection_name
             'M.C', ...
             'F.C', ...
             'M.F', ...
+            'L.E', ...
             };
         Macaques_late.color = [192 157 169]/255;
         Macaques_late.Symbol = 'o';
