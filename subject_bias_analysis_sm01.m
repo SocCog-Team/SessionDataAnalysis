@@ -11,7 +11,7 @@ copy_triallogs_to_outputdir = 0;
 
 
 ProcessNewestFirst = 1;
-ProcessFirstOnly = 0;
+ProcessFirstOnly = 1;
 RunSingleSessionAnalysis = 1;
 
 % human subjects
@@ -178,6 +178,15 @@ ExperimentFileFQN_list = {...
     fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2018/180427/20180427T142541.A_Flaffus.B_Curius.SCP_01.sessiondir/20180427T142541.A_Flaffus.B_Curius.SCP_01.triallog.txt'), ...
     fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2018/180427/20180427T153406.A_Flaffus.B_Curius.SCP_01.sessiondir/20180427T153406.A_Flaffus.B_Curius.SCP_01.triallog.txt'), ...
     };
+
+
+% testing for visibility block data:
+ExperimentFileFQN_list = {fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2018/180309/20180309T110024.A_SM.B_Flaffus.SCP_01.sessiondir/20180309T110024.A_SM.B_Flaffus.SCP_01.triallog.txt')};
+
+% the best joint session
+ExperimentFileFQN_list = {fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2018/180419/20180419T141311.A_Flaffus.B_Curius.SCP_01.sessiondir/20180419T141311.A_Flaffus.B_Curius.SCP_01.triallog.txt')};
+
+ 
 
 ExperimentFileFQN_list = [];
 %ExperimentFileFQN_list = {'/space/data_local/moeller/DPZ/taskcontroller/SCP_DATA/SCP-CTRL-01/SESSIONLOGS/2018/180420/20180420T192826.A_SM.B_52005.SCP_01.sessiondir/20180420T192826.A_SM.B_52005.SCP_01.triallog.txt'};
