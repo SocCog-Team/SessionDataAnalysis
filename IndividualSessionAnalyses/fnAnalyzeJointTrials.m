@@ -1550,11 +1550,12 @@ for iGroup = 1 : length(GroupNameList)
                 h3 = plot(filtered_accmodations_array(1,:), 'Color', SideAColor, 'linewidth', project_line_width);
                 legend_list{end + 1} = 'share of Accommodate choices';
             end
-            corrCoefValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefValue(1), '%.2f');
-            corrPValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValue(1), '%.2f');
-            corrCoefAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefAveraged(1), '%.2f');
-            corrPValueAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValueAveraged(1), '%.2f');
-            titleText_A = ['Agent A: ', corrCoefValue,  ' (', corrPValue,  ') / ', corrCoefAveraged, ' (', corrPValueAveraged, ')'];
+            df_corr = size(filtered_psee_array, 2) - 2;
+            corrCoefValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefValue(1), '%.4f');
+            corrPValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValue(1), '%.4f');
+            corrCoefAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefAveraged(1), '%.4f');
+            corrPValueAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValueAveraged(1), '%.4f');
+            titleText_A = ['Agent A: r(', num2str(df_corr), '): ', corrCoefValue,  ', p <= ', corrPValue,  ' / ', corrCoefAveraged, ', p <= ', corrPValueAveraged, ''];
             title(titleText_A);
             
             set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
@@ -1587,11 +1588,12 @@ for iGroup = 1 : length(GroupNameList)
                 h4 = plot(filtered_accmodations_array(2, :), 'Color', SideBColor, 'linewidth', project_line_width);
                 legend_list{end + 1} = 'share of Accommodate choices';
             end
-            corrCoefValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefValue(2), '%.2f');
-            corrPValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValue(2), '%.2f');
-            corrCoefAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefAveraged(2), '%.2f');
-            corrPValueAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValueAveraged(2), '%.2f');
-            titleText_B = ['Agent B: ', corrCoefValue,  ' (', corrPValue,  ') / ', corrCoefAveraged, ' (', corrPValueAveraged, ')'];
+            df_corr = size(filtered_psee_array, 2) - 2;
+            corrCoefValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefValue(2), '%.4f');
+            corrPValue = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValue(2), '%.4f');
+            corrCoefAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefAveraged(2), '%.4f');
+            corrPValueAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValueAveraged(2), '%.4f');
+            titleText_B = ['Agent B: r(', num2str(df_corr), '): ', corrCoefValue,  ', p <= ', corrPValue,  ' / ', corrCoefAveraged, ', p <= ', corrPValueAveraged, ''];
             title(titleText_B);
             
             set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
