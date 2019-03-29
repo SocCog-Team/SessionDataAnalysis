@@ -1904,7 +1904,8 @@ for iGroup = 1 : length(GroupNameList)
                 SameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1);
                 DiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1);
                 DiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0);
-                
+                Same_lidx = union(SameOwnA_lidx, SameOwnB_lidx);
+                Diff_lidx = union(DiffOwn_lidx, DiffOther_lidx);
                 
                 % create a stack of category vectors
                 if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
@@ -1964,6 +1965,55 @@ for iGroup = 1 : length(GroupNameList)
                 end
                 
                 fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
+                
+                %TODO: do this for the invisible trials as well?
+                
+                
+                % calculate ttest of RTdiff coordinated versus
+                % anti-coordinated only for trials with visible partner
+                % choices ((M = 121, SD = 14.2) than did those taking statistics courses in Statistics (M = 117, SD = 10.3), t(44) = 1.23, p = .09.)
+                coordinated_trial_lidx = ((SameOwnA_lidx & (Invisible_AB == 0)) + (SameOwnB_lidx & (Invisible_AB == 0)));
+                coordinated_trial_idx = find(coordinated_trial_lidx);
+                anticoordinated_trial_lidx = ((DiffOwn_lidx & (Invisible_AB == 0)) + (DiffOther_lidx & (Invisible_AB == 0)));
+                anticoordinated_trial_idx = find(anticoordinated_trial_lidx);
+                cur_AB_RT_data_diff = A_RT_data - B_RT_data;
+                [ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest2(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx)), ...
+                    cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx)),...
+                    'Tail', 'both', 'Vartype', 'unequal');
+                coordinated_vs_anticoordinated.ttest2 = ttest2res;
+                % now add the result
+                title_text = ['t-Test: Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ')', ...
+                    ' vs. Anti-Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ')', ...
+                    ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+ 
+                % SameA versus SameB                
+                CurSameA_idx = find(SameOwnA_lidx & (Invisible_AB == 0));
+                CurSameB_idx = find(SameOwnB_lidx & (Invisible_AB == 0));
+                [ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest2(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
+                    cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)),...
+                    'Tail', 'both', 'Vartype', 'unequal');
+                coordinated_vs_anticoordinated.ttest2 = ttest2res;
+                % now add the result
+                title_text2 = ['t-Test (hands visible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ')', ...
+                    ' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ')', ...
+                    ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+                
+                if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
+                    % SameA versus SameB
+                    CurSameA_idx = find(SameOwnA_lidx & (Invisible_AB == 1));
+                    CurSameB_idx = find(SameOwnB_lidx & (Invisible_AB == 1));
+                    [ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest2(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
+                        cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)),...
+                        'Tail', 'both', 'Vartype', 'unequal');
+                    coordinated_vs_anticoordinated.ttest2 = ttest2res;
+                    % now add the result
+                    title_text3 = ['t-Test (hands invisible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ')', ...
+                        ' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ')', ...
+                        ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+                    title({title_text; title_text2; title_text3}, 'FontSize', 6);
+                else
+                    title({title_text; title_text2}, 'FontSize', 6);
+                end
                 
                 if (plot_differences) && (ProcessSideA) && (ProcessSideA)
                     CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
