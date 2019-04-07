@@ -665,7 +665,7 @@ for iGroup = 1 : length(GroupNameList)
         solo_metrics_table = [];
         if exist(population_per_session_solo_aggregates_FQN, 'file')
             load(population_per_session_solo_aggregates_FQN); % contains solo_metrics_table
-        end    
+        end
         
         % find the index of the current key
         recalc_solo_metrics = 1;
@@ -678,7 +678,7 @@ for iGroup = 1 : length(GroupNameList)
                 exchange_cur_solo_metric = 1;
             end
         end
-
+        
         
         if (recalc_solo_metrics)
             % these are mutually exclusive, but can all coexist in the same
@@ -819,7 +819,7 @@ for iGroup = 1 : length(GroupNameList)
                         % nothing to do, we saved the vis_blocked already
                     case 1
                         % 2 blocks, invisible already saved
-                        CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0)); 
+                        CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0));
                         if (FullPerTrialStruct.isTrialInvisible_AB(1) == 0)
                             suffix_string = 'visible_pre';
                         else
@@ -831,7 +831,7 @@ for iGroup = 1 : length(GroupNameList)
                             isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
                     case 2
                         % 3 blocks
-                        CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0)); 
+                        CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0));
                         if (FullPerTrialStruct.isTrialInvisible_AB(1) == 0)
                             % vis pre block
                             vis_pre_trials_idx = find(CurTrialsInCurrentSetIdx < visibility_changes_idx(1));
@@ -840,7 +840,7 @@ for iGroup = 1 : length(GroupNameList)
                             PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
                             [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
                                 OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
-                                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);                         
+                                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
                             % vis_post block
                             vis_post_trials_idx = find(CurTrialsInCurrentSetIdx >= visibility_changes_idx(2));
                             CurCurTrialsInCurrentSetIdx = CurTrialsInCurrentSetIdx(vis_post_trials_idx(1):end);
@@ -848,14 +848,14 @@ for iGroup = 1 : length(GroupNameList)
                             PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
                             [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
                                 OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
-                                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);   
+                                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
                         else
                             error([mfilename, ': found 3 visibility block swith the first invisible, not handled yet.']);
-                        end                       
+                        end
                     otherwise
                         % assume interleaved
                         suffix_string = 'visible';
-                        CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0)); 
+                        CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0));
                         PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
                         [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
                             OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
@@ -897,7 +897,7 @@ for iGroup = 1 : length(GroupNameList)
                 OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
                 isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
             % do this for all trials only (for per trial plots)
-            cur_coordination_metrics_struct = cur_full_coordination_metrics_table.coordination_metrics_struct;            
+            cur_coordination_metrics_struct = cur_full_coordination_metrics_table.coordination_metrics_struct;
             
         end
         
@@ -1211,25 +1211,44 @@ for iGroup = 1 : length(GroupNameList)
     end
     
     
+    title_textA = '';
+    title_textB = '';
     
     if (ProcessSideA)
         plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', project_line_width);
         legend_list{end + 1} = 'running avg. A';
+        TmpMean = mean(PreferableTargetSelected_A(GoodTrialsIdx));
         if ~isempty(FilteredJointTrialX_Vector)
-            TmpMean = mean(PreferableTargetSelected_A(GoodTrialsIdx));
             line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             legend_list{end + 1} = 'all trials avg. A';
         end
+        if length(GoodTrialsIdx) > 25
+            TmpMean25 = mean(PreferableTargetSelected_A(GoodTrialsIdx(end-24:end)));
+        else
+            TmpMean25 = mean(PreferableTargetSelected_A(GoodTrialsIdx));
+        end
+        title_textA = ['A: SOC(all) ', num2str(100 * TmpMean), '%; SOC(last25) ', num2str(100 * TmpMean25), '%; '];
     end
     if (ProcessSideB)
         plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', project_line_width);
         legend_list{end + 1} = 'runing avg. B';
+        TmpMean = mean(PreferableTargetSelected_B(GoodTrialsIdx));
         if ~isempty(FilteredJointTrialX_Vector)
-            TmpMean = mean(PreferableTargetSelected_B(GoodTrialsIdx));
             line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             legend_list{end + 1} = 'all trials avg. B';
         end
+        if length(GoodTrialsIdx) > 25
+            TmpMean25 = mean(PreferableTargetSelected_B(GoodTrialsIdx(end-24:end)));
+        else
+            TmpMean25 = mean(PreferableTargetSelected_B(GoodTrialsIdx));
+        end
+        title_textB = ['B: SOC(all) ', num2str(100 * TmpMean), '%; SOC(last25) ', num2str(100 * TmpMean25), '%'];
     end
+ 
+    title({[title_textA, title_textB]}, 'FontSize', 6);
+    
+    
+    
     hold off
     %
     SoC_axes_h = gca();
@@ -1982,11 +2001,11 @@ for iGroup = 1 : length(GroupNameList)
                     'Tail', 'both', 'Vartype', 'unequal');
                 coordinated_vs_anticoordinated.ttest2 = ttest2res;
                 % now add the result
-                title_text = ['t-Test: Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ')', ...
-                    ' vs. Anti-Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ')', ...
+                title_text = ['t-Test: Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), ')', ...
+                    ' vs. Anti-Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), ')', ...
                     ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
- 
-                % SameA versus SameB                
+                
+                % SameA versus SameB
                 CurSameA_idx = find(SameOwnA_lidx & (Invisible_AB == 0));
                 CurSameB_idx = find(SameOwnB_lidx & (Invisible_AB == 0));
                 [ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest2(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
@@ -1994,8 +2013,8 @@ for iGroup = 1 : length(GroupNameList)
                     'Tail', 'both', 'Vartype', 'unequal');
                 coordinated_vs_anticoordinated.ttest2 = ttest2res;
                 % now add the result
-                title_text2 = ['t-Test (hands visible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ')', ...
-                    ' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ')', ...
+                title_text2 = ['t-Test (hands visible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
+                    ' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
                     ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
                 
                 if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
@@ -2007,8 +2026,8 @@ for iGroup = 1 : length(GroupNameList)
                         'Tail', 'both', 'Vartype', 'unequal');
                     coordinated_vs_anticoordinated.ttest2 = ttest2res;
                     % now add the result
-                    title_text3 = ['t-Test (hands invisible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ')', ...
-                        ' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ')', ...
+                    title_text3 = ['t-Test (hands invisible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
+                        ' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
                         ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
                     title({title_text; title_text2; title_text3}, 'FontSize', 6);
                 else
