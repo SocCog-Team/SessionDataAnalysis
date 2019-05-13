@@ -10,21 +10,21 @@ function [ TrialSets ] = fnCollectTrialSets( LogStruct )
 TrialSets = [];
 
 if ~isfield(LogStruct, 'data') || isempty(LogStruct.data)
-    disp('Encountered trial log file without any logged trials, exiting');
-   return;
+	disp('Encountered trial log file without any logged trials, exiting');
+	return;
 end
 
 TrialSets.All = (1:1:size(LogStruct.data, 1))';
 
 
 if (length(TrialSets.All) == 0) || (LogStruct.first_empty_row_idx == 1)
-    CurrentSessionFQN = LogStruct.info.logfile_FQN;  
-    if isfield(LogStruct, 'LoggingInfo')
-       if isfield(LogStruct.LoggingInfo, 'SessionFQN')
-           CurrentSessionFQN = LogStruct.LoggingInfo.SessionFQN;
-       end
-    end
-    
+	CurrentSessionFQN = LogStruct.info.logfile_FQN;
+	if isfield(LogStruct, 'LoggingInfo')
+		if isfield(LogStruct.LoggingInfo, 'SessionFQN')
+			CurrentSessionFQN = LogStruct.LoggingInfo.SessionFQN;
+		end
+	end
+	
 	disp(['Logfile ', CurrentSessionFQN, ' does not contain any (valid trial) returning...']);
 	TrialSets = [];
 	return
@@ -80,17 +80,17 @@ TrialSets.ByJointness.SideB.SoloSubjectTrials = intersect(TrialSets.ByJointness.
 % test for reward
 TmpRewardAOutcomeIdx = find(strcmp('REWARD', LogStruct.unique_lists.A_OutcomeString));
 if ~isempty(TmpRewardAOutcomeIdx)
-    TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_OutcomeString_idx) == TmpRewardAOutcomeIdx);
-    TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsA);
+	TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_OutcomeString_idx) == TmpRewardAOutcomeIdx);
+	TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsA);
 else
-    TmpJointTrialsA = [];
+	TmpJointTrialsA = [];
 end
 TmpRewardBOutcomeIdx = find(strcmp('REWARD', LogStruct.unique_lists.B_OutcomeString));
 if ~isempty(TmpRewardBOutcomeIdx)
-    TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_OutcomeString_idx) == TmpRewardBOutcomeIdx);
-    TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsB);
+	TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_OutcomeString_idx) == TmpRewardBOutcomeIdx);
+	TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsB);
 else
-    TmpJointTrialsB = [];
+	TmpJointTrialsB = [];
 end
 
 TmpSoloTrialsA = setdiff(TmpJointTrialsA, TmpJointTrialsB);
@@ -133,11 +133,11 @@ end
 % older log files do not contain the informed choice fields
 if ~isfield(TrialSets.ByTrialType, 'InformedDirectedReach')
 	TrialSets.ByTrialType.InformedDirectedReach = [];
-end	
+end
 if ~isfield(TrialSets.ByTrialType, 'InformedChoice')
 	TrialSets.ByTrialType.InformedChoice = [];
 end
-	
+
 TrialSets.ByTrialType.InformedTrials = union(TrialSets.ByTrialType.InformedChoice, TrialSets.ByTrialType.InformedDirectedReach);
 
 
@@ -206,51 +206,51 @@ end
 
 
 if isfield(LogStruct.unique_lists, 'A_RewardFunctionENUM') && isfield(LogStruct.unique_lists, 'B_RewardFunctionENUM')
-    RewardFunctionsList = fnUnsortedUnique([LogStruct.unique_lists.A_RewardFunctionENUM; LogStruct.unique_lists.B_RewardFunctionENUM]);
-    
-    for iRewardFunction = 1 : length(RewardFunctionsList)
-        CurrentRewardFunctionName = RewardFunctionsList{iRewardFunction};
-        CurrentRewardFunctionIdx = iRewardFunction;
-        
-        if ~isempty(CurrentRewardFunctionIdx)
-            A_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.A_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
-        else
-            A_TrialsOfCurrentRewardFunctionIdx = [];
-        end
-        if ~isempty(CurrentRewardFunctionIdx)
-            B_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.B_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
-        else
-            B_TrialsOfCurrentRewardFunctionIdx = [];
-        end
-        TrialSets.ByRewardFunction.SideA.(CurrentRewardFunctionName) = A_TrialsOfCurrentRewardFunctionIdx;
-        TrialSets.ByRewardFunction.SideB.(CurrentRewardFunctionName) = B_TrialsOfCurrentRewardFunctionIdx;
-        TrialSets.ByRewardFunction.(CurrentRewardFunctionName) = union(A_TrialsOfCurrentRewardFunctionIdx, B_TrialsOfCurrentRewardFunctionIdx);
-    end
+	RewardFunctionsList = fnUnsortedUnique([LogStruct.unique_lists.A_RewardFunctionENUM; LogStruct.unique_lists.B_RewardFunctionENUM]);
+	
+	for iRewardFunction = 1 : length(RewardFunctionsList)
+		CurrentRewardFunctionName = RewardFunctionsList{iRewardFunction};
+		CurrentRewardFunctionIdx = iRewardFunction;
+		
+		if ~isempty(CurrentRewardFunctionIdx)
+			A_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.A_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
+		else
+			A_TrialsOfCurrentRewardFunctionIdx = [];
+		end
+		if ~isempty(CurrentRewardFunctionIdx)
+			B_TrialsOfCurrentRewardFunctionIdx = find(LogStruct.data(:, LogStruct.cn.B_RewardFunctionENUM_idx) == CurrentRewardFunctionIdx);
+		else
+			B_TrialsOfCurrentRewardFunctionIdx = [];
+		end
+		TrialSets.ByRewardFunction.SideA.(CurrentRewardFunctionName) = A_TrialsOfCurrentRewardFunctionIdx;
+		TrialSets.ByRewardFunction.SideB.(CurrentRewardFunctionName) = B_TrialsOfCurrentRewardFunctionIdx;
+		TrialSets.ByRewardFunction.(CurrentRewardFunctionName) = union(A_TrialsOfCurrentRewardFunctionIdx, B_TrialsOfCurrentRewardFunctionIdx);
+	end
 else
-    % old experiments only had reward specification by side in the GUI
-    RewardFunctionsList = {'GUI'}';
-    TrialSets.ByRewardFunction.SideA.GUI = TrialSets.All;
-    TrialSets.ByRewardFunction.SideB.GUI = TrialSets.All;
-    TrialSets.ByRewardFunction.GUI = TrialSets.All;
+	% old experiments only had reward specification by side in the GUI
+	RewardFunctionsList = {'GUI'}';
+	TrialSets.ByRewardFunction.SideA.GUI = TrialSets.All;
+	TrialSets.ByRewardFunction.SideB.GUI = TrialSets.All;
+	TrialSets.ByRewardFunction.GUI = TrialSets.All;
 end
 
 if isfield(LogStruct, 'SessionByTrial')
-    if isfield(LogStruct.SessionByTrial.unique_lists, 'TouchTargetPositioningMethod')
-        ByTouchTargetPositioningMethodList = LogStruct.SessionByTrial.unique_lists.TouchTargetPositioningMethod;
-        for iTouchTargetPositioningMethod = 1 : length(ByTouchTargetPositioningMethodList)
-            CurrentTouchTargetPositioningMethod = ByTouchTargetPositioningMethodList{iTouchTargetPositioningMethod};
-            CurrentTouchTargetPositioningMethodIdx = iTouchTargetPositioningMethod;
-            
-            % currently these are indentical for both sides, if they ever
-            % will be different by side, the information needs to be
-            % relocated into the per subject part of the report.
-            TrialsOfCurrentTouchTargetPositioningMethodIdx = find(LogStruct.SessionByTrial.data(:, LogStruct.SessionByTrial.cn.TouchTargetPositioningMethod_idx) == CurrentTouchTargetPositioningMethodIdx);
-            TrialSets.ByTouchTargetPositioningMethod.SideA.(CurrentTouchTargetPositioningMethod) = TrialsOfCurrentTouchTargetPositioningMethodIdx;
-            TrialSets.ByTouchTargetPositioningMethod.SideB.(CurrentTouchTargetPositioningMethod) = TrialsOfCurrentTouchTargetPositioningMethodIdx;
-            TrialSets.ByTouchTargetPositioningMethod.(CurrentTouchTargetPositioningMethod) = TrialsOfCurrentTouchTargetPositioningMethodIdx;
-            
-        end
-    end
+	if isfield(LogStruct.SessionByTrial.unique_lists, 'TouchTargetPositioningMethod')
+		ByTouchTargetPositioningMethodList = LogStruct.SessionByTrial.unique_lists.TouchTargetPositioningMethod;
+		for iTouchTargetPositioningMethod = 1 : length(ByTouchTargetPositioningMethodList)
+			CurrentTouchTargetPositioningMethod = ByTouchTargetPositioningMethodList{iTouchTargetPositioningMethod};
+			CurrentTouchTargetPositioningMethodIdx = iTouchTargetPositioningMethod;
+			
+			% currently these are indentical for both sides, if they ever
+			% will be different by side, the information needs to be
+			% relocated into the per subject part of the report.
+			TrialsOfCurrentTouchTargetPositioningMethodIdx = find(LogStruct.SessionByTrial.data(:, LogStruct.SessionByTrial.cn.TouchTargetPositioningMethod_idx) == CurrentTouchTargetPositioningMethodIdx);
+			TrialSets.ByTouchTargetPositioningMethod.SideA.(CurrentTouchTargetPositioningMethod) = TrialsOfCurrentTouchTargetPositioningMethodIdx;
+			TrialSets.ByTouchTargetPositioningMethod.SideB.(CurrentTouchTargetPositioningMethod) = TrialsOfCurrentTouchTargetPositioningMethodIdx;
+			TrialSets.ByTouchTargetPositioningMethod.(CurrentTouchTargetPositioningMethod) = TrialsOfCurrentTouchTargetPositioningMethodIdx;
+			
+		end
+	end
 end
 
 
@@ -266,28 +266,28 @@ for iName = 1: length(NamesList)
 		continue
 	end
 	CurrentName = NamesList{iName};
-    StoredName = CurrentName;
-    
-    % since we want to use the name as a matlab fieldname we need to do
-    % some cleanup
-    CurrentName  = sanitize_field_name_for_matlab(CurrentName, 'ID');
-    
-    if (~strcmp(CurrentName, StoredName))
-        % we changed the name now fix up the list...
-        UniqueA_NameIdx = find(strcmp(NamesList{iName}, LogStruct.unique_lists.A_Name));
-        if ~isempty(UniqueA_NameIdx)
-            LogStruct.unique_lists.A_Name{UniqueA_NameIdx} = CurrentName;
-        end
-        UniqueB_NameIdx = find(strcmp(NamesList{iName}, LogStruct.unique_lists.B_Name));
-        if ~isempty(UniqueB_NameIdx)
-            LogStruct.unique_lists.B_Name{UniqueB_NameIdx} = CurrentName;
-        end
-    end
-    
-    
-    A_CurrentNameIdx = find(ismember(LogStruct.unique_lists.A_Name, CurrentName));
-    B_CurrentNameIdx = find(ismember(LogStruct.unique_lists.B_Name, CurrentName));
-    
+	StoredName = CurrentName;
+	
+	% since we want to use the name as a matlab fieldname we need to do
+	% some cleanup
+	CurrentName  = sanitize_field_name_for_matlab(CurrentName, 'ID');
+	
+	if (~strcmp(CurrentName, StoredName))
+		% we changed the name now fix up the list...
+		UniqueA_NameIdx = find(strcmp(NamesList{iName}, LogStruct.unique_lists.A_Name));
+		if ~isempty(UniqueA_NameIdx)
+			LogStruct.unique_lists.A_Name{UniqueA_NameIdx} = CurrentName;
+		end
+		UniqueB_NameIdx = find(strcmp(NamesList{iName}, LogStruct.unique_lists.B_Name));
+		if ~isempty(UniqueB_NameIdx)
+			LogStruct.unique_lists.B_Name{UniqueB_NameIdx} = CurrentName;
+		end
+	end
+	
+	
+	A_CurrentNameIdx = find(ismember(LogStruct.unique_lists.A_Name, CurrentName));
+	B_CurrentNameIdx = find(ismember(LogStruct.unique_lists.B_Name, CurrentName));
+	
 	if ~isempty(A_CurrentNameIdx)
 		A_TrialsOfCurrentNameIdx = find(LogStruct.data(:, LogStruct.cn.A_Name_idx) == A_CurrentNameIdx);
 	else
@@ -297,10 +297,10 @@ for iName = 1: length(NamesList)
 		B_TrialsOfCurrentNameIdx = find(LogStruct.data(:, LogStruct.cn.B_Name_idx) == B_CurrentNameIdx);
 	else
 		B_TrialsOfCurrentNameIdx = [];
-    end
-    % all numeric subject codes will not work as structure fieldnames, so
-    % add a prefix so the name 
-    
+	end
+	% all numeric subject codes will not work as structure fieldnames, so
+	% add a prefix so the name
+	
 	TrialSets.ByName.SideA.(CurrentName) = A_TrialsOfCurrentNameIdx;
 	TrialSets.ByName.SideB.(CurrentName) = B_TrialsOfCurrentNameIdx;
 	TrialSets.ByName.(CurrentName) = union(A_TrialsOfCurrentNameIdx, B_TrialsOfCurrentNameIdx);
@@ -310,23 +310,23 @@ end
 % so make sure Magnus effector trials with EvaluateProximitySensors = 0 are
 % accounted as left.
 if isfield(TrialSets.ByName, 'Magnus')
-    if isfield(TrialSets.ByName.SideA, 'Magnus')
-        MagnusTrialSideAIdx = TrialSets.ByName.SideA.Magnus; % these are all left trials
-        TrialSets.ByEffector.SideA.left = union(TrialSets.ByEffector.SideA.left, MagnusTrialSideAIdx);
-        TrialSets.ByEffector.SideA.right = setdiff(TrialSets.ByEffector.SideA.right, MagnusTrialSideAIdx);
-    end
-    if isfield(TrialSets.ByName.SideB, 'Magnus')
-        MagnusTrialSideBIdx = TrialSets.ByName.SideB.Magnus; % these are all left trials
-        TrialSets.ByEffector.SideB.left = union(TrialSets.ByEffector.SideB.left, MagnusTrialSideBIdx);
-        TrialSets.ByEffector.SideB.right = setdiff(TrialSets.ByEffector.SideB.right, MagnusTrialSideBIdx);
-    end
-    TrialSets.ByEffector.left = union(TrialSets.ByEffector.SideA.left, TrialSets.ByEffector.SideB.left);
-    TrialSets.ByEffector.right = union(TrialSets.ByEffector.SideA.right, TrialSets.ByEffector.SideB.right);
-    if ~isempty(LogStruct.LoggingInfo) && isfield(LogStruct.LoggingInfo, 'SessionFQN')
-        disp([LogStruct.LoggingInfo.SessionFQN, ': fixed up effector hand for Magnus']);
-    else
-        disp([LogStruct.info.logfile_FQN, ': fixed up effector hand for Magnus']);
-    end
+	if isfield(TrialSets.ByName.SideA, 'Magnus')
+		MagnusTrialSideAIdx = TrialSets.ByName.SideA.Magnus; % these are all left trials
+		TrialSets.ByEffector.SideA.left = union(TrialSets.ByEffector.SideA.left, MagnusTrialSideAIdx);
+		TrialSets.ByEffector.SideA.right = setdiff(TrialSets.ByEffector.SideA.right, MagnusTrialSideAIdx);
+	end
+	if isfield(TrialSets.ByName.SideB, 'Magnus')
+		MagnusTrialSideBIdx = TrialSets.ByName.SideB.Magnus; % these are all left trials
+		TrialSets.ByEffector.SideB.left = union(TrialSets.ByEffector.SideB.left, MagnusTrialSideBIdx);
+		TrialSets.ByEffector.SideB.right = setdiff(TrialSets.ByEffector.SideB.right, MagnusTrialSideBIdx);
+	end
+	TrialSets.ByEffector.left = union(TrialSets.ByEffector.SideA.left, TrialSets.ByEffector.SideB.left);
+	TrialSets.ByEffector.right = union(TrialSets.ByEffector.SideA.right, TrialSets.ByEffector.SideB.right);
+	if ~isempty(LogStruct.LoggingInfo) && isfield(LogStruct.LoggingInfo, 'SessionFQN')
+		disp([LogStruct.LoggingInfo.SessionFQN, ': fixed up effector hand for Magnus']);
+	else
+		disp([LogStruct.info.logfile_FQN, ': fixed up effector hand for Magnus']);
+	end
 end
 
 
@@ -370,19 +370,19 @@ TrialSets.ByChoice.SideB.ChoiceCenterY = find(abs(LogStruct.data(:, LogStruct.cn
 
 % Extract information about the selected target reward value (assume only two values for now)
 if (isfield(TrialSets.ByRewardFunction, 'BOSMATRIXV01'))
-    DifferentialRewardedTrialsIdx = TrialSets.ByRewardFunction.BOSMATRIXV01;
+	DifferentialRewardedTrialsIdx = TrialSets.ByRewardFunction.BOSMATRIXV01;
 end
 % note that for the DirectFreeGazeReaches trials we store the randomised
 % position as the selected.
 if isfield(LogStruct.cn, 'A_RandomizedTargetPosition_Y') && isfield(LogStruct.cn, 'A_RandomizedTargetPosition_X')
-    A_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_Y) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels) & (abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_X) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels));
+	A_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_Y) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels) & (abs(LogStruct.data(:, LogStruct.cn.A_RandomizedTargetPosition_X) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels));
 else
-    A_SelectedTargetEqualsRandomizedTargetTrialIdx = [];
+	A_SelectedTargetEqualsRandomizedTargetTrialIdx = [];
 end
 if isfield(LogStruct.cn, 'B_RandomizedTargetPosition_Y') && isfield(LogStruct.cn, 'B_RandomizedTargetPosition_X')
-    B_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, LogStruct.cn.B_RandomizedTargetPosition_Y) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels) & (abs(LogStruct.data(:, LogStruct.cn.B_RandomizedTargetPosition_X) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels));
+	B_SelectedTargetEqualsRandomizedTargetTrialIdx = find((abs(LogStruct.data(:, LogStruct.cn.B_RandomizedTargetPosition_Y) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels) & (abs(LogStruct.data(:, LogStruct.cn.B_RandomizedTargetPosition_X) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels));
 else
-    B_SelectedTargetEqualsRandomizedTargetTrialIdx = [];
+	B_SelectedTargetEqualsRandomizedTargetTrialIdx = [];
 end
 
 % now only take those trials in which a subject actually touched the target
@@ -509,14 +509,14 @@ TrialSets.ByFirstReaction.SideB.TargetAcquisitionEqual = TmpJointTrials(TmpBothS
 % this assumes that without [A|B]_invisible being set, everything was
 % visible through the transparent screen.
 if (isfield(LogStruct.cn, 'A_invisible'))
-    TrialSets.ByVisibility.SideA.A_invisible = find(LogStruct.data(:, LogStruct.cn.A_invisible) == 1);
+	TrialSets.ByVisibility.SideA.A_invisible = find(LogStruct.data(:, LogStruct.cn.A_invisible) == 1);
 else
-    TrialSets.ByVisibility.SideA.A_invisible = [];
+	TrialSets.ByVisibility.SideA.A_invisible = [];
 end
 if (isfield(LogStruct.cn, 'B_invisible'))
-    TrialSets.ByVisibility.SideB.B_invisible = find(LogStruct.data(:, LogStruct.cn.B_invisible) == 1);
+	TrialSets.ByVisibility.SideB.B_invisible = find(LogStruct.data(:, LogStruct.cn.B_invisible) == 1);
 else
-    TrialSets.ByVisibility.SideB.B_invisible = [];
+	TrialSets.ByVisibility.SideB.B_invisible = [];
 end
 % since A_invisible is not necessarily equal to B_invisible
 TrialSets.ByVisibility.AB_invisible = intersect(TrialSets.ByVisibility.SideA.A_invisible, TrialSets.ByVisibility.SideB.B_invisible);
@@ -565,7 +565,7 @@ end
 % numeric names are not allowed, so prefix a character string if the first
 % character can be cas to a non-NaN number
 if ~isnan(str2double(sanitized_field_name(1)))
-    sanitized_field_name = [PrefixForNumbers, sanitized_field_name];
+	sanitized_field_name = [PrefixForNumbers, sanitized_field_name];
 end
 
 
