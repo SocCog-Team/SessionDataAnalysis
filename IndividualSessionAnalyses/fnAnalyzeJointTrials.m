@@ -144,7 +144,7 @@ Plot_RT_difference_histogram = 1;
 histnorm_string = 'count'; % count, probability, pdf, cdf
 histdisplaystyle_string = 'stairs';% bar, stairs
 %histogram_RT_type_string = 'TargetAcquisitionRT';% InitialHoldReleaseRT, InitialTargetReleaseRT, TargetAcquisitionRT
-histogram_RT_type_list = {'TargetAcquisitionRT', 'InitialTargetReleaseRT', 'InitialHoldReleaseRT'};
+histogram_RT_type_list = {'TargetAcquisitionRT', 'InitialTargetReleaseRT', 'InitialHoldReleaseRT', 'IniTargRel_05MT_RT'};
 histogram_bin_width_ms = 40;
 histogram_edges = (0:histogram_bin_width_ms:1500);
 histogram_diff_edges = (-750:histogram_bin_width_ms:750);
@@ -170,7 +170,7 @@ plot_transferentropy_per_trial = 1;
 plot_mutualinformation_per_trial = 1;
 
 plot_psee_antipreferredchoice_correlation_per_trial = 1;
-psee_antipreferredchoice_correlation_RT_name_list = {'pSee_iniTargRel', 'pSee_TargAcq'}; % pSee_iniTargRel or pSee_TargAcq
+psee_antipreferredchoice_correlation_RT_name_list = {'pSee_iniTargRel', 'pSee_TargAcq', 'pSee_IniTargRel_05MT'}; % pSee_iniTargRel or pSee_TargAcq
 PseeColor = [0.9290, 0.6940, 0.1250];
 
 
@@ -652,6 +652,11 @@ for iGroup = 1 : length(GroupNameList)
     A_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
     B_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
     AB_TargetAcquisitionRT_diff = A_TargetAcquisitionRT - B_TargetAcquisitionRT;
+
+    % InitialTargetRelease reaction time plus half of the movement time
+    A_IniTargRel_05MT_RT = A_InitialTargetReleaseRT + 0.5 * (A_TargetAcquisitionRT - A_InitialTargetReleaseRT);
+    B_IniTargRel_05MT_RT = B_InitialTargetReleaseRT + 0.5 * (B_TargetAcquisitionRT - B_InitialTargetReleaseRT);
+    AB_IniTargRel_05MT_RT_diff = A_IniTargRel_05MT_RT - B_IniTargRel_05MT_RT;
     
     AB_TrialStartTimeMS = DataStruct.data(:, DataStruct.cn.Timestamp);
     
@@ -768,6 +773,11 @@ for iGroup = 1 : length(GroupNameList)
         PerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(TrialsInCurrentSetIdx);
         PerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(TrialsInCurrentSetIdx);
         PerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(TrialsInCurrentSetIdx);
+        
+        PerTrialStruct.A_IniTargRel_05MT_RT = A_IniTargRel_05MT_RT(TrialsInCurrentSetIdx);
+        PerTrialStruct.B_IniTargRel_05MT_RT = B_IniTargRel_05MT_RT(TrialsInCurrentSetIdx);
+        PerTrialStruct.AB_IniTargRel_05MT_RT_diff = AB_IniTargRel_05MT_RT_diff(TrialsInCurrentSetIdx);
+        
         PerTrialStruct.AB_TrialStartTimeMS = AB_TrialStartTimeMS(TrialsInCurrentSetIdx);
         PerTrialStruct.RewardByTrial_A = RewardByTrial_A(TrialsInCurrentSetIdx);
         PerTrialStruct.RewardByTrial_B = RewardByTrial_B(TrialsInCurrentSetIdx);
@@ -780,6 +790,11 @@ for iGroup = 1 : length(GroupNameList)
         FullPerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(:);
         FullPerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(:);
         FullPerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(:);
+ 
+        FullPerTrialStruct.A_IniTargRel_05MT_RT = A_IniTargRel_05MT_RT(:);
+        FullPerTrialStruct.B_IniTargRel_05MT_RT = B_IniTargRel_05MT_RT(:);
+        FullPerTrialStruct.AB_IniTargRel_05MT_RT_diff = AB_IniTargRel_05MT_RT_diff(:);
+     
         FullPerTrialStruct.AB_TrialStartTimeMS = AB_TrialStartTimeMS(:);
         FullPerTrialStruct.RewardByTrial_A = RewardByTrial_A(:);
         FullPerTrialStruct.RewardByTrial_B = RewardByTrial_B(:);
@@ -1549,6 +1564,9 @@ for iGroup = 1 : length(GroupNameList)
             
             
             subplot(2, 1, 1)
+            set(gca(), 'YLim', [0.0, 1.0]);
+            y_lim = get(gca(), 'YLim');
+            
             hold on
             % for agent A
             if (ShowInvisibility)
@@ -1586,7 +1604,11 @@ for iGroup = 1 : length(GroupNameList)
             
             hold off
             
+
             subplot(2, 1, 2)
+            set(gca(), 'YLim', [0.0, 1.0]);
+            y_lim = get(gca(), 'YLim');
+            
             hold on
             % for agent B
             if (ShowInvisibility)
@@ -1899,7 +1921,13 @@ for iGroup = 1 : length(GroupNameList)
                 case 'TargetAcquisitionRT'
                     AB_RT_data_diff = AB_TargetAcquisitionRT_diff;
                     A_RT_data = A_TargetAcquisitionRT;
-                    B_RT_data = B_TargetAcquisitionRT;
+                    B_RT_data = B_TargetAcquisitionRT;                 
+                case 'IniTargRel_05MT_RT'
+                    AB_RT_data_diff = AB_IniTargRel_05MT_RT_diff;
+                    A_RT_data = A_IniTargRel_05MT_RT;
+                    B_RT_data = B_IniTargRel_05MT_RT;                 
+                otherwise
+                    error('Unhandled histogram_RT_type_string: ', histogram_RT_type_string);
             end
             CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RT.', histogram_RT_type_string];
             
