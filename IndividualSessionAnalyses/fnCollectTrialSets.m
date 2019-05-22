@@ -469,6 +469,15 @@ tmp_diff_HL_idx = setdiff(TrialSets.ByChoice.JointChoices.TargetValue_HighLow, T
 % these are the trials with =exact same joint choces as the last informed trial
 TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue = sort([tmp_diff_LL_idx; tmp_diff_HH_idx; tmp_diff_LH_idx; tmp_diff_HL_idx]);
 
+% the first trial does not have one earlier so remove from set, note both
+% are sorted already
+if TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue(1) < TrialSets.ByChoice.JointChoices.LastTrial_SameValue(1)
+	TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue(1) = [];
+else
+	TrialSets.ByChoice.JointChoices.LastTrial_SameValue(1) = [];
+end
+
+
 
 % TrialSets.ByChoice.JointChoices.SideA.LastTrial_DifferentValue
 % TrialSets.ByChoice.JointChoices.SideB.LastTrial_DifferentValue
