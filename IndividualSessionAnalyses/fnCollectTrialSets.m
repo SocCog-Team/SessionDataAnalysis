@@ -406,6 +406,73 @@ TrialSets.ByChoice.SideB.TargetValueLow = intersect(TrialSets.ByTrialType.Inform
 %TODO make sure that the higher rewarded trials are truely from trials
 %using a differential RewardFunction.
 
+% the combined value choices of the current trial
+TrialSets.ByChoice.JointChoices.TargetValue_HighLow = intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.SideB.TargetValueLow);
+TrialSets.ByChoice.JointChoices.TargetValue_HighHigh = intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.SideB.TargetValueHigh);
+TrialSets.ByChoice.JointChoices.TargetValue_LowLow = intersect(TrialSets.ByChoice.SideA.TargetValueLow, TrialSets.ByChoice.SideB.TargetValueLow);
+TrialSets.ByChoice.JointChoices.TargetValue_LowHigh = intersect(TrialSets.ByChoice.SideA.TargetValueLow, TrialSets.ByChoice.SideB.TargetValueHigh);
+
+% the combined value choices of the last choice trial (coded for BoS reward value as seen from A)
+%tmp_joint_selection_code_list = zeros(length(TrialSets.ByTrialType.InformedTrials)); % zero means not assigned and we ignore it later
+
+tmp_joint_selection_code_list = zeros(size(TrialSets.All)); % remaining zeros denote trials to be ignored
+tmp_joint_selection_code_list(TrialSets.ByChoice.JointChoices.TargetValue_LowLow) = 1;
+tmp_joint_selection_code_list(TrialSets.ByChoice.JointChoices.TargetValue_HighHigh) = 2;
+tmp_joint_selection_code_list(TrialSets.ByChoice.JointChoices.TargetValue_LowHigh) = 3;
+tmp_joint_selection_code_list(TrialSets.ByChoice.JointChoices.TargetValue_HighLow) = 4;
+% the last trial will not have a successor
+tmp_joint_selection_code_list(end) = [];
+for i_joint_selection_code = 1 : 4
+	
+	% these are InformedTrials as JointChoices are restricted to
+	% InformedTrials
+	proto_tmp_idx = find(tmp_joint_selection_code_list == i_joint_selection_code);
+	
+	% for each indexed trial we need to find the following InformedTrials
+	% trial index
+	trial_following_joint_selection_code_idx = [];
+	for i_proto_tmp_idx = 1: length(proto_tmp_idx)
+		current_proto_idx = proto_tmp_idx(i_proto_tmp_idx);
+		% find the current trial
+		current_trial_InformedTrials_idx = find(TrialSets.ByTrialType.InformedTrials == current_proto_idx);
+		if ~isempty(current_trial_InformedTrials_idx)
+			trial_following_joint_selection_code_idx(end+1) = TrialSets.ByTrialType.InformedTrials(current_trial_InformedTrials_idx + 1);
+		end
+	end
+	% re
+	tmp_idx = intersect(proto_tmp_idx, TrialSets.ByTrialType.InformedTrials);
+	
+	switch i_joint_selection_code
+		case 1
+			TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowLow = trial_following_joint_selection_code_idx';
+		case 2
+			TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighHigh = trial_following_joint_selection_code_idx';
+		case 3
+			TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowHigh = trial_following_joint_selection_code_idx';
+		case 4
+			TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighLow = trial_following_joint_selection_code_idx';
+	end
+end
+
+% find instances when individual agents changed their value choice
+tmp_same_LL_idx = intersect(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowLow, TrialSets.ByChoice.JointChoices.TargetValue_LowLow);
+tmp_same_HH_idx = intersect(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighHigh, TrialSets.ByChoice.JointChoices.TargetValue_HighHigh);
+tmp_same_LH_idx = intersect(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowHigh, TrialSets.ByChoice.JointChoices.TargetValue_LowHigh);
+tmp_same_HL_idx = intersect(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighLow, TrialSets.ByChoice.JointChoices.TargetValue_HighLow);
+% these are the trials with =exact same joint choces as the last informed trial
+TrialSets.ByChoice.JointChoices.LastTrial_SameValue = sort([tmp_same_LL_idx; tmp_same_HH_idx; tmp_same_LH_idx; tmp_same_HL_idx]);
+% find instances when individual agents changed their value choice
+tmp_diff_LL_idx = setdiff(TrialSets.ByChoice.JointChoices.TargetValue_LowLow, TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowLow);
+tmp_diff_HH_idx = setdiff(TrialSets.ByChoice.JointChoices.TargetValue_HighHigh, TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighHigh);
+tmp_diff_LH_idx = setdiff(TrialSets.ByChoice.JointChoices.TargetValue_LowHigh, TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowHigh);
+tmp_diff_HL_idx = setdiff(TrialSets.ByChoice.JointChoices.TargetValue_HighLow, TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighLow);
+% these are the trials with =exact same joint choces as the last informed trial
+TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue = sort([tmp_diff_LL_idx; tmp_diff_HH_idx; tmp_diff_LH_idx; tmp_diff_HL_idx]);
+
+
+% TrialSets.ByChoice.JointChoices.SideA.LastTrial_DifferentValue
+% TrialSets.ByChoice.JointChoices.SideB.LastTrial_DifferentValue
+% TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue
 
 
 % whether the same target position was touched
