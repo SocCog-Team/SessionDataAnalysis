@@ -93,7 +93,7 @@ XX_marker_ID_use_captions = 1;
 MI_normalize_coordination_strength_50_50 = 1;
 MI_coordination_strength_method = 'max';% max or vectorlength
 MI_threshold = [];
-AR_SCATTER_mark_all = 0;
+AR_SCATTER_mark_all = 1;
 
 plot_coordination_metrics_for_each_group = 1;
 plot_coordination_metrics_for_each_group_graph_type = 'line';% bar or line
@@ -107,7 +107,7 @@ plot_AR_scatter_by_session_state_early_late = 1;
 plot_blocked_confederate_data = 0;
 
 
-XLabelRotation_degree = 60; % rotate the session labels to allow non-numeric labels on denser plots?
+XLabelRotation_degree = 90; % rotate the session labels to allow non-numeric labels on denser plots?
 close_figures_at_end = 1;
 
 project_name = 'SfN208';
@@ -901,8 +901,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', ...
 					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', })
 				cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
+				cur_plot_coordination_metrics_for_each_group_graph_type_override = [];
 			else
 				disp('Doh...');
+				cur_plot_coordination_metrics_for_each_group_graph_type_override = 'list_order';
 			end
 			
 			
@@ -939,6 +941,11 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 					error(['coordination_metrics_sort_by_string ', coordination_metrics_sort_by_string, ' not supported, add or correct spelling?']);
 			end
 			
+			if strcmp(cur_plot_coordination_metrics_for_each_group_graph_type_override, 'list_order')
+				disp('Overriding sort type request, line plots should reflect session list order');
+				cur_sort_idx = (1:1:size(current_group_data, 1));
+			end
+			
 			if isequal(current_group_label, 'Macaques_late')
 				Macaque_late_early_sort_idx = cur_sort_idx;
 			end
@@ -962,6 +969,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			
 			% SOC target
 			current_axis_h = subplot(2, 3, 1);
+			box(gca(), 'off');
 			x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
 			y_vec_arr = [SOC_targetA(cur_sort_idx), SOC_targetB(cur_sort_idx)];
 			instance_list = {'SOC_targetA', 'SOC_targetB'};
@@ -975,9 +983,12 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+			box(gca(), 'off');
+
 			
 			% SOC side
 			current_axis_h = subplot(2, 3, 2);
+			box(gca(), 'off');
 			x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
 			y_vec_arr = [SOC_sideA(cur_sort_idx), SOC_sideB(cur_sort_idx)];
 			instance_list = {'SOC_sideA', 'SOC_sideB'};
@@ -991,16 +1002,22 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+			box(gca(), 'off');
 			
 			
 			% AVG reward
 			current_axis_h = subplot(2, 3, 3);
+			box(gca(), 'off');
 			x_vec_arr = [(1:1:length(AVG_rewardA));(1:1:length(AVG_rewardAB)); (1:1:length(AVG_rewardB)); ]';
 			y_vec_arr = [AVG_rewardA(cur_sort_idx), AVG_rewardAB(cur_sort_idx), AVG_rewardB(cur_sort_idx)];
 			instance_list = {'AVG_rewardA', 'AVG_rewardAB', 'AVG_rewardB'};
 			color_list = {[1,0,0], [0.5,0,0.5], [0,0,1]};
 			symbol_list = {'o', 'none', 's'};
-			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [3.5 3.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+			hold on
+			% the chance reward
+			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [2.5 2.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+			% maximum grand average reward
+			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [3.5 3.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');			
 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
 			% label the axes
 			ylabel('Average reward', 'Interpreter', 'none');
@@ -1008,9 +1025,12 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0.9 4.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+			hold off
+			box(gca(), 'off');
 			
 			% MI target
 			current_axis_h = subplot(2, 3, 4);
+			box(gca(), 'off');
 			x_vec_arr = [(1:1:length(MI_target))]';
 			y_vec_arr = [MI_target(cur_sort_idx)];
 			instance_list = {'MI_target'};
@@ -1023,9 +1043,11 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+			box(gca(), 'off');
 			
 			% MI side
 			current_axis_h = subplot(2, 3, 5);
+			box(gca(), 'off');
 			x_vec_arr = [(1:1:length(MI_side))]';
 			y_vec_arr = [MI_side(cur_sort_idx)];
 			instance_list = {'MI_side'};
@@ -1038,9 +1060,11 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+			box(gca(), 'off');
 			
 			% non-random reward
 			current_axis_h = subplot(2, 3, 6);
+			box(gca(), 'off');
 			x_vec_arr = [(1:1:length(Non_random_reward))]';
 			y_vec_arr = [Non_random_reward(cur_sort_idx)];
 			instance_list = {'Non_random_reward'};
@@ -1058,6 +1082,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			hold on
 			errorbar(x_vec_arr, y_vec_arr, Non_random_reward_CI_hw, 'LineStyle', 'none', 'Color', [0,0,0], 'LineWidth', 1.0);
 			hold off
+			box(gca(), 'off');
 			
 			
 			% save out the results
@@ -2130,6 +2155,13 @@ switch group_collection_name
 			'DATA_20190508T132055.A_RN.B_Linus.SCP_01.triallog.A.RN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
 			'DATA_20190509T132341.A_RN.B_Linus.SCP_01.triallog.A.RN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
 			'DATA_20190510T104227.A_RN.B_Linus.SCP_01.triallog.A.RN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
+			'DATA_20190514T125358.A_JK.B_Linus.SCP_01.triallog.A.JK.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
+			'DATA_20190515T115358.A_SM.B_Linus.SCP_01.triallog.A.SM.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
+			'DATA_20190516T104947.A_SM.B_Linus.SCP_01.triallog.A.SM.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
+			'DATA_20190516T111412.A_SM.B_Linus.SCP_01.triallog.A.SM.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
+			'DATA_20190517T141239.A_JK.B_Linus.SCP_01.triallog.A.JK.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
+			'DATA_20190520T132513.A_RN.B_Linus.SCP_01.triallog.A.RN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
+			'DATA_20190521T133221.A_RN.B_Linus.SCP_01.triallog.A.RN.B.Linus_IC_JointTrials.isOwnChoice_sideChoice', ...
 			};
 		ConfederateTNLinus.Captions = {...
 			'90129', ...
@@ -2183,6 +2215,13 @@ switch group_collection_name
 			'90508.AwhiteglovesRN.RH', ...
 			'90509.AwhiteglovesRN.LH', ...
 			'90510.AwhiteglovesRN.LH', ...
+			'90514.AwhiteglovesJK.LH', ...
+			'90515.AwhiteglovesSM.LH', ...
+			'90516A.AwhiteglovesSM.LH', ...
+			'90516B.AwhiteglovesSM.LH', ...
+			'90517.AwhiteglovesJK.LH', ...
+			'90520.AwhiteglovesRN.LH', ...
+			'90521.AwhiteglovesRN.LH', ...
 			};
 		ConfederateTNLinus.color = [192 157 169]/255;
 		ConfederateTNLinus.Symbol = 'none';
