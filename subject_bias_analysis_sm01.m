@@ -1,5 +1,5 @@
-function [] = subject_bias_analysis_sm01()
-clear variables;
+function [] = subject_bias_analysis_sm01(ProcessFirstOnly)
+%clear variables;
 
 timestamps.(mfilename).start = tic;
 disp(['Starting: ', mfilename]);
@@ -7,11 +7,18 @@ dbstop if error
 fq_mfilename = mfilename('fullpath');
 mfilepath = fileparts(fq_mfilename);
 
+
+if ~exist('ProcessFirstOnly', 'var')
+	% manual override
+	ProcessFirstOnly = 1;
+else
+	disp(['ProcessFirstOnly from caller: ', num2str(ProcessFirstOnly)]);
+end
+
 copy_triallogs_to_outputdir = 0;
 
 
 ProcessNewestFirst = 1;
-ProcessFirstOnly = 1;
 RunSingleSessionAnalysis = 1;
 
 
