@@ -5,15 +5,11 @@ function [ output ] = fnAnalyzeJointTrials( SessionLogFQN, OutputBasePath, DataS
 % TODO:
 %   add statistics test for average reward lines versus 2.5 (chance)
 %   add statistics test for SOCA and SOCB for joint trials
-%   add plots of reaction times/reaction time differences
 %   create multi plot figure with vertical stacks of plots (so the timeline is aligned in parallel)
-%   Create new RT plot, showing the histogramms for the A-B RTs for the
-%       four SameDiff/OwnOther combinations
 %   Add correlation analysis comparing:
 %       the real choice with synthetic choice vectors for simple strategies
 %           (like win stay, loose switch both for position and color)
 %       look at windowed correlations with HP stategy blocks
-
 %   Trial based Analysis:
 %   Try to predict the current choice, based on:
 %       a) stimulus display
@@ -22,8 +18,7 @@ function [ output ] = fnAnalyzeJointTrials( SessionLogFQN, OutputBasePath, DataS
 %       d) choice of other actor in last trial(s)
 %   ANOVA?
 %   Create plot showing categorical information for all trials
-%   Also calculate the aggregated coordination measures for the first 200
-%   trials
+%	Writeout a file given the APA style results for statistical tests (like RT)
 
 %
 % DONE:
@@ -32,6 +27,11 @@ function [ output ] = fnAnalyzeJointTrials( SessionLogFQN, OutputBasePath, DataS
 %   add indicator which hand was used for the time series plots
 %   promote fnPlotBackgroundByCategory into its own file in the
 %       AuxiliaryFunctions repository
+%   Also calculate the aggregated coordination measures for the first 200
+%   trials
+%   add plots of reaction times/reaction time differences
+%   Create new RT plot, showing the histogramms for the A-B RTs for the
+%       four SameDiff/OwnOther combinations
 
 
 output = [];
@@ -2164,13 +2164,13 @@ for iGroup = 1 : length(GroupNameList)
 				% this will get all changes so even informed direct reach trials
 				A_changed_target_all = [0; diff(PreferableTargetSelected_A)];
 				B_changed_target_all = [0; diff(PreferableTargetSelected_B)];
-				AorB_changed_target_from_last_trial_all = A_changed_target_all + B_changed_target_all;
+				AorB_changed_target_from_last_trial_all = abs(A_changed_target_all) + abs(B_changed_target_all);
 				AorB_changed_target_from_last_trial_all_idx = find(AorB_changed_target_from_last_trial_all);
 				% this will only look a changes between reawarded informed
 				% choice trrials
 				A_changed_target = [0; diff(PreferableTargetSelected_A(CurrentGroupGoodTrialsIdx))];
 				B_changed_target = [0; diff(PreferableTargetSelected_B(CurrentGroupGoodTrialsIdx))];
-				AorB_changed_target_from_last_trial = A_changed_target + B_changed_target;
+				AorB_changed_target_from_last_trial = abs(A_changed_target) + abs(B_changed_target);
 				AorB_changed_target_from_last_trial_idx = CurrentGroupGoodTrialsIdx(find(AorB_changed_target_from_last_trial));
 				
 				
