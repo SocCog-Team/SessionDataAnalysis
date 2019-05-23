@@ -43,6 +43,8 @@ SaveMat4CoordinationCheck = 1;
 SaveCoordinationSummary = 1;
 InvisibleFigures = 0;
 PruneOldCoordinationSummaryFiles = 0;
+write_stats_to_text_file = 1;
+
 
 process_IC = 1;
 process_FC = 0;
@@ -265,6 +267,11 @@ if isdir(OutputPath) && CleanOutputDir
 	disp(['Deleting ', OutputPath]);
 	rmdir(OutputPath, 's');
 end
+
+% write one file per subject
+current_stats_to_text_FQN = [];
+current_stats_to_text_ext = '.statistics.txt';
+
 
 % load the data if it does not exist yet
 if ~exist('DataStruct', 'var')
@@ -528,6 +535,26 @@ for iGroup = 1 : length(GroupNameList)
 	end
 	
 	TitleSetDescriptorString = [TitleSetDescriptorString, SeparatorString, CurrentGroup];
+	
+	
+	if (write_stats_to_text_file)
+		current_stats_to_text_FQN_stem = fullfile(OutputPath, [FileName, '.', TitleSetDescriptorString]);
+		current_stats_to_text_ext = '.statistics.txt';
+		current_stats_to_text_FQN = [current_stats_to_text_FQN_stem, current_stats_to_text_ext];
+		% start from a clean slate
+		delete(current_stats_to_text_FQN_stem);
+		[current_stats_to_text_fd, errmsg] = fopen(current_stats_to_text_FQN, 'w', 'n', 'UTF-8');
+		if (current_stats_to_text_fd == -1)
+			error(errmsg);
+		end
+		fn_save_string_list_to_file(current_stats_to_text_fd, ['SessionID: '], FileName, [], write_stats_to_text_file);
+		fn_save_string_list_to_file(current_stats_to_text_fd, ['GroupID: '], TitleSetDescriptorString, [], write_stats_to_text_file);
+		
+	end
+	
+% 		if (write_stats_to_text_file)
+% 			fprintf(current_stats_to_text_fd, '%s\n', );
+% 		end
 	
 	% calculate a few variables for the further processing
 	NumTrials = size(DataStruct.data, 1);
@@ -2032,7 +2059,7 @@ for iGroup = 1 : length(GroupNameList)
 				title_text = ['t-Test: Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), ')', ...
 					' vs. Anti-Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), ')', ...
 					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-				
+								
 				% SameA versus SameB
 				CurSameA_idx = find(SameOwnA_lidx & (Invisible_AB == 0));
 				CurSameB_idx = find(SameOwnB_lidx & (Invisible_AB == 0));
@@ -2078,10 +2105,15 @@ for iGroup = 1 : length(GroupNameList)
 					title_text3 = ['t-Test (hands invisible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
 						' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
 						', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-					title({title_text; title_text2; title_text2A; title_text2B; title_text3}, 'FontSize', 6);
+					title_text_list = {title_text; title_text2; title_text2A; title_text2B; title_text3};
 				else
-					title({title_text; title_text2; title_text2A; title_text2B}, 'FontSize', 6);
+					title_text_list = {title_text; title_text2; title_text2A; title_text2B};
 				end
+				
+				title(title_text_list, 'FontSize', 6);
+				fn_save_string_list_to_file(current_stats_to_text_fd, [], {''; 'PlotRTHistogramsByByPayoffMatrix'}, [], write_stats_to_text_file);
+				fn_save_string_list_to_file(current_stats_to_text_fd, [], title_text_list, [' : ', histogram_RT_type_string], write_stats_to_text_file);
+				
 				
 				if (plot_differences) && (ProcessSideA) && (ProcessSideA)
 					CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
@@ -2252,10 +2284,15 @@ for iGroup = 1 : length(GroupNameList)
 					title_text3 = ['t-Test (hands invisible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
 						' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
 						', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-					title({title_text; title_text2; title_text2A; title_text2B; title_text3}, 'FontSize', 6);
+					title_text_list = {title_text; title_text2; title_text2A; title_text2B; title_text3};
 				else
-					title({title_text; title_text2; title_text2A; title_text2B}, 'FontSize', 6);
+					title_text_list = {title_text; title_text2; title_text2A; title_text2B};
 				end
+
+				title(title_text_list, 'FontSize', 6);
+				fn_save_string_list_to_file(current_stats_to_text_fd, [], {''; 'PlotRTHistogramsByByPayoffMatrixPostSwitchOnly'}, [], write_stats_to_text_file);
+				fn_save_string_list_to_file(current_stats_to_text_fd, [], title_text_list, [' : ', histogram_RT_type_string], write_stats_to_text_file);
+
 				
 				if (plot_differences) && (ProcessSideA) && (ProcessSideA)
 					CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
@@ -2362,6 +2399,11 @@ for iGroup = 1 : length(GroupNameList)
 				
 			end
 		end
+	end
+	
+	if (write_stats_to_text_file)
+		disp(['Closing current stats to text file: ', current_stats_to_text_FQN]);
+		fclose(current_stats_to_text_fd);
 	end
 end
 
