@@ -779,6 +779,10 @@ for iGroup = 1 : length(GroupNameList)
 		
 		CoordinationSummaryString = coordStruct.SummaryString;
 		CoordinationSummaryCell = coordStruct.SummaryCell;
+
+		fn_save_string_list_to_file(current_stats_to_text_fd, [], {''; 'CoordinationSummary: '}, [], write_stats_to_text_file);
+		fn_save_string_list_to_file(current_stats_to_text_fd, [], CoordinationSummaryString, [], write_stats_to_text_file);
+
 		
 		
 		info.session_id = SessionLogName;
