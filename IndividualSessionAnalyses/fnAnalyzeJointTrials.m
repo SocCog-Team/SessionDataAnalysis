@@ -135,6 +135,7 @@ PlotRTBySameness = 1;
 
 PlotRTHistograms = 1;
 PlotRTHistogramsByByPayoffMatrix = 1;
+PlotRTHistogramsByByPayoffMatrixPostSwitchOnly = 1;
 PlotRTHistogramsBySelectedSideAndEffector = 1;
 Plot_RT_difference_histogramBySelectedSideAndEffector = 0;
 
@@ -236,8 +237,7 @@ switch project_name
 		RTCatPlotInvisible = 0;
 		histogram_show_median = 0;
 		Add_AR_subplot_to_SoC_plot = 1;
-		InvisibleFigures = 1;
-		
+		InvisibleFigures = 1;	
 end
 
 % no GUI means no figure windows possible, so try to work around that
@@ -2044,6 +2044,27 @@ for iGroup = 1 : length(GroupNameList)
 				title_text2 = ['t-Test (hands visible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
 					' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
 					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+
+				% SameA versus 0
+				[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
+					0,...
+					'Tail', 'both');
+				coordinated_vs_anticoordinated.ttest2 = ttest2res;
+				% now add the result
+				title_text2A = ['t-Test (hands visible): A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
+					' vs. 0', ...
+					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+
+				% SameA versus 0
+				[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
+					0,...
+					'Tail', 'both');
+				coordinated_vs_anticoordinated.ttest2 = ttest2res;
+				% now add the result
+				title_text2B = ['t-Test (hands visible): B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
+					' vs. 0', ...
+					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+				
 				
 				if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
 					% SameA versus SameB
@@ -2057,9 +2078,9 @@ for iGroup = 1 : length(GroupNameList)
 					title_text3 = ['t-Test (hands invisible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
 						' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
 						', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-					title({title_text; title_text2; title_text3}, 'FontSize', 6);
+					title({title_text; title_text2; title_text2A; title_text2B; title_text3}, 'FontSize', 6);
 				else
-					title({title_text; title_text2}, 'FontSize', 6);
+					title({title_text; title_text2; title_text2A; title_text2B}, 'FontSize', 6);
 				end
 				
 				if (plot_differences) && (ProcessSideA) && (ProcessSideA)
@@ -2074,6 +2095,174 @@ for iGroup = 1 : length(GroupNameList)
 				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.legend.', histogram_RT_type_string, '.', OutPutType]);
 				write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
 			end
+
+			
+			% only select immediate post-pair-switch trials
+			if (PlotRTHistogramsByByPayoffMatrixPostSwitchOnly)
+				current_JointTrialX_Vector = JointTrialX_Vector;
+				CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+				
+				% create the subsets: same own A, same own B, diff own, diff other
+				SameOwnA_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 0);
+				SameOwnB_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 1);
+				DiffOwn_lidx = (PreferableTargetSelected_A == 1) & (PreferableTargetSelected_B == 1);
+				DiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0);
+				Same_lidx = union(SameOwnA_lidx, SameOwnB_lidx);
+				Diff_lidx = union(DiffOwn_lidx, DiffOther_lidx);
+				
+				% create a stack of category vectors
+				if (find(Invisible_AB(GoodTrialsIdx(current_JointTrialX_Vector))))
+					VisSameOwnA_lidx = SameOwnA_lidx & (Invisible_AB == 0);
+					VisSameOwnB_lidx = SameOwnB_lidx & (Invisible_AB == 0);
+					VisDiffOwn_lidx = DiffOwn_lidx & (Invisible_AB == 0);
+					VisDiffOther_lidx = DiffOther_lidx & (Invisible_AB == 0);
+					InvisSameOwnA_lidx = SameOwnA_lidx & (Invisible_AB == 1);
+					InvisSameOwnB_lidx = SameOwnB_lidx & (Invisible_AB == 1);
+					InvisDiffOwn_lidx = DiffOwn_lidx & (Invisible_AB == 1);
+					InvisDiffOther_lidx = DiffOther_lidx & (Invisible_AB == 1);
+					
+					
+					legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other', 'Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Opaque_Diff_Other'};
+					
+					if (histogram_show_median)
+						legend_list = {'Same_Own_A','Median Same_Own_A', 'Same_Own_B', 'Median Same_Own_B', 'Diff_Own', 'Median Diff_Own', 'Diff_Other', 'Median Diff_Other', 'Opaque_Same_Own_A', 'Median Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Median Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Median Opaque_Diff_Own', 'Opaque_Diff_Other', 'Median Opaque_Diff_Other'};
+					end
+					
+					
+					StackedCatData.TrialIdxList = {VisSameOwnA_lidx, VisSameOwnB_lidx, VisDiffOwn_lidx, VisDiffOther_lidx, InvisSameOwnA_lidx, InvisSameOwnB_lidx, InvisDiffOwn_lidx, InvisDiffOther_lidx};
+					% half the brightness of the invisible trials
+					StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+					StackedCatData.LineStyleList = {'-', '-', '-', '-', ':', ':' , ':', ':'};
+					
+					StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor*0.66; SameOwnBColor*0.66; DiffOwnColor*0.66; DiffOtherColor*0.66};
+					StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor; SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+					StackedCatData.LineStyleList = {'-', '-', '-', '-', '-.', '-.' , '-.', '-.'};
+					StackedCatData.SignFactorList = [1, 1, 1, 1, -1, -1, -1, -1];
+					
+				else
+					% no invisible trials just visible
+					StackedCatData.TrialIdxList = {SameOwnA_lidx, SameOwnB_lidx, DiffOwn_lidx, DiffOther_lidx};
+					legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other'};
+					if (histogram_show_median)
+						legend_list = {'Same_Own_A','Median Same_Own_A', 'Same_Own_B', 'Median Same_Own_B', 'Diff_Own', 'Median Diff_Own', 'Diff_Other', 'Median Diff_Other'};
+					end
+					
+					StackedCatData.ColorList = {SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor};
+					StackedCatData.LineStyleList = {'-', '-', '-', '-'};
+					StackedCatData.SignFactorList = [1, 1, 1, 1];
+				end
+				
+				Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySamenessPostSwitchTrials', 'visible', figure_visibility_string);
+				fnFormatDefaultAxes(DefaultAxesType);
+				[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+				set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+				%legend_list = {};
+				
+				
+				CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
+				% reduce the set to post switch trials
+				A_changed_target = [0; diff(PreferableTargetSelected_A)];
+				B_changed_target = [0; diff(PreferableTargetSelected_B)];
+				AorB_changed_target_from_last_trial = A_changed_target + B_changed_target;
+				AorB_changed_target_from_last_trial_idx = find(AorB_changed_target_from_last_trial);
+				
+				CurrentGroupGoodTrialsIdx = intersect(CurrentGroupGoodTrialsIdx, AorB_changed_target_from_last_trial_idx);
+				
+				plot_differences = Plot_RT_difference_histogram;
+				switch plot_differences
+					case 0
+						current_histogram_edge_list = histogram_edges;
+					case 1
+						current_histogram_edge_list =   histogram_diff_edges;
+				end
+				
+				fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
+				
+				%TODO: do this for the invisible trials as well?
+				
+				
+				% calculate ttest of RTdiff coordinated versus
+				% anti-coordinated only for trials with visible partner
+				% choices ((M = 121, SD = 14.2) than did those taking statistics courses in Statistics (M = 117, SD = 10.3), t(44) = 1.23, p = .09.)
+				coordinated_trial_lidx = ((SameOwnA_lidx & (Invisible_AB == 0)) + (SameOwnB_lidx & (Invisible_AB == 0)));
+				coordinated_trial_idx = find(coordinated_trial_lidx);
+				anticoordinated_trial_lidx = ((DiffOwn_lidx & (Invisible_AB == 0)) + (DiffOther_lidx & (Invisible_AB == 0)));
+				anticoordinated_trial_idx = find(anticoordinated_trial_lidx);
+				cur_AB_RT_data_diff = A_RT_data - B_RT_data;
+				[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest2(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx)), ...
+					cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx)),...
+					'Tail', 'both', 'Vartype', 'unequal');
+				coordinated_vs_anticoordinated.ttest2 = ttest2res;
+				% now add the result
+				title_text = ['t-Test: Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), ')', ...
+					' vs. Anti-Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), ')', ...
+					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+				
+				% SameA versus SameB
+				CurSameA_idx = find(SameOwnA_lidx & (Invisible_AB == 0));
+				CurSameB_idx = find(SameOwnB_lidx & (Invisible_AB == 0));
+				[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest2(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
+					cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)),...
+					'Tail', 'both', 'Vartype', 'unequal');
+				coordinated_vs_anticoordinated.ttest2 = ttest2res;
+				% now add the result
+				title_text2 = ['t-Test (hands visible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
+					' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
+					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+
+				% SameA versus 0
+				[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
+					0,...
+					'Tail', 'both');
+				coordinated_vs_anticoordinated.ttest2 = ttest2res;
+				% now add the result
+				title_text2A = ['t-Test (hands visible): A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
+					' vs. 0', ...
+					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+
+				% SameA versus 0
+				[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
+					0,...
+					'Tail', 'both');
+				coordinated_vs_anticoordinated.ttest2 = ttest2res;
+				% now add the result
+				title_text2B = ['t-Test (hands visible): B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
+					' vs. 0', ...
+					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+				
+				
+				
+				if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
+					% SameA versus SameB
+					CurSameA_idx = find(SameOwnA_lidx & (Invisible_AB == 1));
+					CurSameB_idx = find(SameOwnB_lidx & (Invisible_AB == 1));
+					[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest2(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
+						cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)),...
+						'Tail', 'both', 'Vartype', 'unequal');
+					coordinated_vs_anticoordinated.ttest2 = ttest2res;
+					% now add the result
+					title_text3 = ['t-Test (hands invisible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
+						' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
+						', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+					title({title_text; title_text2; title_text2A; title_text2B; title_text3}, 'FontSize', 6);
+				else
+					title({title_text; title_text2; title_text2A; title_text2B}, 'FontSize', 6);
+				end
+				
+				if (plot_differences) && (ProcessSideA) && (ProcessSideA)
+					CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
+				end
+				
+				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySamenessPostSwitchTrials.', histogram_RT_type_string, '.', OutPutType]);
+				write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+				
+				
+				legend(legend_list, 'Interpreter', 'None');
+				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySamenessPostSwitchTrials.legend.', histogram_RT_type_string, '.', OutPutType]);
+				write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+			end			
+			
+			
 			
 			if (PlotRTHistogramsBySelectedSideAndEffector)
 				
