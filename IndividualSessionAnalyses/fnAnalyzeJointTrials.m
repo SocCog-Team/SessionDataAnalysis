@@ -2161,10 +2161,18 @@ for iGroup = 1 : length(GroupNameList)
 				
 				CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
 				% reduce the set to post switch trials
-				A_changed_target = [0; diff(PreferableTargetSelected_A)];
-				B_changed_target = [0; diff(PreferableTargetSelected_B)];
+				% this will get all changes so even informed direct reach trials
+				A_changed_target_all = [0; diff(PreferableTargetSelected_A)];
+				B_changed_target_all = [0; diff(PreferableTargetSelected_B)];
+				AorB_changed_target_from_last_trial_all = A_changed_target_all + B_changed_target_all;
+				AorB_changed_target_from_last_trial_all_idx = find(AorB_changed_target_from_last_trial_all);
+				% this will only look a changes between reawarded informed
+				% choice trrials
+				A_changed_target = [0; diff(PreferableTargetSelected_A(CurrentGroupGoodTrialsIdx))];
+				B_changed_target = [0; diff(PreferableTargetSelected_B(CurrentGroupGoodTrialsIdx))];
 				AorB_changed_target_from_last_trial = A_changed_target + B_changed_target;
-				AorB_changed_target_from_last_trial_idx = find(AorB_changed_target_from_last_trial);
+				AorB_changed_target_from_last_trial_idx = CurrentGroupGoodTrialsIdx(find(AorB_changed_target_from_last_trial));
+				
 				
 				CurrentGroupGoodTrialsIdx = intersect(CurrentGroupGoodTrialsIdx, AorB_changed_target_from_last_trial_idx);
 				
