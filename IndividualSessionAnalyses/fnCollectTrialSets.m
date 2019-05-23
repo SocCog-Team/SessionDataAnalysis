@@ -471,12 +471,13 @@ TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue = sort([tmp_diff_LL_idx
 
 % the first trial does not have one earlier so remove from set, note both
 % are sorted already
-if TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue(1) < TrialSets.ByChoice.JointChoices.LastTrial_SameValue(1)
-	TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue(1) = [];
-else
-	TrialSets.ByChoice.JointChoices.LastTrial_SameValue(1) = [];
+if length(TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue) > 0 && length(TrialSets.ByChoice.JointChoices.LastTrial_SameValue) > 0
+	if TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue(1) < TrialSets.ByChoice.JointChoices.LastTrial_SameValue(1)
+		TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue(1) = [];
+	else
+		TrialSets.ByChoice.JointChoices.LastTrial_SameValue(1) = [];
+	end	
 end
-
 
 
 % TrialSets.ByChoice.JointChoices.SideA.LastTrial_DifferentValue
