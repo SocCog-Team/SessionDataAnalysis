@@ -435,7 +435,7 @@ for i_joint_selection_code = 1 : 4
 		current_proto_idx = proto_tmp_idx(i_proto_tmp_idx);
 		% find the current trial
 		current_trial_InformedTrials_idx = find(TrialSets.ByTrialType.InformedTrials == current_proto_idx);
-		if ~isempty(current_trial_InformedTrials_idx)
+		if ~isempty(current_trial_InformedTrials_idx) && (length(TrialSets.ByTrialType.InformedTrials) >= (current_trial_InformedTrials_idx + 1))
 			trial_following_joint_selection_code_idx(end+1) = TrialSets.ByTrialType.InformedTrials(current_trial_InformedTrials_idx + 1);
 		end
 	end
