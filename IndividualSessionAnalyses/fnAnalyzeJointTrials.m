@@ -572,6 +572,16 @@ for iGroup = 1 : length(GroupNameList)
 		end
 	end
 	
+	% some
+	TrialIsJoint = zeros([NumTrials, 1]);
+	TrialIsJoint(TrialSets.ByJointness.DualSubjectJointTrials) = 1;
+	TrialIsSolo = ~ TrialIsJoint; % tertium non datur...
+	NumChoiceTargetsPerTrial = zeros([NumTrials, 1]);
+	NumChoiceTargetsPerTrial(TrialSets.ByChoices.NumChoices01) = 1;
+	NumChoiceTargetsPerTrial(TrialSets.ByChoices.NumChoices02) = 2;
+	TrialIsRewarded = zeros([NumTrials, 1]);
+	TrialIsRewarded(TrialSets.ByOutcome.REWARD) = 1;
+	TrialIsAborted = ~TrialIsRewarded;
 	
 	
 	% get the share of own choices
@@ -579,14 +589,20 @@ for iGroup = 1 : length(GroupNameList)
 	PreferableTargetSelected_A(TrialSets.ByChoice.SideA.ProtoTargetValueHigh) = 1;
 	PreferableTargetSelected_B = zeros([NumTrials, 1]);
 	PreferableTargetSelected_B(TrialSets.ByChoice.SideB.ProtoTargetValueHigh) = 1;
+
 	
-	% how about solo trials
+	% get the share of own choices
+	NonPreferableTargetSelected_A = zeros([NumTrials, 1]);
+	NonPreferableTargetSelected_A(TrialSets.ByChoice.SideA.ProtoTargetValueLow) = 1;
+	NonPreferableTargetSelected_B = zeros([NumTrials, 1]);
+	NonPreferableTargetSelected_B(TrialSets.ByChoice.SideB.ProtoTargetValueLow) = 1;
+
 	
-	
+	% how about solo trials	
 	A_selects_A = PreferableTargetSelected_A;
 	B_selects_B = PreferableTargetSelected_B;
-	A_selects_B = ~A_selects_A;
-	B_selects_A = ~B_selects_B;
+	A_selects_B = NonPreferableTargetSelected_A;
+	B_selects_A = NonPreferableTargetSelected_B;
 	SameTargetA = A_selects_A & B_selects_A;
 	SameTargetB = A_selects_B & B_selects_B;
 	DiffOwnTarget = A_selects_A & B_selects_B;
@@ -604,16 +620,25 @@ for iGroup = 1 : length(GroupNameList)
 	SubjectiveLeftTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceLeft) = 1;
 	SubjectiveLeftTargetSelected_B = zeros([NumTrials, 1]);
 	SubjectiveLeftTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceLeft) = 1;
+	SubjectiveRightTargetSelected_A = zeros([NumTrials, 1]);
+	SubjectiveRightTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceRight) = 1;
+	SubjectiveRightTargetSelected_B = zeros([NumTrials, 1]);
+	SubjectiveRightTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceRight) = 1;
 	% these are objective sides
 	LeftTargetSelected_A = zeros([NumTrials, 1]);
 	LeftTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceScreenFromALeft) = 1;
 	LeftTargetSelected_B = zeros([NumTrials, 1]);
 	LeftTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceScreenFromALeft) = 1;
+	RightTargetSelected_A = zeros([NumTrials, 1]);
+	RightTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceScreenFromARight) = 1;
+	RightTargetSelected_B = zeros([NumTrials, 1]);
+	RightTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceScreenFromARight) = 1;
+
 	
 	A_left = LeftTargetSelected_A;
 	B_left = LeftTargetSelected_B;
-	A_right = ~A_left;
-	B_right = ~B_left;
+	A_right = RightTargetSelected_A;
+	B_right = RightTargetSelected_B;
 	A_left_B_left = A_left & B_left;
 	A_right_B_right = A_right & B_right;
 	A_left_B_right = A_left & B_right;
@@ -830,7 +855,27 @@ for iGroup = 1 : length(GroupNameList)
 		FullPerTrialStruct.RewardByTrial_A = RewardByTrial_A(:);
 		FullPerTrialStruct.RewardByTrial_B = RewardByTrial_B(:);
 		
+		FullPerTrialStruct.PreferableTargetSelected_A = PreferableTargetSelected_A(:);
+		FullPerTrialStruct.PreferableTargetSelected_B = PreferableTargetSelected_B(:);
+		FullPerTrialStruct.NonPreferableTargetSelected_A = NonPreferableTargetSelected_A(:);
+		FullPerTrialStruct.NonPreferableTargetSelected_B = NonPreferableTargetSelected_B(:);
+				
+		FullPerTrialStruct.LeftTargetSelected_A = LeftTargetSelected_A(:);
+		FullPerTrialStruct.LeftTargetSelected_B = LeftTargetSelected_B(:);
+		FullPerTrialStruct.RightTargetSelected_A = RightTargetSelected_A(:);
+		FullPerTrialStruct.RightTargetSelected_B = RightTargetSelected_B(:);
+	
+		FullPerTrialStruct.SubjectiveLeftTargetSelected_A = SubjectiveLeftTargetSelected_A(:);
+		FullPerTrialStruct.SubjectiveLeftTargetSelected_B = SubjectiveLeftTargetSelected_B(:);
+		FullPerTrialStruct.SubjectiveRightTargetSelected_A = SubjectiveRightTargetSelected_A(:);
+		FullPerTrialStruct.SubjectiveRightTargetSelected_B = SubjectiveRightTargetSelected_B(:);
 		
+		
+		FullPerTrialStruct.TrialIsJoint = TrialIsJoint(:);
+		FullPerTrialStruct.TrialIsSolo = TrialIsSolo(:);
+		FullPerTrialStruct.NumChoiceTargetsPerTrial = NumChoiceTargetsPerTrial(:);
+		FullPerTrialStruct.TrialIsRewarded = TrialIsRewarded(:);
+		FullPerTrialStruct.TrialIsAborted = TrialIsAborted(:);
 		
 		% to make sure that we recalculte the ccordination metrics if the
 		% included trials change store this into the cfg structure
@@ -950,15 +995,15 @@ for iGroup = 1 : length(GroupNameList)
 		%if strcmp(SessionLogFQN, fullfile(PathStr, '20171127T164730.A_20021.B_20022.SCP_01.triallog.txt'))
 		% for human pair number 6 we do only converge on a strategy after ~270
 		% trials before that each selected their own
-		if ~isempty(cur_coordination_metrics_table) && isfield(cur_coordination_metrics_table, 'row')
-			MI_side = cur_coordination_metrics_table.row(coordination_metrics_table.cn.miSide);
-			MI_target = cur_coordination_metrics_table.row(coordination_metrics_table.cn.miTarget);
-			X = atand(MI_side/MI_target);
-			Y = sqrt(MI_side^2 + MI_target^2);
-			disp(['stationarySegmentLength: ', num2str(cur_coordination_metrics_table.cfg_struct.stationarySegmentLength)]);
-			disp(['MI_side: ', num2str(MI_side, '%0.4f'), '; MI_target: ', num2str(MI_target, '%0.4f')]);
-			disp(['atand(MI_side/MI_target): ', num2str(X, '%0.4f'), '; sqrt(MI_side^2 + MI_target^2): ', num2str(Y, '%0.4f')]);
-		end
+% 		if  ~isempty(cur_coordination_metrics_table) && isfield(cur_coordination_metrics_table, 'row')
+% 			MI_side = cur_coordination_metrics_table.row(coordination_metrics_table.cn.miSide);
+% 			MI_target = cur_coordination_metrics_table.row(coordination_metrics_table.cn.miTarget);
+% 			X = atand(MI_side/MI_target);
+% 			Y = sqrt(MI_side^2 + MI_target^2);
+% 			disp(['stationarySegmentLength: ', num2str(cur_coordination_metrics_table.cfg_struct.stationarySegmentLength)]);
+% 			disp(['MI_side: ', num2str(MI_side, '%0.4f'), '; MI_target: ', num2str(MI_target, '%0.4f')]);
+% 			disp(['atand(MI_side/MI_target): ', num2str(X, '%0.4f'), '; sqrt(MI_side^2 + MI_target^2): ', num2str(Y, '%0.4f')]);
+% 		end
 		
 		
 		
@@ -983,7 +1028,7 @@ for iGroup = 1 : length(GroupNameList)
 				cur_coordination_metrics_table_header = cur_coordination_metrics_table.header;
 			end
 			save(outfilename, 'info', 'isOwnChoiceArray', 'sideChoiceObjectiveArray', 'sideChoiceSubjectiveArray', ...
-				'TrialsInCurrentSetIdx', 'TrialSets', 'coordStruct', 'isOwnChoice', 'isBottomChoice', 'PerTrialStruct', ...
+				'TrialsInCurrentSetIdx', 'TrialSets', 'coordStruct', 'isOwnChoice', 'isBottomChoice', 'PerTrialStruct', 'FullPerTrialStruct', ...
 				'cur_coordination_metrics_struct', 'cur_coordination_metrics_table_row', 'cur_coordination_metrics_table_header');
 		end
 		
