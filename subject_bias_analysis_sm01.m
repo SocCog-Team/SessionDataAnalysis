@@ -10,7 +10,7 @@ mfilepath = fileparts(fq_mfilename);
 
 if ~exist('ProcessFirstOnly', 'var')
 	% manual override
-	ProcessFirstOnly = 1;
+	ProcessFirstOnly = 0;
 else
 	disp(['ProcessFirstOnly from caller: ', num2str(ProcessFirstOnly)]);
 end
