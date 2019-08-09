@@ -16,10 +16,10 @@ else
 end
 
 copy_triallogs_to_outputdir = 0;
-
-
 ProcessNewestFirst = 1;
 RunSingleSessionAnalysis = 1;
+ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
+
 
 
 % human subjects
@@ -272,14 +272,22 @@ end
 if (RunSingleSessionAnalysis)
 	for iSession = 1 : length(experimentFile)
 		CurentSessionLogFQN = experimentFile{iSession};
-		
+		[current_triallog_path, current_triallog_name, current_triallog_ext] = fileparts(CurentSessionLogFQN);
+					
 		if (copy_triallogs_to_outputdir)
-			[~, current_name, current_ext] = fileparts(CurentSessionLogFQN);
 			tmp_out_path = fullfile(TmpOutBaseDir, 'triallogs');
 			if isempty(dir(tmp_out_path)),
 				mkdir(tmp_out_path);
 			end
-			copyfile(CurentSessionLogFQN, fullfile(tmp_out_path, [current_name, current_ext]));
+			copyfile(CurentSessionLogFQN, fullfile(tmp_out_path, [current_triallog_name, current_triallog_ext]));
+		end
+		
+		if (ProcessFreshSessionsOnly)
+			[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
+			MatFilename = fullfile(current_triallog_path, [current_triallog_name CurrentEventIDEReportParserVersionString '.mat']);
+			if (exist(MatFilename, 'file'))
+				continue
+			end
 		end
 		
 		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir);
