@@ -21,6 +21,14 @@ RunSingleSessionAnalysis = 1;
 ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
 
 
+project_name = [];
+project_name = 'BoS_manuscript';
+
+% special case for the paper set
+if strcmp(project_name, 'BoS_manuscript')
+	ProcessFreshSessionsOnly = 0;
+end
+
 
 % human subjects
 CurrentAnalysisSetName = 'SCP00';
@@ -124,6 +132,9 @@ TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyy'));
 %TmpOutBaseDir = SCPDirs.OutputDir;
 
 
+if ~isempty(project_name)
+	TmpOutBaseDir = fullfile(TmpOutBaseDir, project_name);
+end
 
 
 Options.OutFormat = '.pdf';
@@ -220,17 +231,46 @@ ExcludeWildCardList = {'ANALYSES', '201701', '201702', '2017030', '2017031', '20
 
 ExcludeWildCardList = {'Exclude.', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
 
-IncludedFilesIdx = [];
-for iFile = 1 : length(experimentFile)
-	TmpIdx = [];
-	for iExcludeWildCard = 1 : length(ExcludeWildCardList)
-		TmpIdx = [TmpIdx, strfind(experimentFile{iFile}, ExcludeWildCardList{iExcludeWildCard})];
+if ~isempty(ExcludeWildCardList)
+	IncludedFilesIdx = [];
+	for iFile = 1 : length(experimentFile)
+		TmpIdx = [];
+		for iExcludeWildCard = 1 : length(ExcludeWildCardList)
+			TmpIdx = [TmpIdx, strfind(experimentFile{iFile}, ExcludeWildCardList{iExcludeWildCard})];
+		end
+		if isempty(TmpIdx)
+			IncludedFilesIdx(end+1) = iFile;
+		end
 	end
-	if isempty(TmpIdx)
-		IncludedFilesIdx(end+1) = iFile;
-	end
+	experimentFile = experimentFile(IncludedFilesIdx);
 end
-experimentFile = experimentFile(IncludedFilesIdx);
+
+
+
+% allow to restrict to a set of sessions we are currently interested in
+% by using wildcard (preferably the unique session IDs)
+IncludeWildcardList = {};
+
+if strcmp(project_name, 'BoS_manuscript')
+	% the set for the 2019 paper
+	[~, IncludeWildcardList] = fn_get_session_group('BoS_human_monkey_2019');
+end
+
+if ~isempty(IncludeWildcardList)
+	IncludedFilesIdx = [];
+	for iFile = 1 : length(experimentFile)
+		TmpIdx = [];
+		for iIncludeWildCard = 1 : length(IncludeWildcardList)
+			TmpIdx = [TmpIdx, strfind(experimentFile{iFile}, IncludeWildcardList{iIncludeWildCard})];
+		end
+		
+		if ~isempty(TmpIdx)
+			IncludedFilesIdx(end+1) = iFile;
+		end
+	end
+	experimentFile = experimentFile(IncludedFilesIdx);
+end
+
 
 
 nFiles = length(experimentFile);
@@ -290,7 +330,7 @@ if (RunSingleSessionAnalysis)
 			end
 		end
 		
-		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir);
+		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir, project_name);
 		if ~isempty(out)
 			out_list{end+1} = out;
 		end
@@ -302,6 +342,13 @@ end
 disp(['Saving summary as ', fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat'])]);
 save(fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat']), 'out_list');
 
+
+if strcmp(project_name, 'BoS_manuscript')
+	% the set for the 2019 paper
+	fnAggregateAndPlotCoordinationMetricsByGroup([], [], [], project_name);
+	plot_RTdiff_correlation_BoS_hum_mac(project_name);
+	run_switches_test_BoS_hum_mac(project_name)
+end
 
 
 % how long did it take?
