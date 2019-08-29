@@ -1,4 +1,4 @@
-function [ output ] = fnAnalyseIndividualSCPSession( SessionLogFQN, OutputBasePath )
+function [ output ] = fnAnalyseIndividualSCPSession( SessionLogFQN, OutputBasePath, project_name )
 %fnAnalyseIndividualSCPSession perform the analysis of individual sessions
 %   This function is intended to generate the single session analysis and
 %   also to accumulate data into a sessions table for inter session
@@ -27,6 +27,11 @@ output = [];
 if ~exist('OutputBasePath', 'var')
 	OutputBasePath = [];
 end
+
+if ~exist('project_name', 'var') || isempty(project_name)
+	project_name = [];
+end
+
 
 ProcessReactionTimes = 1; % needs work...
 ForceParsingOfExperimentLog = 0; % rewrite the logfiles anyway
@@ -102,14 +107,14 @@ ExcludeTrialIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumC
 if ~isempty(TrialSets.ByJointness.DualSubjectJointTrials)
 	% here we only have the actually cooperation trials (for BvS)
 	% do some timecourse analysis and imaging
-	[tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets);
+	[tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets, project_name);
 	output.joint = tmp_output;
 	if (ProcessJointTrialsOnly)
 		%disp([]);
 		return
 	end
 elseif ~isempty(TrialSets.ByActivity.SingleSubjectTrials) || ~isempty(TrialSets.ByJointness.DualSubjectSoloTrials)
-	[tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets);
+	[tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets, project_name);
 	output.single = tmp_output;
 	if (ProcessJointTrialsOnly)
 		disp(['Found zero joint trial records in ', SessionLogFQN, ' bailing out...']);
