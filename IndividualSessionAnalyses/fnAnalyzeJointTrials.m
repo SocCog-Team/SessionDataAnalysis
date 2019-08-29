@@ -1,4 +1,4 @@
-function [ output ] = fnAnalyzeJointTrials( SessionLogFQN, OutputBasePath, DataStruct, TrialSets )
+function [ output ] = fnAnalyzeJointTrials( SessionLogFQN, OutputBasePath, DataStruct, TrialSets, project_name )
 %FNANALYZEJOINTTRIALS Summary of this function goes here
 %   Detailed explanation goes here
 % ATM this is hardcoded for BvS, needs work to generalize
@@ -61,15 +61,20 @@ TitleSeparator = '_';
 
 
 OutPutType = 'pdf';
-output_rect_fraction = 0.5; % default 0.5
+output_rect_fraction = 1/2.54; % matlab's print will interpret values as INCH even for PaperUnit centimeter specified figures...
 
-project_name = 'PrimateNeurobiology2018DPZ';
+
+if ~exist('project_name', 'var') || isempty(project_name)
+	project_name = 'PrimateNeurobiology2018DPZ';
+	project_name = 'SfN2008';
+	project_name = 'BoS_manuscript';
+end
+
+
 DefaultAxesType = 'PrimateNeurobiology2018DPZ'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 
-project_name = 'SfN2008';
 
-project_name = 'BoS_manuscript';
 
 [PathStr, FileName, ~] = fileparts(SessionLogFQN);
 
@@ -192,6 +197,11 @@ if strcmp(SessionLogFQN, fullfile(PathStr, '20171121T162619.A_20017.B_10018.SCP_
 end
 
 
+show_SOC_percentage = 1;
+show_RTdiff_ttests = 1;
+title_fontsize = 8;
+title_fontweight = 'bold';
+StackHeightToInitialPLotHeightRatio = 0.15;
 switch project_name
 	case 'PrimateNeurobiology2018DPZ'
 		ShowSelectedSidePerSubjectInRewardPlotBG = 1;
@@ -222,15 +232,26 @@ switch project_name
 		InvisibleFigures = 1;
 		
 	case 'BoS_manuscript'
-		ShowSelectedSidePerSubjectInRewardPlotBG = 1;
+		ShowSelectedSidePerSubjectInRewardPlotBG = 0;
 		ShowEffectorHandInBackground = 0;
 		project_line_width = 0.5;
 		show_coordination_results_in_fig_title = 0;
 		OutPutType = 'png';
 		OutPutType = 'pdf';
-		ShowOnlyTargetChoiceCombinations = 0;
+		ShowOnlyTargetChoiceCombinations = 1;
+		ShowTargetSideChoiceCombinations = 1;
+		StackHeightToInitialPLotHeightRatio = 0.05;
+		ShowEffectorHandInBackground = 0;
+		ShowFasterSideInBackground = 0;
+				
 		DefaultAxesType = 'BoS_manuscript'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 		DefaultPaperSizeType = 'BoS_manuscript.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+		DefaultPaperSizeType = 'Plos'; % Plos_text_col or Plos
+		output_rect_fraction = output_rect_fraction * 0.5;	% only take half
+		title_fontsize = 7;
+		title_fontweight = 'normal';
+		show_RTdiff_ttests = 0;
+		show_SOC_percentage = 0;
 		%make the who-was-faster-plots effectively invisible but still
 		%scale the plot to accomodate the required space
 		%SideARTColor = [1 1 1];
@@ -239,7 +260,7 @@ switch project_name
 		RTCatPlotInvisible = 0;
 		histogram_show_median = 0;
 		Add_AR_subplot_to_SoC_plot = 1;
-		InvisibleFigures = 1;	
+		InvisibleFigures = 1;			
 end
 
 % no GUI means no figure windows possible, so try to work around that
@@ -258,6 +279,11 @@ end
 if ~exist('OutputBasePath', 'var')
 	OutputBasePath = [];
 end
+
+if ~isdir(OutputBasePath)
+	mkdir(OutputBasePath);
+end
+
 if isempty(OutputBasePath)
 	OutputPath = fullfile(PathStr, 'Analysis');
 else
@@ -1198,7 +1224,7 @@ for iGroup = 1 : length(GroupNameList)
 		fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
 	end
 	if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
-		fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+		fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
 		y_lim = get(gca(), 'YLim');
 	end
 	
@@ -1243,10 +1269,10 @@ for iGroup = 1 : length(GroupNameList)
 	
 	
 	%     if ~ismepty(CoordinationSummaryString)
-	%         title(CoordinationSummaryString, 'FontSize', 12, 'Interpreter', 'None');
+	%         title(CoordinationSummaryString, 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
 	%     end
 	if ~isempty(CoordinationSummaryCell) && show_coordination_results_in_fig_title
-		title(CoordinationSummaryCell, 'FontSize', 12, 'Interpreter', 'None');
+		title(CoordinationSummaryCell, 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
 	end
 	
 	
@@ -1288,7 +1314,7 @@ for iGroup = 1 : length(GroupNameList)
 	end
 	
 	if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
-		fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+		fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
 		y_lim = get(gca(), 'YLim');
 	end
 	
@@ -1335,10 +1361,9 @@ for iGroup = 1 : length(GroupNameList)
 		end
 		title_textB = ['B: SOC(all) ', num2str(100 * TmpMean), '%; SOC(last25) ', num2str(100 * TmpMean25), '%'];
 	end
-	
-	title({[title_textA, title_textB]}, 'FontSize', 6);
-	
-	
+	if (show_SOC_percentage)
+		title({[title_textA, title_textB]}, 'FontSize', title_fontsize, 'Interpreter', 'none', 'FontWeight', title_fontweight);
+	end
 	
 	hold off
 	%
@@ -1355,7 +1380,7 @@ for iGroup = 1 : length(GroupNameList)
 	if (~isempty(partnerInluenceOnSide) && ~isempty(partnerInluenceOnTarget)) && show_coordination_results_in_fig_title
 		partnerInluenceOnSideString = ['Partner effect on side choice of A: ', num2str(partnerInluenceOnSide(1)), '; of B: ', num2str(partnerInluenceOnSide(2))];
 		partnerInluenceOnTargetString = ['Partner effect on target choice of A: ', num2str(partnerInluenceOnTarget(1)), '; of B: ', num2str(partnerInluenceOnTarget(2))];
-		title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'FontSize', 12, 'Interpreter', 'None');
+		title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
 	end
 	
 	%write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
@@ -1441,7 +1466,7 @@ for iGroup = 1 : length(GroupNameList)
 		end
 		
 		if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
-			fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+			fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
 			y_lim = get(gca(), 'YLim');
 		end
 		
@@ -1506,7 +1531,7 @@ for iGroup = 1 : length(GroupNameList)
 		end
 		
 		if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
-			fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+			fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
 			y_lim = get(gca(), 'YLim');
 		end
 		
@@ -1570,7 +1595,7 @@ for iGroup = 1 : length(GroupNameList)
 			fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
 		end
 		if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
-			fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+			fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
 			y_lim = get(gca(), 'YLim');
 		end
 		
@@ -1649,7 +1674,7 @@ for iGroup = 1 : length(GroupNameList)
 				fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
 			end
 			if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
-				fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+				fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
 				y_lim = get(gca(), 'YLim');
 			end
 			fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
@@ -1669,7 +1694,7 @@ for iGroup = 1 : length(GroupNameList)
 			corrCoefAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefAveraged(1), '%.4f');
 			corrPValueAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValueAveraged(1), '%.4f');
 			titleText_A = ['Agent A: r(', num2str(df_corr), '): ', corrCoefValue,  ', p <= ', corrPValue,  ' / ', corrCoefAveraged, ', p <= ', corrPValueAveraged, ''];
-			title(titleText_A);
+			title(titleText_A, 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
 			
 			set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
 			%set(gca(), 'YLim', [0.0, 1.0]);
@@ -1691,7 +1716,7 @@ for iGroup = 1 : length(GroupNameList)
 				fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
 			end
 			if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
-				fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+				fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
 				y_lim = get(gca(), 'YLim');
 			end
 			fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
@@ -1711,7 +1736,7 @@ for iGroup = 1 : length(GroupNameList)
 			corrCoefAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrCoefAveraged(2), '%.4f');
 			corrPValueAveraged = num2str(cur_coordination_metrics_struct.per_trial.([psee_antipreferredchoice_correlation_RT_name, '_Cor']).corrPValueAveraged(2), '%.4f');
 			titleText_B = ['Agent B: r(', num2str(df_corr), '): ', corrCoefValue,  ', p <= ', corrPValue,  ' / ', corrCoefAveraged, ', p <= ', corrPValueAveraged, ''];
-			title(titleText_B);
+			title(titleText_B, 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
 			
 			set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
 			%set(gca(), 'YLim', [0.0, 1.0]);
@@ -1757,7 +1782,7 @@ for iGroup = 1 : length(GroupNameList)
 			fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
 		end
 		if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
-			fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+			fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
 			y_lim = get(gca(), 'YLim');
 		end
 		fnPlotBackgroundWrapper(ShowEffectorHandInBackground, ProcessSideA, ProcessSideB, RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_A(GoodTrialsIdx(JointTrialX_Vector)), RightHandUsed_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, RightEffectorColor, RightEffectorBGTransparency);
@@ -1792,7 +1817,7 @@ for iGroup = 1 : length(GroupNameList)
 		%         if (~isempty(partnerInluenceOnSide) && ~isempty(partnerInluenceOnTarget)) && show_coordination_results_in_fig_title
 		%             partnerInluenceOnSideString = ['Partner effect on side choice of A: ', num2str(partnerInluenceOnSide(1)), '; of B: ', num2str(partnerInluenceOnSide(2))];
 		%             partnerInluenceOnTargetString = ['Partner effect on target choice of A: ', num2str(partnerInluenceOnTarget(1)), '; of B: ', num2str(partnerInluenceOnTarget(2))];
-		%             title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'FontSize', 12, 'Interpreter', 'None');
+		%             title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
 		%         end
 		
 		%write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
@@ -1825,7 +1850,7 @@ for iGroup = 1 : length(GroupNameList)
 			fnPlotBackgroundWrapper(ShowInvisibility, ProcessSideA, ProcessSideB, Invisible_AB(GoodTrialsIdx(JointTrialX_Vector)), Invisible_A(GoodTrialsIdx(JointTrialX_Vector)), Invisible_B(GoodTrialsIdx(JointTrialX_Vector)), y_lim, InvisibilityColor, InvisibitiltyTransparency);
 		end
 		if (ShowTargetSideChoiceCombinations) %&& ~(IsSoloGroup)
-			fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', 0.15, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
+			fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, StackedTargetSideXData, y_lim, StackedTargetSideColor, StackedTargetSideBGTransparency);
 			y_lim = get(gca(), 'YLim');
 		end
 		
@@ -1861,7 +1886,7 @@ for iGroup = 1 : length(GroupNameList)
 		%         if (~isempty(partnerInluenceOnSide) && ~isempty(partnerInluenceOnTarget)) && show_coordination_results_in_fig_title
 		%             partnerInluenceOnSideString = ['Partner effect on side choice of A: ', num2str(partnerInluenceOnSide(1)), '; of B: ', num2str(partnerInluenceOnSide(2))];
 		%             partnerInluenceOnTargetString = ['Partner effect on target choice of A: ', num2str(partnerInluenceOnTarget(1)), '; of B: ', num2str(partnerInluenceOnTarget(2))];
-		%             title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'FontSize', 12, 'Interpreter', 'None');
+		%             title([partnerInluenceOnSideString, '; ', partnerInluenceOnTargetString], 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
 		%         end
 		
 		%write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
@@ -2159,7 +2184,9 @@ for iGroup = 1 : length(GroupNameList)
 					title_text_list = {title_text; title_text2; title_text2A; title_text2B};
 				end
 				
-				title(title_text_list, 'FontSize', 6);
+				if (show_RTdiff_ttests)
+					title(title_text_list, 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
+				end
 				fn_save_string_list_to_file(current_stats_to_text_fd, [], {''; 'PlotRTHistogramsByByPayoffMatrix'}, [], write_stats_to_text_file);
 				fn_save_string_list_to_file(current_stats_to_text_fd, [], title_text_list, [' : ', histogram_RT_type_string], write_stats_to_text_file);
 				
@@ -2338,7 +2365,10 @@ for iGroup = 1 : length(GroupNameList)
 					title_text_list = {title_text; title_text2; title_text2A; title_text2B};
 				end
 
-				title(title_text_list, 'FontSize', 6);
+				
+				if (show_RTdiff_ttests)
+					title(title_text_list, 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
+				end
 				fn_save_string_list_to_file(current_stats_to_text_fd, [], {''; 'PlotRTHistogramsByByPayoffMatrixPostSwitchOnly'}, [], write_stats_to_text_file);
 				fn_save_string_list_to_file(current_stats_to_text_fd, [], title_text_list, [' : ', histogram_RT_type_string], write_stats_to_text_file);
 
