@@ -182,6 +182,17 @@ psee_antipreferredchoice_correlation_RT_name_list = {'pSee_iniTargRel', 'pSee_Ta
 PseeColor = [0.9290, 0.6940, 0.1250];
 
 
+PlotRTbyChoiceCombination = 1;
+full_choice_combinaton_pattern_list = {'RM', 'MR', 'BM', 'MB', 'RB', 'BR', 'RG', 'GR', 'BG', 'GB', 'GM', 'MG'};
+selected_choice_combinaton_pattern_list = full_choice_combinaton_pattern_list;
+pattern_alignment_offset = 1; % the offset to the position
+n_pre_bins = 5;
+n_post_bins = 2;
+strict_pattern_extension = 1;
+pad_mismatch_with_nan = 1;
+
+
+
 % 20190220: disable hack to use the same trial selection logic for all
 % subjects
 % the following id a HACK until we have a "proper" stability detector
@@ -257,6 +268,7 @@ switch project_name
 		%SideARTColor = [1 1 1];
 		%SideBRTColor = [1 1 1];
 		%SideABEqualRTColor = [1 1 1];
+		selected_choice_combinaton_pattern_list = {'RM', 'MR', 'BM', 'MB', 'RB', 'BR'};
 		RTCatPlotInvisible = 0;
 		histogram_show_median = 0;
 		Add_AR_subplot_to_SoC_plot = 1;
@@ -634,6 +646,23 @@ for iGroup = 1 : length(GroupNameList)
 	DiffOwnTarget = A_selects_A & B_selects_B;
 	DiffOtherTarget = A_selects_B & B_selects_A;
 	
+	
+	A_changed_target_ldx = [0; diff(PreferableTargetSelected_A)];
+	B_changed_target_ldx = [0; diff(PreferableTargetSelected_B)];
+	AorB_changed_target_from_last_trial = abs(A_changed_target_ldx) + abs(B_changed_target_ldx);
+	AorB_changed_target_from_last_trial_idx = find(AorB_changed_target_from_last_trial);
+	
+	% now create a string with our color representations of the 4 choice
+	% combinations
+	
+	choice_combination_color_string = char(PreferableTargetSelected_A);
+	choice_combination_color_string(SameTargetA) = 'R';
+	choice_combination_color_string(SameTargetB) = 'B';
+	choice_combination_color_string(DiffOwnTarget) = 'M';
+	choice_combination_color_string(DiffOtherTarget) = 'G';
+	choice_combination_color_string = choice_combination_color_string';
+	
+	
 	% get the share of location choices (left/right, top/bottom)
 	% top/bottom
 	BottomTargetSelected_A = zeros([NumTrials, 1]);
@@ -863,16 +892,30 @@ for iGroup = 1 : length(GroupNameList)
 		PerTrialStruct.AB_TrialStartTimeMS = AB_TrialStartTimeMS(TrialsInCurrentSetIdx);
 		PerTrialStruct.RewardByTrial_A = RewardByTrial_A(TrialsInCurrentSetIdx);
 		PerTrialStruct.RewardByTrial_B = RewardByTrial_B(TrialsInCurrentSetIdx);
+
+		PerTrialStruct.SameTargetA = SameTargetA(TrialsInCurrentSetIdx);
+		PerTrialStruct.SameTargetB = SameTargetB(TrialsInCurrentSetIdx);
+		PerTrialStruct.DiffOwnTarget = DiffOwnTarget(TrialsInCurrentSetIdx);
+		PerTrialStruct.DiffOtherTarget = DiffOtherTarget(TrialsInCurrentSetIdx);
+		
+		PerTrialStruct.A_changed_target_ldx = A_changed_target_ldx(TrialsInCurrentSetIdx);
+		PerTrialStruct.B_changed_target_ldx = B_changed_target_ldx(TrialsInCurrentSetIdx);
+		
+		PerTrialStruct.AorB_changed_target_from_last_trial = AorB_changed_target_from_last_trial(TrialsInCurrentSetIdx);
+		PerTrialStruct.choice_combination_color_string = choice_combination_color_string(TrialsInCurrentSetIdx);
+		
 		
 		
 		FullPerTrialStruct.isTrialInvisible_AB = Invisible_AB(:);
+		%InitialTargetReleaseRT
 		FullPerTrialStruct.A_InitialTargetReleaseRT = A_InitialTargetReleaseRT(:);
 		FullPerTrialStruct.B_InitialTargetReleaseRT = B_InitialTargetReleaseRT(:);
 		FullPerTrialStruct.AB_InitialTargetReleaseRT_diff = AB_InitialTargetReleaseRT_diff(:);
+		%TargetAcquisitionRT
 		FullPerTrialStruct.A_TargetAcquisitionRT = A_TargetAcquisitionRT(:);
 		FullPerTrialStruct.B_TargetAcquisitionRT = B_TargetAcquisitionRT(:);
 		FullPerTrialStruct.AB_TargetAcquisitionRT_diff = AB_TargetAcquisitionRT_diff(:);
-		
+		%IniTargRel_05MT_RT
 		FullPerTrialStruct.A_IniTargRel_05MT_RT = A_IniTargRel_05MT_RT(:);
 		FullPerTrialStruct.B_IniTargRel_05MT_RT = B_IniTargRel_05MT_RT(:);
 		FullPerTrialStruct.AB_IniTargRel_05MT_RT_diff = AB_IniTargRel_05MT_RT_diff(:);
@@ -885,6 +928,17 @@ for iGroup = 1 : length(GroupNameList)
 		FullPerTrialStruct.PreferableTargetSelected_B = PreferableTargetSelected_B(:);
 		FullPerTrialStruct.NonPreferableTargetSelected_A = NonPreferableTargetSelected_A(:);
 		FullPerTrialStruct.NonPreferableTargetSelected_B = NonPreferableTargetSelected_B(:);
+
+		
+		FullPerTrialStruct.SameTargetA = SameTargetA(:);
+		FullPerTrialStruct.SameTargetB = SameTargetB(:);
+		FullPerTrialStruct.DiffOwnTarget = DiffOwnTarget(:);
+		FullPerTrialStruct.DiffOtherTarget = DiffOtherTarget(:);
+		FullPerTrialStruct.A_changed_target_ldx = A_changed_target_ldx(:);
+		FullPerTrialStruct.B_changed_target_ldx = B_changed_target_ldx(:);
+		FullPerTrialStruct.AorB_changed_target_from_last_trial = AorB_changed_target_from_last_trial(:);
+		FullPerTrialStruct.choice_combination_color_string = choice_combination_color_string(:);
+		
 				
 		FullPerTrialStruct.LeftTargetSelected_A = LeftTargetSelected_A(:);
 		FullPerTrialStruct.LeftTargetSelected_B = LeftTargetSelected_B(:);
@@ -2477,8 +2531,28 @@ for iGroup = 1 : length(GroupNameList)
 				
 				
 			end
+			
+			if (PlotRTbyChoiceCombination)
+				% find the trial indices for the selected switch trials				
+				% for each member in selected_choice_combinaton_pattern_list
+				% extract a histogram form a given data list
+				CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
+				% extract and aggregate the data per defined switch
+				SideA_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, choice_combination_color_string, [], A_RT_data, pattern_alignment_offset, n_pre_bins, n_post_bins, strict_pattern_extension, pad_mismatch_with_nan);
+				SideB_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, choice_combination_color_string, [], B_RT_data, pattern_alignment_offset, n_pre_bins, n_post_bins, strict_pattern_extension, pad_mismatch_with_nan);
+				
+				% now create a plot showing these transitions for both
+				% agents
+				
+				
+				
+			end
 		end
 	end
+	
+	
+	
+	
 	
 	if (write_stats_to_text_file)
 		disp(['Closing current stats to text file: ', current_stats_to_text_FQN]);
