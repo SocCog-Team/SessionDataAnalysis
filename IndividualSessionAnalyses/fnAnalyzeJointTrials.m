@@ -78,6 +78,9 @@ DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, Pri
 
 [PathStr, FileName, ~] = fileparts(SessionLogFQN);
 
+orange = [255 165 0]/256;
+green = [0 1 0];
+
 ShowEffectorHandInBackground = 1;
 ShowFasterSideInBackground = 1;
 ShowSelectedSidePerSubjectInRewardPlotBG = 1;
@@ -190,7 +193,7 @@ n_pre_bins = 5;
 n_post_bins = 2;
 strict_pattern_extension = 1;
 pad_mismatch_with_nan = 1;
-
+aggregate_type_meta_list = {'nan_padded', 'raw'};
 
 
 % 20190220: disable hack to use the same trial selection logic for all
@@ -272,7 +275,7 @@ switch project_name
 		RTCatPlotInvisible = 0;
 		histogram_show_median = 0;
 		Add_AR_subplot_to_SoC_plot = 1;
-		InvisibleFigures = 1;			
+		InvisibleFigures = 0;			
 end
 
 % no GUI means no figure windows possible, so try to work around that
@@ -2538,14 +2541,37 @@ for iGroup = 1 : length(GroupNameList)
 				% extract a histogram form a given data list
 				CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
 				% extract and aggregate the data per defined switch
-				SideA_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, choice_combination_color_string, [], A_RT_data, pattern_alignment_offset, n_pre_bins, n_post_bins, strict_pattern_extension, pad_mismatch_with_nan);
-				SideB_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, choice_combination_color_string, [], B_RT_data, pattern_alignment_offset, n_pre_bins, n_post_bins, strict_pattern_extension, pad_mismatch_with_nan);
+				SideA_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, choice_combination_color_string, full_choice_combinaton_pattern_list, A_RT_data, pattern_alignment_offset, n_pre_bins, n_post_bins, strict_pattern_extension, pad_mismatch_with_nan);
+				SideB_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, choice_combination_color_string, full_choice_combinaton_pattern_list, B_RT_data, pattern_alignment_offset, n_pre_bins, n_post_bins, strict_pattern_extension, pad_mismatch_with_nan);
 				
-				% now create a plot showing these transitions for both
-				% agents
-				
-				
-				
+				for i_aggregate_meta_type = 1 : length(aggregate_type_meta_list)
+					current_aggregate_type = aggregate_type_meta_list{i_aggregate_meta_type};
+					if ~isempty(SideA_pattern_histogram_struct) || ~isempty(SideB_pattern_histogram_struct)
+						% now create a plot showing these transitions for both
+						% agents
+						Cur_fh_RTbyChoiceCombinationSwitches = figure('Name', ['RT histogram over choice combination switches: ', current_aggregate_type], 'visible', figure_visibility_string);
+						fnFormatDefaultAxes(DefaultAxesType);
+						[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+						set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+						
+						RT_by_switch_struct_list = {SideA_pattern_histogram_struct, SideB_pattern_histogram_struct};
+						RT_by_switch_title_prefix_list = {'A: ', 'B: '};
+						RT_by_switch_switch_pre_bins_list = {n_pre_bins, n_pre_bins};
+						RT_by_switch_switch_n_bins_list = {(n_pre_bins + 1 + n_post_bins), (n_pre_bins + 1 + n_post_bins)};
+						%RT_by_switch_color_list = {orange, green};
+						RT_by_switch_color_list = {SideAColor, SideBColor};
+						aggregate_type_list = {current_aggregate_type, current_aggregate_type};
+						
+						Cur_fh_RTbyChoiceCombinationSwitches = fn_plot_RT_histogram_by_switches(Cur_fh_RTbyChoiceCombinationSwitches, RT_by_switch_struct_list, selected_choice_combinaton_pattern_list, RT_by_switch_title_prefix_list, RT_by_switch_switch_pre_bins_list, RT_by_switch_switch_n_bins_list, RT_by_switch_color_list, aggregate_type_list);
+						
+						outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySwitches.', current_aggregate_type, '.', histogram_RT_type_string, '.', OutPutType]);
+						write_out_figure(Cur_fh_RTbyChoiceCombinationSwitches, outfile_fqn);
+						
+						legend(legend_list, 'Interpreter', 'None');
+						outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySwitches.legend.', current_aggregate_type, '.', histogram_RT_type_string, '.', OutPutType]);
+						write_out_figure(Cur_fh_RTbyChoiceCombinationSwitches, outfile_fqn);
+					end
+				end
 			end
 		end
 	end
