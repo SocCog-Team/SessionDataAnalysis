@@ -2,9 +2,22 @@ function [ out_figure_handle ] = fn_plot_RT_histogram_by_switches( in_figure_han
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
+% TODO:
+%	collect true max and min for scaling
+%	add color bar on bottom
+
 out_figure_handle = in_figure_handle;
 n_data_structs = length(RT_by_switch_struct_list);
 
+font_weight = 'normal';
+font_size = 8;
+min_y_lim = 300;
+max_y_lim = 1000;
+
+plot_separately = 0;
+
+max_RT_sample = [];
+min_RT_sample = [];
 
 for i_switch_struct = 1 : n_data_structs
 	current_data_struct = RT_by_switch_struct_list{i_switch_struct};
@@ -15,7 +28,13 @@ for i_switch_struct = 1 : n_data_structs
 	current_aggregate_type = aggregate_type_list{i_switch_struct};
 	
 	plot_offset = ceil(current_switch_n_bins * 0.1);
-	subplot(n_data_structs, 1, i_switch_struct)
+	
+	if (plot_separately)
+		subplot(n_data_structs, 1, i_switch_struct);
+		% for scaling the plors separately
+		max_RT_sample = [];
+		min_RT_sample = [];
+	end
 	hold on
 	current_xtick_pos = [];
 	current_xtick_label = [];
@@ -39,19 +58,67 @@ for i_switch_struct = 1 : n_data_structs
 			tmp_lower_ci = current_data.(current_aggregate_type).mean - current_data.(current_aggregate_type).cihw;
 			% the confidence intervals as transparent patch...
 			patch('XData', current_x_vec_patch, 'YData', [tmp_upper_ci, tmp_lower_ci(inverse_index)], 'FaceColor', current_data_color, 'FaceAlpha', 0.3, 'EdgeColor', 'none');
+			
+			max_RT_sample = max([max_RT_sample; current_data.(current_aggregate_type).mean(:)]);
+			min_RT_sample = min([min_RT_sample; current_data.(current_aggregate_type).mean(:)]);
+			
+			
 		end
 		plot_offset = plot_offset + current_switch_n_bins + ceil(current_switch_n_bins * 0.2);
 		
 		
 	end
-	hold off
-	% scale the axis.
+	
 	set(gca(), 'XLim', [0, (plot_offset + ceil(current_switch_n_bins * 0.1))]);
 	set(gca(), 'XTick', current_xtick_pos);
-	set(gca(), 'XTickLabel', current_xtick_label)
+	set(gca(),'TickLabelInterpreter','none');
+	set(gca(), 'XTickLabel', current_xtick_label, 'FontWeight', 'bold');
 	
+	if (plot_separately)
+		fn_label_and_scale_plot(min_y_lim, max_y_lim, max_RT_sample, min_RT_sample, font_weight, font_size);
+	end
+	
+	hold off
+	
+end
+
+if ~(plot_separately)
+	fn_label_and_scale_plot(min_y_lim, max_y_lim, max_RT_sample, min_RT_sample, font_weight, font_size);
 end
 
 return
 end
 
+function [ ] = fn_label_and_scale_plot( min_y_lim, max_y_lim, max_RT_sample, min_RT_sample, font_weight, font_size )
+% scale the axis.
+y_lim = get(gca(), 'YLim');
+
+overscale_ratio = 0.1;
+underscale_ratio = 0.2;
+% try to scale to real data first
+if ~isempty(min_RT_sample)
+	if (y_lim(1) < min_RT_sample * (1 - underscale_ratio))
+		y_lim(1) = min_RT_sample * (1 - underscale_ratio);
+	end
+end
+if ~isempty(max_RT_sample)
+	if (y_lim(2) > max_RT_sample * (1 + overscale_ratio))
+		y_lim(2) = max_RT_sample * (1 + overscale_ratio);
+	end
+end
+
+% emergency scaling to exclude extreme samples
+if (y_lim(1) < min_y_lim)
+	y_lim(1) = min_y_lim;
+end
+if (y_lim(2) > max_y_lim)
+	y_lim(2) = max_y_lim;
+end
+set(gca(), 'YLim', y_lim);
+
+
+xlabel('Choice combination switches', 'Interpreter', 'none', 'FontWeight', font_weight, 'FontSize', font_size);
+ylabel('Reaction time [ms]', 'Interpreter', 'none', 'FontWeight', font_weight, 'FontSize', font_size);
+
+return
+end
