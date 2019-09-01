@@ -114,6 +114,12 @@ end
 if (y_lim(2) > max_y_lim)
 	y_lim(2) = max_y_lim;
 end
+
+if y_lim(1) >= y_lim(2)
+	y_lim(1) = min_y_lim;
+	y_lim(2) = max_y_lim;
+end	
+	
 set(gca(), 'YLim', y_lim);
 
 
