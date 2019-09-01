@@ -25,33 +25,37 @@ for i_switch_type = 1 : length(switches_list)
 		end
 	end
 	
-	if (copy_over.raw)
-		if isempty(new_histogram_struct.(current_switch_type))
-			histogram_struct.(current_switch_type).raw = input_histogram_struct.(current_switch_type).raw;
-		else
-			histogram_struct.(current_switch_type).raw = new_histogram_struct.(current_switch_type).raw;
-		end
+	if (copy_over.raw) && (copy_over.nan_padded)
+		histogram_struct.(current_switch_type) = new_histogram_struct.(current_switch_type);
 	else
-		if isempty(new_histogram_struct.(current_switch_type))
-			histogram_struct.(current_switch_type).raw = input_histogram_struct.(current_switch_type).raw;
+		if (copy_over.raw)
+			if isempty(new_histogram_struct.(current_switch_type))
+				histogram_struct.(current_switch_type) = input_histogram_struct.(current_switch_type);
+			else
+				histogram_struct.(current_switch_type).raw = new_histogram_struct.(current_switch_type).raw;
+			end
 		else
-			histogram_struct.(current_switch_type).raw = [input_histogram_struct.(current_switch_type).raw; new_histogram_struct.(current_switch_type).raw];
+			if isempty(new_histogram_struct.(current_switch_type))
+				histogram_struct.(current_switch_type).raw = input_histogram_struct.(current_switch_type).raw;
+			else
+				histogram_struct.(current_switch_type).raw = [input_histogram_struct.(current_switch_type).raw; new_histogram_struct.(current_switch_type).raw];
+			end
+		end
+		
+		if (copy_over.nan_padded)
+			if isempty(new_histogram_struct.(current_switch_type))
+				histogram_struct.(current_switch_type).nan_padded = input_histogram_struct.(current_switch_type).nan_padded;
+			else
+				histogram_struct.(current_switch_type).nan_padded = new_histogram_struct.(current_switch_type).nan_padded;
+			end
+		else
+			if isempty(new_histogram_struct.(current_switch_type))
+				histogram_struct.(current_switch_type).nan_padded = input_histogram_struct.(current_switch_type).nan_padded;
+			else
+				histogram_struct.(current_switch_type).nan_padded = [input_histogram_struct.(current_switch_type).nan_padded; new_histogram_struct.(current_switch_type).nan_padded];
+			end
 		end
 	end
-	
-	if (copy_over.nan_padded)
-		if isempty(new_histogram_struct.(current_switch_type))
-			histogram_struct.(current_switch_type).nan_padded = input_histogram_struct.(current_switch_type).nan_padded;
-		else
-			histogram_struct.(current_switch_type).nan_padded = new_histogram_struct.(current_switch_type).nan_padded;
-		end
-	else
-		if isempty(new_histogram_struct.(current_switch_type))
-			histogram_struct.(current_switch_type).nan_padded = input_histogram_struct.(current_switch_type).nan_padded;
-		else
-			histogram_struct.(current_switch_type).nan_padded = [input_histogram_struct.(current_switch_type).nan_padded; new_histogram_struct.(current_switch_type).nan_padded];		
-		end
-	end	
 end
 
 return
