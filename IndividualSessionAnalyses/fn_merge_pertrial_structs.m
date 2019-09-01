@@ -26,7 +26,11 @@ for i_switch_type = 1 : length(switches_list)
 	end
 	
 	if (copy_over.raw)
-		histogram_struct.(current_switch_type).raw = new_histogram_struct.(current_switch_type).raw;
+		if isempty(new_histogram_struct.(current_switch_type))
+			histogram_struct.(current_switch_type).raw = input_histogram_struct.(current_switch_type).raw;
+		else
+			histogram_struct.(current_switch_type).raw = new_histogram_struct.(current_switch_type).raw;
+		end
 	else
 		if isempty(new_histogram_struct.(current_switch_type))
 			histogram_struct.(current_switch_type).raw = input_histogram_struct.(current_switch_type).raw;
@@ -36,7 +40,11 @@ for i_switch_type = 1 : length(switches_list)
 	end
 	
 	if (copy_over.nan_padded)
-		histogram_struct.(current_switch_type).nan_padded = new_histogram_struct.(current_switch_type).nan_padded;
+		if isempty(new_histogram_struct.(current_switch_type))
+			histogram_struct.(current_switch_type).nan_padded = input_histogram_struct.(current_switch_type).nan_padded;
+		else
+			histogram_struct.(current_switch_type).nan_padded = new_histogram_struct.(current_switch_type).nan_padded;
+		end
 	else
 		if isempty(new_histogram_struct.(current_switch_type))
 			histogram_struct.(current_switch_type).nan_padded = input_histogram_struct.(current_switch_type).nan_padded;
