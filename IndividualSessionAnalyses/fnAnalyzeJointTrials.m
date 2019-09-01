@@ -189,11 +189,11 @@ PlotRTbyChoiceCombination = 1;
 full_choice_combinaton_pattern_list = {'RM', 'MR', 'BM', 'MB', 'RB', 'BR', 'RG', 'GR', 'BG', 'GB', 'GM', 'MG'};
 selected_choice_combinaton_pattern_list = full_choice_combinaton_pattern_list;
 pattern_alignment_offset = 1; % the offset to the position
-n_pre_bins = 5;
-n_post_bins = 2;
+n_pre_bins = 3;
+n_post_bins = 3;
 strict_pattern_extension = 1;
 pad_mismatch_with_nan = 1;
-aggregate_type_meta_list = {'nan_padded', 'raw'};
+aggregate_type_meta_list = {'nan_padded'}; %  {'nan_padded', 'raw'}, the raw looks like the 1st derivation
 
 
 % 20190220: disable hack to use the same trial selection logic for all
