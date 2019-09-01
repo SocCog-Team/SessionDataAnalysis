@@ -23,6 +23,8 @@ ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.m
 
 project_name = [];
 project_name = 'BoS_manuscript';
+%project_name = 'SfN2008'; % this loops back to 2019
+
 
 % special case for the paper set
 if strcmp(project_name, 'BoS_manuscript')
@@ -253,7 +255,7 @@ IncludeWildcardList = {};
 
 if strcmp(project_name, 'BoS_manuscript')
 	% the set for the 2019 paper
-	[~, IncludeWildcardList] = fn_get_session_group('BoS_human_monkey_2019');
+	[~, IncludeWildcardList] = fn_get_session_group('BoS_manuscript');
 end
 
 if ~isempty(IncludeWildcardList)
