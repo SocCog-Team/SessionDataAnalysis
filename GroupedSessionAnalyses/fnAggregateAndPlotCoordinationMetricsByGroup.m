@@ -163,7 +163,7 @@ n_post_bins = 2;
 strict_pattern_extension = 1;
 pad_mismatch_with_nan = 1;
 %aggregate_type_meta_list = {'nan_padded', 'raw'};
-aggregate_type_meta_list = {'nan_padded'}: % the raw looks like a derivative of the nan_padded
+aggregate_type_meta_list = {'nan_padded'}; % the raw looks like a derivative of the nan_padded
 RT_type = 'IniTargRel_05MT_RT';
 
 
