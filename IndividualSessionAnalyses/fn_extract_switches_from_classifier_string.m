@@ -29,7 +29,11 @@ end
 % now extract the pattern indices
 for i_pattern = 1 : length(search_pattern_list)
 	cur_pattern = search_pattern_list{i_pattern};
-	pattern_in_class_string_struct.(cur_pattern) = strfind(classifier_string, cur_pattern);
+	if size(classifier_string, 1) == 1
+		pattern_in_class_string_struct.(cur_pattern) = strfind(classifier_string, cur_pattern);
+	else
+		pattern_in_class_string_struct.(cur_pattern) = strfind(classifier_string', cur_pattern);
+	end
 end
 
 return
