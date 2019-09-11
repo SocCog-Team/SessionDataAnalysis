@@ -23,7 +23,7 @@ ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.m
 
 project_name = [];
 project_name = 'BoS_manuscript';
-%project_name = 'SfN2008'; % this loops back to 2019
+project_name = 'SfN2008'; % this loops back to 2019
 
 
 % special case for the paper set
