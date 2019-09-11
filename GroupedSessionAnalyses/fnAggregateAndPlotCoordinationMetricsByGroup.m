@@ -145,8 +145,8 @@ plot_blocked_confederate_data = 0;
 plot_RT_by_switch_type = 1;
 % for each member in selected_choice_combinaton_pattern_list  extract a histogram form a given data list
 pattern_alignment_offset = 1; % the offset to the position
-n_pre_bins = 5;
-n_post_bins = 2;
+n_pre_bins = 3;
+n_post_bins = 3;
 strict_pattern_extension = 1;
 pad_mismatch_with_nan = 1;
 full_choice_combinaton_pattern_list = {'RM', 'MR', 'BM', 'MB', 'RB', 'BR', 'RG', 'GR', 'BG', 'GB', 'GM', 'MG'};
@@ -158,13 +158,18 @@ orange = [255 165 0]/256;
 green = [0 1 0];
 SideAColor = [1 0 0];
 SideBColor = [0 0 1];
-n_pre_bins = 5;
-n_post_bins = 2;
-strict_pattern_extension = 1;
-pad_mismatch_with_nan = 1;
 %aggregate_type_meta_list = {'nan_padded', 'raw'};
 aggregate_type_meta_list = {'nan_padded'}; % the raw looks like a derivative of the nan_padded
 RT_type = 'IniTargRel_05MT_RT';
+StackHeightToInitialPLotHeightRatio = 0.1;
+% 20180815 new colors..., for joint report the joint color (well blue
+% instead of yellow), for both same use magenta, and for both other use
+% green
+SameOwnAColor = [1 0 0];%[1 0 0];
+SameOwnBColor = [0 0 1];%([255 165 0] / 255);
+DiffOwnColor = [1 0 1];%[1 0 0];
+DiffOtherColor = [0 1 0];%[0 0 1];
+
 
 
 
@@ -241,6 +246,7 @@ bygroup = [];
 if (generate_session_reports)
 	data_struct_list = cell([length(group_struct_list) 1]);
 	for i_group = 1 : length(group_struct_list)
+		group_concatenated_pertrial_data = []; % we need this fresh for every group
 		current_group = group_struct_list{i_group};
 		current_setname = current_group.setLabel;
 		indir = fullfile(OutputPath, '..', 'CoordinationCheck');
@@ -1339,6 +1345,8 @@ if (plot_RT_by_switch_type)
 		current_group_label = group_struct_list{i_group}.setLabel;
 		SideA_pattern_histogram_pertrial_struct = [];
 		SideB_pattern_histogram_pertrial_struct = [];
+		SideA_pattern_histogram_struct = [];
+		SideB_pattern_histogram_struct = [];
 		
 		% extract and aggregate the data per defined switch
 		cur_trial_idx = group_concatenated_pertrial_data.selected_trial_idx;
@@ -1350,8 +1358,10 @@ if (plot_RT_by_switch_type)
 		% loop over the individual sessions to avoid edge effects
 		unique_sessionIDs = unique(group_concatenated_pertrial_data.sessionID);
 		
-		for i_sessiopn = 1 : length(unique_sessionIDs)
-			cur_sessionID = unique_sessionIDs(i_sessiopn);
+		for i_session = 1 : length(unique_sessionIDs)
+			cur_sessionID = unique_sessionIDs(i_session);
+			current_SideA_pattern_histogram_pertrial_struct = [];
+			current_SideB_pattern_histogram_pertrial_struct = [];
 			
 			current_sessionID_trial_idx = find(group_concatenated_pertrial_data.sessionID == cur_sessionID);
 			current_trial_idx = intersect(cur_trial_idx, current_sessionID_trial_idx);
@@ -1390,7 +1400,23 @@ if (plot_RT_by_switch_type)
 				RT_by_switch_color_list = {SideAColor, SideBColor};
 				aggregate_type_list = {current_aggregate_type, current_aggregate_type};
 				
-				Cur_fh_RTbyChoiceCombinationSwitches = fn_plot_RT_histogram_by_switches(Cur_fh_RTbyChoiceCombinationSwitches, RT_by_switch_struct_list, selected_choice_combinaton_pattern_list, RT_by_switch_title_prefix_list, RT_by_switch_switch_pre_bins_list, RT_by_switch_switch_n_bins_list, RT_by_switch_color_list, aggregate_type_list);
+				[Cur_fh_RTbyChoiceCombinationSwitches, merged_classifier_char_string] = fn_plot_RT_histogram_by_switches(Cur_fh_RTbyChoiceCombinationSwitches, RT_by_switch_struct_list, selected_choice_combinaton_pattern_list, RT_by_switch_title_prefix_list, RT_by_switch_switch_pre_bins_list, RT_by_switch_switch_n_bins_list, RT_by_switch_color_list, aggregate_type_list);
+
+				trial_outcome_list = zeros(size(merged_classifier_char_string));
+				trial_outcome_list(merged_classifier_char_string == 'R') = 1;
+				trial_outcome_list(merged_classifier_char_string == 'B') = 2;
+				trial_outcome_list(merged_classifier_char_string == 'M') = 3;
+				trial_outcome_list(merged_classifier_char_string == 'G') = 4;
+				% 
+				trial_outcome_colors = [SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor];
+				trial_outcome_BGTransparency = [1.0];
+				
+				y_lim = get(gca(), 'YLim');				
+				fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, {trial_outcome_list}, y_lim, {trial_outcome_colors}, {trial_outcome_BGTransparency});
+				y_lim = get(gca(), 'YLim');
+
+
+				
 				
 				
 				CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label];
