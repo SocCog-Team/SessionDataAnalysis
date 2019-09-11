@@ -33,30 +33,38 @@ for i_switch_type = 1 : length(switches_list)
 				histogram_struct.(current_switch_type) = input_histogram_struct.(current_switch_type);
 			else
 				histogram_struct.(current_switch_type).raw = new_histogram_struct.(current_switch_type).raw;
+				histogram_struct.(current_switch_type).raw_pattern = new_histogram_struct.(current_switch_type).raw_pattern;
 			end
 		else
 			if isempty(new_histogram_struct.(current_switch_type))
 				histogram_struct.(current_switch_type).raw = input_histogram_struct.(current_switch_type).raw;
+				histogram_struct.(current_switch_type).raw_pattern = input_histogram_struct.(current_switch_type).raw_pattern;
 			else
 				histogram_struct.(current_switch_type).raw = [input_histogram_struct.(current_switch_type).raw; new_histogram_struct.(current_switch_type).raw];
+				histogram_struct.(current_switch_type).raw_pattern = new_histogram_struct.(current_switch_type).raw_pattern;
 			end
 		end
 		
 		if (copy_over.nan_padded)
 			if isempty(new_histogram_struct.(current_switch_type))
-				histogram_struct.(current_switch_type).nan_padded = input_histogram_struct.(current_switch_type).nan_padded;
+				histogram_struct.(current_switch_type) = input_histogram_struct.(current_switch_type);
 			else
 				histogram_struct.(current_switch_type).nan_padded = new_histogram_struct.(current_switch_type).nan_padded;
+				histogram_struct.(current_switch_type).nan_padded_pattern = new_histogram_struct.(current_switch_type).nan_padded_pattern;
 			end
 		else
 			if isempty(new_histogram_struct.(current_switch_type))
 				histogram_struct.(current_switch_type).nan_padded = input_histogram_struct.(current_switch_type).nan_padded;
+				histogram_struct.(current_switch_type).nan_padded_pattern = input_histogram_struct.(current_switch_type).nan_padded_pattern;
 			else
 				histogram_struct.(current_switch_type).nan_padded = [input_histogram_struct.(current_switch_type).nan_padded; new_histogram_struct.(current_switch_type).nan_padded];
+				histogram_struct.(current_switch_type).nan_padded_pattern = new_histogram_struct.(current_switch_type).nan_padded_pattern;
 			end
 		end
 	end
+		
 end
+
 
 return
 end
