@@ -84,7 +84,7 @@ for i_switch_type = 1 : length(selected_choice_combinaton_pattern_list)
 				end
 			end
 			
-			if (strict_pattern_extension)
+			if (strict_pattern_extension) && ~((cur_switch_start_bin_idx < 1) && (cur_switch_end_bin_idx > length(data)))
 				% look into the past
 				tmp_start_idx = cur_switch_idx - (n_pre_bins - cur_switch_start_bin_idx_offset) + 1;	
 				tmp_end_idx = cur_switch_idx;
@@ -107,12 +107,25 @@ for i_switch_type = 1 : length(selected_choice_combinaton_pattern_list)
 			pertrial_padded_array(i_switch, :) = current_PeriEventTimeData_padded';
 			
 		end
-		
+
+		% create a string representation of the outcome sequence
+		tmp_string = char(zeros([size(current_PeriEventTimeData_raw')]));
+		raw_pattern = tmp_string;
+		nan_padded_pattern = tmp_string;
+		nan_padded_pattern(1:end) = current_pattern_start_char;
+		nan_padded_pattern(n_pre_bins + pattern_alignment_offset:end) = current_pattern_stop_char;
+		raw_pattern(n_pre_bins: n_pre_bins - pattern_alignment_offset + length(current_switch_type_string)) = current_switch_type_string;
+		nan_padded_pattern(n_pre_bins: n_pre_bins - pattern_alignment_offset + length(current_switch_type_string)) = current_switch_type_string;
+				
 		pertrial_perswitch_struct.(current_switch_type_string).raw = pertrial_raw_array;
 		pertrial_perswitch_struct.(current_switch_type_string).nan_padded = pertrial_padded_array;
+		pertrial_perswitch_struct.(current_switch_type_string).raw_pattern = raw_pattern;
+		pertrial_perswitch_struct.(current_switch_type_string).nan_padded_pattern = nan_padded_pattern;
 		% create aggregate data
 		aggregate_perswitch_struct.(current_switch_type_string).raw = fn_aggregate_event_data(pertrial_raw_array);
 		aggregate_perswitch_struct.(current_switch_type_string).nan_padded = fn_aggregate_event_data(pertrial_padded_array);
+		aggregate_perswitch_struct.(current_switch_type_string).raw_pattern = raw_pattern;
+		aggregate_perswitch_struct.(current_switch_type_string).nan_padded_pattern = nan_padded_pattern;
 
 	end
 end
