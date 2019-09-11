@@ -275,7 +275,7 @@ switch project_name
 		RTCatPlotInvisible = 0;
 		histogram_show_median = 0;
 		Add_AR_subplot_to_SoC_plot = 1;
-		InvisibleFigures = 0;			
+		InvisibleFigures = 1;			
 end
 
 % no GUI means no figure windows possible, so try to work around that
@@ -2562,7 +2562,22 @@ for iGroup = 1 : length(GroupNameList)
 						RT_by_switch_color_list = {SideAColor, SideBColor};
 						aggregate_type_list = {current_aggregate_type, current_aggregate_type};
 						
-						Cur_fh_RTbyChoiceCombinationSwitches = fn_plot_RT_histogram_by_switches(Cur_fh_RTbyChoiceCombinationSwitches, RT_by_switch_struct_list, selected_choice_combinaton_pattern_list, RT_by_switch_title_prefix_list, RT_by_switch_switch_pre_bins_list, RT_by_switch_switch_n_bins_list, RT_by_switch_color_list, aggregate_type_list);
+						[Cur_fh_RTbyChoiceCombinationSwitches, merged_classifier_char_string] = fn_plot_RT_histogram_by_switches(Cur_fh_RTbyChoiceCombinationSwitches, RT_by_switch_struct_list, selected_choice_combinaton_pattern_list, RT_by_switch_title_prefix_list, RT_by_switch_switch_pre_bins_list, RT_by_switch_switch_n_bins_list, RT_by_switch_color_list, aggregate_type_list);
+						
+						if (ShowTargetSideChoiceCombinations)
+							trial_outcome_list = zeros(size(merged_classifier_char_string));
+							trial_outcome_list(merged_classifier_char_string == 'R') = 1;
+							trial_outcome_list(merged_classifier_char_string == 'B') = 2;
+							trial_outcome_list(merged_classifier_char_string == 'M') = 3;
+							trial_outcome_list(merged_classifier_char_string == 'G') = 4;
+							%
+							trial_outcome_colors = [SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor];
+							trial_outcome_BGTransparency = [1.0];
+							
+							y_lim = get(gca(), 'YLim');
+							fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, {trial_outcome_list}, y_lim, {trial_outcome_colors}, {trial_outcome_BGTransparency});
+							y_lim = get(gca(), 'YLim');
+						end
 						
 						outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySwitches.', current_aggregate_type, '.', histogram_RT_type_string, '.', OutPutType]);
 						write_out_figure(Cur_fh_RTbyChoiceCombinationSwitches, outfile_fqn);
@@ -2624,62 +2639,62 @@ end
 return
 end
 
-function [] = fnPlotStackedCategoriesAtPositionWrapper( PositionLabel, StackHeightToInitialPLotHeightRatio, StackedXData, y_lim, StackedColors, StackedTransparencies )
-y_height = (y_lim(2) - y_lim(1));
-num_stacked_items = size(StackedXData, 1);
-new_y_lim = y_lim;
-
-switch PositionLabel
-	case 'StackedOnTop'
-		% make room for the category markers on top of the existing plot
-		y_increment_per_stack = y_height * StackHeightToInitialPLotHeightRatio / (num_stacked_items + 1);
-		new_y_lim = [y_lim(1), (y_lim(2) + (StackHeightToInitialPLotHeightRatio) * y_height)];
-		set(gca(), 'YLim', new_y_lim);
-		
-	case 'StackedOnBottom'
-		% make room for the category markers below the existing plot
-		y_increment_per_stack = y_height * StackHeightToInitialPLotHeightRatio / (num_stacked_items + 1);
-		new_y_lim = [(y_lim(1) - (StackHeightToInitialPLotHeightRatio) * y_height), y_lim(2)];
-		set(gca(), 'YLim', new_y_lim);
-		
-	case 'StackedBottomToTop'
-		% just fill the existing plot area
-		y_increment_per_stack = y_height / (num_stacked_items);
-		new_y_lim = y_lim;
-		
-	otherwise
-		disp(['Position label: ', PositionLabel, ' not implemented yet, skipping...'])
-		return
-end
-
-
-for iStackItem = 1 : num_stacked_items
-	CurrentCategoryByXVals = StackedXData{iStackItem};
-	CurrentColorByCategoryList = StackedColors{iStackItem};
-	CurrentTransparency = StackedTransparencies{iStackItem};
-	switch PositionLabel
-		case 'StackedOnTop'
-			% we want one y_increment as separator from the plots intial YLimits
-			CurrentLowY = y_lim(2) + ((iStackItem) * y_increment_per_stack);
-			CurrentHighY = CurrentLowY + y_increment_per_stack;
-			
-		case 'StackedOnBottom'
-			% we want one y_increment as separator from the plots intial YLimits
-			CurrentLowY = new_y_lim(1) + ((iStackItem - 1) * y_increment_per_stack);
-			CurrentHighY = CurrentLowY + y_increment_per_stack;
-			
-		case 'StackedBottomToTop'
-			% we want one y_increment as separator from the plots intial
-			% YLimits
-			CurrentLowY = y_lim(1) + ((iStackItem - 1) * y_increment_per_stack);
-			CurrentHighY = CurrentLowY + y_increment_per_stack;
-	end
-	% now plot
-	fnPlotBackgroundByCategory(CurrentCategoryByXVals, [CurrentLowY, CurrentHighY], CurrentColorByCategoryList, CurrentTransparency);
-end
-
-return
-end
+% function [] = fnPlotStackedCategoriesAtPositionWrapper( PositionLabel, StackHeightToInitialPLotHeightRatio, StackedXData, y_lim, StackedColors, StackedTransparencies )
+% y_height = (y_lim(2) - y_lim(1));
+% num_stacked_items = size(StackedXData, 1);
+% new_y_lim = y_lim;
+% 
+% switch PositionLabel
+% 	case 'StackedOnTop'
+% 		% make room for the category markers on top of the existing plot
+% 		y_increment_per_stack = y_height * StackHeightToInitialPLotHeightRatio / (num_stacked_items + 1);
+% 		new_y_lim = [y_lim(1), (y_lim(2) + (StackHeightToInitialPLotHeightRatio) * y_height)];
+% 		set(gca(), 'YLim', new_y_lim);
+% 		
+% 	case 'StackedOnBottom'
+% 		% make room for the category markers below the existing plot
+% 		y_increment_per_stack = y_height * StackHeightToInitialPLotHeightRatio / (num_stacked_items + 1);
+% 		new_y_lim = [(y_lim(1) - (StackHeightToInitialPLotHeightRatio) * y_height), y_lim(2)];
+% 		set(gca(), 'YLim', new_y_lim);
+% 		
+% 	case 'StackedBottomToTop'
+% 		% just fill the existing plot area
+% 		y_increment_per_stack = y_height / (num_stacked_items);
+% 		new_y_lim = y_lim;
+% 		
+% 	otherwise
+% 		disp(['Position label: ', PositionLabel, ' not implemented yet, skipping...'])
+% 		return
+% end
+% 
+% 
+% for iStackItem = 1 : num_stacked_items
+% 	CurrentCategoryByXVals = StackedXData{iStackItem};
+% 	CurrentColorByCategoryList = StackedColors{iStackItem};
+% 	CurrentTransparency = StackedTransparencies{iStackItem};
+% 	switch PositionLabel
+% 		case 'StackedOnTop'
+% 			% we want one y_increment as separator from the plots intial YLimits
+% 			CurrentLowY = y_lim(2) + ((iStackItem) * y_increment_per_stack);
+% 			CurrentHighY = CurrentLowY + y_increment_per_stack;
+% 			
+% 		case 'StackedOnBottom'
+% 			% we want one y_increment as separator from the plots intial YLimits
+% 			CurrentLowY = new_y_lim(1) + ((iStackItem - 1) * y_increment_per_stack);
+% 			CurrentHighY = CurrentLowY + y_increment_per_stack;
+% 			
+% 		case 'StackedBottomToTop'
+% 			% we want one y_increment as separator from the plots intial
+% 			% YLimits
+% 			CurrentLowY = y_lim(1) + ((iStackItem - 1) * y_increment_per_stack);
+% 			CurrentHighY = CurrentLowY + y_increment_per_stack;
+% 	end
+% 	% now plot
+% 	fnPlotBackgroundByCategory(CurrentCategoryByXVals, [CurrentLowY, CurrentHighY], CurrentColorByCategoryList, CurrentTransparency);
+% end
+% 
+% return
+% end
 
 
 
