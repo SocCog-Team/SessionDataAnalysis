@@ -11,6 +11,8 @@ for i_switch = 1 : length(current_fieldnames)
 	else
 		aggregate_struct.(current_switch_type).raw = fn_aggregate_event_data(per_trial_struct.(current_switch_type).raw);
 		aggregate_struct.(current_switch_type).nan_padded = fn_aggregate_event_data(per_trial_struct.(current_switch_type).nan_padded);
+		aggregate_struct.(current_switch_type).raw_pattern = per_trial_struct.(current_switch_type).raw_pattern;
+		aggregate_struct.(current_switch_type).nan_padded_pattern = per_trial_struct.(current_switch_type).nan_padded_pattern;
 	end
 end
 
