@@ -1,10 +1,12 @@
-function [ out_figure_handle ] = fn_plot_RT_histogram_by_switches( in_figure_handle, RT_by_switch_struct_list, selected_switches_list, RT_by_switch_title_prefix_list, RT_by_switch_switch_pre_bins_list, RT_by_switch_switch_n_bins_list, RT_by_switch_color_list, aggregate_type_list)
+function [ out_figure_handle, merged_classifier_char_string ] = fn_plot_RT_histogram_by_switches( in_figure_handle, RT_by_switch_struct_list, selected_switches_list, RT_by_switch_title_prefix_list, RT_by_switch_switch_pre_bins_list, RT_by_switch_switch_n_bins_list, RT_by_switch_color_list, aggregate_type_list)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
 % TODO:
 %	collect true max and min for scaling
-%	add color bar on bottom
+%	add color bar on bottom?
+%		rather construct a string of the concatenated patterns to allow the
+%		construct of a colorbar by the caller
 
 out_figure_handle = in_figure_handle;
 n_data_structs = length(RT_by_switch_struct_list);
@@ -18,6 +20,7 @@ plot_separately = 0;
 
 max_RT_sample = [];
 min_RT_sample = [];
+merged_classifier_char_string = '';
 
 for i_switch_struct = 1 : n_data_structs
 	current_data_struct = RT_by_switch_struct_list{i_switch_struct};
@@ -26,6 +29,7 @@ for i_switch_struct = 1 : n_data_structs
 	current_switch_n_bins = RT_by_switch_switch_n_bins_list{i_switch_struct};
 	current_data_color = RT_by_switch_color_list{i_switch_struct};
 	current_aggregate_type = aggregate_type_list{i_switch_struct};
+	
 	
 	plot_offset = ceil(current_switch_n_bins * 0.1);
 	
@@ -44,6 +48,17 @@ for i_switch_struct = 1 : n_data_structs
 		current_switch_x_pos = plot_offset + current_switch_pre_bins + 1;
 		current_xtick_pos(end+1) = current_switch_x_pos - 1;
 		current_xtick_label{end+1} = current_switch;
+		
+		if isempty(current_data)
+			current_classifier_char_string = char(zeros([1 current_switch_n_bins]));
+		else
+			current_classifier_char_string = current_data.([current_aggregate_type, '_pattern']);
+		end
+		% just extend the string by grafting current_classifier_char_string
+		% at the appropriate position.
+		merged_classifier_char_string(plot_offset:plot_offset-1+length(current_classifier_char_string)) = current_classifier_char_string;
+		
+		plot([current_switch_x_pos - 1, current_switch_x_pos - 1], [min_y_lim, max_y_lim], 'Color', [0 0 0], 'LineWidth', 0.125, 'LineStyle', '--');
 		
 		% is there something to plot?
 		if ~isempty(current_data)
@@ -114,6 +129,7 @@ end
 if (y_lim(2) > max_y_lim)
 	y_lim(2) = max_y_lim;
 end
+
 
 if y_lim(1) >= y_lim(2)
 	y_lim(1) = min_y_lim;
