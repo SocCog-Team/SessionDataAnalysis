@@ -1050,6 +1050,53 @@ for iGroup = 1 : length(GroupNameList)
 			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
 				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
 				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
+
+% 			% add last250 trials as well (exploratory phase)
+% 			PopulationAggregateName = ['ALL_SESSSION_METRICS.last250.mat'];
+% 			use_all_trials = 1;
+% 			prefix_string = '';
+% 			suffix_string = '';
+% 			n_TrialsInCurrentSetIdx = length(TrialsInCurrentSetIdx);
+% 			CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx((max([1 (end - 250 + 1)])):end);
+% 			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+% 				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+% 				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
+
+			% add last250 trials as well (exploratory phase)
+			PopulationAggregateName = ['ALL_SESSSION_METRICS.last250.mat'];
+			use_all_trials = 0;
+			prefix_string = '';
+			suffix_string = '';
+			tmp_coordination_metrics_cfg = coordination_metrics_cfg;
+			tmp_coordination_metrics_cfg.stationarySegmentLength = 250;
+			CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
+			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
+
+			% add last250 trials as well (exploratory phase)
+			PopulationAggregateName = ['ALL_SESSSION_METRICS.last150.mat'];
+			use_all_trials = 0;
+			prefix_string = '';
+			suffix_string = '';
+			tmp_coordination_metrics_cfg = coordination_metrics_cfg;
+			tmp_coordination_metrics_cfg.stationarySegmentLength = 150;
+			CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
+			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
+
+			% add last250 trials as well (exploratory phase)
+			PopulationAggregateName = ['ALL_SESSSION_METRICS.last100.mat'];
+			use_all_trials = 0;
+			prefix_string = '';
+			suffix_string = '';
+			tmp_coordination_metrics_cfg = coordination_metrics_cfg;
+			tmp_coordination_metrics_cfg.stationarySegmentLength = 100;
+			CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
+			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);			
 			
 			% the final hopefully steady-state exploitation phase
 			PopulationAggregateName = ['ALL_SESSSION_METRICS.last200.mat'];
