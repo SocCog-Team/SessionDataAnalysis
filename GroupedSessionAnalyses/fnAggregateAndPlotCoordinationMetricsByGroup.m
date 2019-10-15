@@ -18,7 +18,7 @@ if ~exist('project_name', 'var') || isempty(project_name)
 	% which essentially defines the subset of sessions to include
 	project_name = [];
 	project_set = 'BoS_human_monkey_2019';
-	%project_name = 'BoS_manuscript';
+	project_name = 'BoS_manuscript';
 else
 	project_set = project_name;
 end
@@ -48,6 +48,9 @@ if ~exist('session_metrics_datafile_fqn', 'var') || isempty(session_metrics_data
 	
 	session_metrics_datafile_fqn_list = {...
 		fullfile(InputPath, ['ALL_SESSSION_METRICS.last200.mat']), ...
+		fullfile(InputPath, ['ALL_SESSSION_METRICS.last250.mat']), ...
+		fullfile(InputPath, ['ALL_SESSSION_METRICS.last150.mat']), ...
+		fullfile(InputPath, ['ALL_SESSSION_METRICS.last100.mat']), ...
 		fullfile(InputPath, ['ALL_SESSSION_METRICS.all_joint_choice_trials.mat']), ...
 		fullfile(InputPath, ['ALL_SESSSION_METRICS.first100.mat']),...
 		fullfile(InputPath, ['ALL_SESSSION_METRICS.visible_pre.mat']),...
@@ -56,6 +59,9 @@ if ~exist('session_metrics_datafile_fqn', 'var') || isempty(session_metrics_data
 		};
 	session_metrics_datafile_IDtag_list = {...
 		'last200', ...
+		'last250', ...
+		'last150', ...
+		'last100', ...
 		'all_joint_choice_trials', ...
 		'first100', ...
 		'visible_pre', ...
@@ -170,6 +176,10 @@ SameOwnBColor = [0 0 1];%([255 165 0] / 255);
 DiffOwnColor = [1 0 1];%[1 0 0];
 DiffOtherColor = [0 1 0];%[0 0 1];
 
+bar_edge_color = [0 0 0];
+if strcmp(project_name, 'BoS_manuscript')
+	bar_edge_color = 'none';
+end
 
 
 
@@ -613,6 +623,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			% now re-color the non-significant positions
 			if (MI_space_mark_non_significant_sessions) && ~isempty( MIs_by_group.bothMIsNotSignif_idx{i_group})
 				tmp_current_scatter_color = [1 0 0];
+				%tmp_current_scatter_color = current_scatter_color;
 				cur_bothMIsNotSignif_idx = MIs_by_group.bothMIsNotSignif_idx{i_group};
 				if group_struct_list{i_group}.FilledSymbols
 					scatter(x_list(cur_bothMIsNotSignif_idx), y_list(cur_bothMIsNotSignif_idx), ScatterSymbolSize, tmp_current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
@@ -756,7 +767,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 		ScatterLineWidth = 0.75;
 		ScatterMaker = 'o';
 		current_scatter_color = group_struct_list{i_group}.color;
-		%current_scatter_color = [0.5 0.5 0.5];
+		current_scatter_color = [170 0 0] / 255;
 		x_list = early_AVG_rewardAB;
 		y_list = late_AVG_rewardAB;
 		
@@ -829,8 +840,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque', ...
 					'Humans50_55__80_20', 'Humans50_50', 'GoodHumans', 'BadHumans', 'HumansTransparent'})
 				cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
+				x_label_string = 'Pair ID';
 			else
 				disp('Doh...');
+				x_label_string = 'Session ID';
 			end
 			
 			
@@ -838,7 +851,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			current_group_data = metrics_by_group_list{i_group};
 			% now collect the actual data of interest
 			
-			error('Not impleented yet');
+			error('Not implemented yet');
 			
 			
 			% Share of Own Choices
@@ -877,10 +890,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			color_list = {[1,0,0], [0,0,1]};
 			symbol_list = {'o', 's'};
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('Share of own choices', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -893,10 +906,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			color_list = {[1,0,0], [0,0,1]};
 			symbol_list = {'o', 's'};
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('Share of obj. left choices', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -909,10 +922,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			instance_list = {'AVG_rewardA', 'AVG_rewardAB', 'AVG_rewardB'};
 			color_list = {[1,0,0], [0.5,0,0.5], [0,0,1]};
 			symbol_list = {'o', 'none', 's'};
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('Average reward', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0.9 4.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -924,10 +937,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			instance_list = {'MI_target'};
 			color_list = {[0.5,0,0.5]};
 			symbol_list = {'d'};
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('MI target', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -939,10 +952,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			instance_list = {'MI_side'};
 			color_list = {[0.5,0,0.5]};
 			symbol_list = {'d'};
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('MI side', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -955,10 +968,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			color_list = {[0.5,0,0.5]};
 			symbol_list = {'d'};
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0 0], 'Color', [0 0 0], 'Marker', 'none');
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('Non-random reward', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [-0.2 1.2]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -1009,9 +1022,11 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', })
 				cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
 				cur_plot_coordination_metrics_for_each_group_graph_type_override = [];
+				x_label_string = 'Pair ID';
 			else
 				disp('Doh...');
 				cur_plot_coordination_metrics_for_each_group_graph_type_override = 'list_order';
+				x_label_string = 'Session ID';
 			end
 			
 			
@@ -1083,10 +1098,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			color_list = {[1,0,0], [0,0,1]};
 			symbol_list = {'o', 's'};
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('Share of own choices', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -1102,10 +1117,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			color_list = {[1,0,0], [0,0,1]};
 			symbol_list = {'o', 's'};
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('Share of obj. left choices', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -1125,10 +1140,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [2.5 2.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
 			% maximum grand average reward
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [3.5 3.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('Average reward', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0.9 4.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -1143,10 +1158,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			instance_list = {'MI_target'};
 			color_list = {[0.5,0,0.5]};
 			symbol_list = {'d'};
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('MI target', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -1160,10 +1175,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			instance_list = {'MI_side'};
 			color_list = {[0.5,0,0.5]};
 			symbol_list = {'d'};
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('MI side', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -1178,10 +1193,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			color_list = {[0.5,0,0.5]};
 			symbol_list = {'d'};
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0 0], 'Color', [0 0 0], 'Marker', 'none');
-			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list);
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
 			ylabel('Dynamic coordination reward', 'Interpreter', 'none');
-			xlabel('Session ID', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [-0.2 1.2]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
@@ -1660,7 +1675,7 @@ end
 
 
 
-function [current_axis_h] = fn_plot_type_to_axis(current_axis_h, graph_type, x_vec_arr, y_vec_arr, color_list, marker_list)
+function [current_axis_h] = fn_plot_type_to_axis(current_axis_h, graph_type, x_vec_arr, y_vec_arr, color_list, marker_list, bar_edge_color)
 
 % how many things to loop over
 n_instances = size(y_vec_arr, 2);
@@ -1668,7 +1683,7 @@ n_groups = size(y_vec_arr, 1);
 
 if strcmp(graph_type, 'bar')
 	hold on
-	bh = bar(y_vec_arr, 'grouped');
+	bh = bar(y_vec_arr, 'grouped', 'EdgeColor', bar_edge_color);
 	for i_instance = 1 : n_instances
 		if ~isempty(color_list)
 			bh(i_instance).FaceColor = color_list{i_instance};
@@ -1695,7 +1710,7 @@ for i_instance = 1 : n_instances
 	end
 	switch graph_type
 		case 'bar'
-			bar(cur_x_vec, cur_y_vec);
+			bar(cur_x_vec, cur_y_vec, 'EdgeColor', bar_edge_color);
 		case 'line'
 			plot(cur_x_vec, cur_y_vec, 'Color', cur_color, 'Marker', cur_marker);
 		otherwise
