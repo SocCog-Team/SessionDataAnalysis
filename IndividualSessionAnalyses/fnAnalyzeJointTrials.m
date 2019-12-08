@@ -142,6 +142,7 @@ RTCatPlotInvisible = 0; % do not show the per trial faster subject category plot
 PlotLegend = 0; % add a lengend to the plots?
 
 PlotRTBySameness = 1;
+RT_detrend_order = 1;% the order of the polynomial used to detrend the RT data before calculating the correlation between both agents RT
 
 PlotRTHistograms = 1;
 PlotRTHistogramsByByPayoffMatrix = 1;
@@ -175,7 +176,7 @@ coordination_metrics_cfg.minDRT = 50; %minimal difference of reaction times allo
 coordination_metrics_cfg.check_coordination_alpha = 5*10^-5;
 coordination_metrics_cfg.proficiencyThreshold = 2.75;
 coordination_metrics_cfg.pValueForFisherExactTests = 0.05;  % we use this for testing the ratio of 4 reward unit trials for the slowe and faster agent
-coordination_metrics_cfg.version_counter = 2; % use this to enforce recalculation of the coordination_metrics
+coordination_metrics_cfg.version_counter = 3; % use this to enforce recalculation of the coordination_metrics
 coordination_metrics_row_header = [];
 plot_transferentropy_per_trial = 1;
 plot_mutualinformation_per_trial = 1;
@@ -216,6 +217,8 @@ show_RTdiff_ttests = 1;
 title_fontsize = 8;
 title_fontweight = 'bold';
 StackHeightToInitialPLotHeightRatio = 0.15;
+
+calc_extra_aggregate_measures = 0;
 switch project_name
 	case 'PrimateNeurobiology2018DPZ'
 		ShowSelectedSidePerSubjectInRewardPlotBG = 1;
@@ -257,7 +260,8 @@ switch project_name
 		StackHeightToInitialPLotHeightRatio = 0.05;
 		ShowEffectorHandInBackground = 0;
 		ShowFasterSideInBackground = 0;
-				
+		calc_extra_aggregate_measures = 1;
+		
 		DefaultAxesType = 'BoS_manuscript'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 		DefaultPaperSizeType = 'BoS_manuscript.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 		DefaultPaperSizeType = 'Plos'; % Plos_text_col or Plos
@@ -275,8 +279,11 @@ switch project_name
 		RTCatPlotInvisible = 0;
 		histogram_show_median = 0;
 		Add_AR_subplot_to_SoC_plot = 1;
-		InvisibleFigures = 1;			
+		InvisibleFigures = 1;
 end
+
+% manual override
+%InvisibleFigures = 0;
 
 % no GUI means no figure windows possible, so try to work around that
 if (fnIsMatlabRunningInTextMode())
@@ -593,9 +600,9 @@ for iGroup = 1 : length(GroupNameList)
 		
 	end
 	
-% 		if (write_stats_to_text_file)
-% 			fprintf(current_stats_to_text_fd, '%s\n', );
-% 		end
+	% 		if (write_stats_to_text_file)
+	% 			fprintf(current_stats_to_text_fd, '%s\n', );
+	% 		end
 	
 	% calculate a few variables for the further processing
 	NumTrials = size(DataStruct.data, 1);
@@ -630,16 +637,16 @@ for iGroup = 1 : length(GroupNameList)
 	PreferableTargetSelected_A(TrialSets.ByChoice.SideA.ProtoTargetValueHigh) = 1;
 	PreferableTargetSelected_B = zeros([NumTrials, 1]);
 	PreferableTargetSelected_B(TrialSets.ByChoice.SideB.ProtoTargetValueHigh) = 1;
-
+	
 	
 	% get the share of own choices
 	NonPreferableTargetSelected_A = zeros([NumTrials, 1]);
 	NonPreferableTargetSelected_A(TrialSets.ByChoice.SideA.ProtoTargetValueLow) = 1;
 	NonPreferableTargetSelected_B = zeros([NumTrials, 1]);
 	NonPreferableTargetSelected_B(TrialSets.ByChoice.SideB.ProtoTargetValueLow) = 1;
-
 	
-	% how about solo trials	
+	
+	% how about solo trials
 	A_selects_A = PreferableTargetSelected_A;
 	B_selects_B = PreferableTargetSelected_B;
 	A_selects_B = NonPreferableTargetSelected_A;
@@ -691,7 +698,7 @@ for iGroup = 1 : length(GroupNameList)
 	RightTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceScreenFromARight) = 1;
 	RightTargetSelected_B = zeros([NumTrials, 1]);
 	RightTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceScreenFromARight) = 1;
-
+	
 	
 	A_left = LeftTargetSelected_A;
 	B_left = LeftTargetSelected_B;
@@ -862,10 +869,10 @@ for iGroup = 1 : length(GroupNameList)
 		
 		CoordinationSummaryString = coordStruct.SummaryString;
 		CoordinationSummaryCell = coordStruct.SummaryCell;
-
+		
 		fn_save_string_list_to_file(current_stats_to_text_fd, [], {''; 'CoordinationSummary: '}, [], write_stats_to_text_file);
 		fn_save_string_list_to_file(current_stats_to_text_fd, [], CoordinationSummaryString, [], write_stats_to_text_file);
-
+		
 		
 		
 		info.session_id = SessionLogName;
@@ -895,7 +902,7 @@ for iGroup = 1 : length(GroupNameList)
 		PerTrialStruct.AB_TrialStartTimeMS = AB_TrialStartTimeMS(TrialsInCurrentSetIdx);
 		PerTrialStruct.RewardByTrial_A = RewardByTrial_A(TrialsInCurrentSetIdx);
 		PerTrialStruct.RewardByTrial_B = RewardByTrial_B(TrialsInCurrentSetIdx);
-
+		
 		PerTrialStruct.SameTargetA = SameTargetA(TrialsInCurrentSetIdx);
 		PerTrialStruct.SameTargetB = SameTargetB(TrialsInCurrentSetIdx);
 		PerTrialStruct.DiffOwnTarget = DiffOwnTarget(TrialsInCurrentSetIdx);
@@ -931,7 +938,7 @@ for iGroup = 1 : length(GroupNameList)
 		FullPerTrialStruct.PreferableTargetSelected_B = PreferableTargetSelected_B(:);
 		FullPerTrialStruct.NonPreferableTargetSelected_A = NonPreferableTargetSelected_A(:);
 		FullPerTrialStruct.NonPreferableTargetSelected_B = NonPreferableTargetSelected_B(:);
-
+		
 		
 		FullPerTrialStruct.SameTargetA = SameTargetA(:);
 		FullPerTrialStruct.SameTargetB = SameTargetB(:);
@@ -942,12 +949,12 @@ for iGroup = 1 : length(GroupNameList)
 		FullPerTrialStruct.AorB_changed_target_from_last_trial = AorB_changed_target_from_last_trial(:);
 		FullPerTrialStruct.choice_combination_color_string = choice_combination_color_string(:);
 		
-				
+		
 		FullPerTrialStruct.LeftTargetSelected_A = LeftTargetSelected_A(:);
 		FullPerTrialStruct.LeftTargetSelected_B = LeftTargetSelected_B(:);
 		FullPerTrialStruct.RightTargetSelected_A = RightTargetSelected_A(:);
 		FullPerTrialStruct.RightTargetSelected_B = RightTargetSelected_B(:);
-	
+		
 		FullPerTrialStruct.SubjectiveLeftTargetSelected_A = SubjectiveLeftTargetSelected_A(:);
 		FullPerTrialStruct.SubjectiveLeftTargetSelected_B = SubjectiveLeftTargetSelected_B(:);
 		FullPerTrialStruct.SubjectiveRightTargetSelected_A = SubjectiveRightTargetSelected_A(:);
@@ -1050,53 +1057,55 @@ for iGroup = 1 : length(GroupNameList)
 			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
 				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
 				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
-
-% 			% add last250 trials as well (exploratory phase)
-% 			PopulationAggregateName = ['ALL_SESSSION_METRICS.last250.mat'];
-% 			use_all_trials = 1;
-% 			prefix_string = '';
-% 			suffix_string = '';
-% 			n_TrialsInCurrentSetIdx = length(TrialsInCurrentSetIdx);
-% 			CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx((max([1 (end - 250 + 1)])):end);
-% 			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
-% 				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
-% 				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
-
-			% add last250 trials as well (exploratory phase)
-			PopulationAggregateName = ['ALL_SESSSION_METRICS.last250.mat'];
-			use_all_trials = 0;
-			prefix_string = '';
-			suffix_string = '';
-			tmp_coordination_metrics_cfg = coordination_metrics_cfg;
-			tmp_coordination_metrics_cfg.stationarySegmentLength = 250;
-			CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
-			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
-				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
-				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
-
-			% add last250 trials as well (exploratory phase)
-			PopulationAggregateName = ['ALL_SESSSION_METRICS.last150.mat'];
-			use_all_trials = 0;
-			prefix_string = '';
-			suffix_string = '';
-			tmp_coordination_metrics_cfg = coordination_metrics_cfg;
-			tmp_coordination_metrics_cfg.stationarySegmentLength = 150;
-			CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
-			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
-				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
-				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
-
-			% add last250 trials as well (exploratory phase)
-			PopulationAggregateName = ['ALL_SESSSION_METRICS.last100.mat'];
-			use_all_trials = 0;
-			prefix_string = '';
-			suffix_string = '';
-			tmp_coordination_metrics_cfg = coordination_metrics_cfg;
-			tmp_coordination_metrics_cfg.stationarySegmentLength = 100;
-			CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
-			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
-				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
-				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);			
+			
+			if (calc_extra_aggregate_measures)
+				% 			% add last250 trials as well (exploratory phase)
+				% 			PopulationAggregateName = ['ALL_SESSSION_METRICS.last250.mat'];
+				% 			use_all_trials = 1;
+				% 			prefix_string = '';
+				% 			suffix_string = '';
+				% 			n_TrialsInCurrentSetIdx = length(TrialsInCurrentSetIdx);
+				% 			CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx((max([1 (end - 250 + 1)])):end);
+				% 			[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+				% 				OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+				% 				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
+				
+				% add last250 trials as well (exploratory phase)
+				PopulationAggregateName = ['ALL_SESSSION_METRICS.last250.mat'];
+				use_all_trials = 0;
+				prefix_string = '';
+				suffix_string = '';
+				tmp_coordination_metrics_cfg = coordination_metrics_cfg;
+				tmp_coordination_metrics_cfg.stationarySegmentLength = 250;
+				CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
+				[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+					OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+					isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
+				
+				% add last250 trials as well (exploratory phase)
+				PopulationAggregateName = ['ALL_SESSSION_METRICS.last150.mat'];
+				use_all_trials = 0;
+				prefix_string = '';
+				suffix_string = '';
+				tmp_coordination_metrics_cfg = coordination_metrics_cfg;
+				tmp_coordination_metrics_cfg.stationarySegmentLength = 150;
+				CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
+				[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+					OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+					isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
+				
+				% add last250 trials as well (exploratory phase)
+				PopulationAggregateName = ['ALL_SESSSION_METRICS.last100.mat'];
+				use_all_trials = 0;
+				prefix_string = '';
+				suffix_string = '';
+				tmp_coordination_metrics_cfg = coordination_metrics_cfg;
+				tmp_coordination_metrics_cfg.stationarySegmentLength = 100;
+				CurTrialsInCurrentSetIdx = TrialsInCurrentSetIdx;
+				[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+					OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+					isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
+			end
 			
 			% the final hopefully steady-state exploitation phase
 			PopulationAggregateName = ['ALL_SESSSION_METRICS.last200.mat'];
@@ -1125,15 +1134,15 @@ for iGroup = 1 : length(GroupNameList)
 		%if strcmp(SessionLogFQN, fullfile(PathStr, '20171127T164730.A_20021.B_20022.SCP_01.triallog.txt'))
 		% for human pair number 6 we do only converge on a strategy after ~270
 		% trials before that each selected their own
-% 		if  ~isempty(cur_coordination_metrics_table) && isfield(cur_coordination_metrics_table, 'row')
-% 			MI_side = cur_coordination_metrics_table.row(coordination_metrics_table.cn.miSide);
-% 			MI_target = cur_coordination_metrics_table.row(coordination_metrics_table.cn.miTarget);
-% 			X = atand(MI_side/MI_target);
-% 			Y = sqrt(MI_side^2 + MI_target^2);
-% 			disp(['stationarySegmentLength: ', num2str(cur_coordination_metrics_table.cfg_struct.stationarySegmentLength)]);
-% 			disp(['MI_side: ', num2str(MI_side, '%0.4f'), '; MI_target: ', num2str(MI_target, '%0.4f')]);
-% 			disp(['atand(MI_side/MI_target): ', num2str(X, '%0.4f'), '; sqrt(MI_side^2 + MI_target^2): ', num2str(Y, '%0.4f')]);
-% 		end
+		% 		if  ~isempty(cur_coordination_metrics_table) && isfield(cur_coordination_metrics_table, 'row')
+		% 			MI_side = cur_coordination_metrics_table.row(coordination_metrics_table.cn.miSide);
+		% 			MI_target = cur_coordination_metrics_table.row(coordination_metrics_table.cn.miTarget);
+		% 			X = atand(MI_side/MI_target);
+		% 			Y = sqrt(MI_side^2 + MI_target^2);
+		% 			disp(['stationarySegmentLength: ', num2str(cur_coordination_metrics_table.cfg_struct.stationarySegmentLength)]);
+		% 			disp(['MI_side: ', num2str(MI_side, '%0.4f'), '; MI_target: ', num2str(MI_target, '%0.4f')]);
+		% 			disp(['atand(MI_side/MI_target): ', num2str(X, '%0.4f'), '; sqrt(MI_side^2 + MI_target^2): ', num2str(Y, '%0.4f')]);
+		% 		end
 		
 		
 		
@@ -2050,6 +2059,7 @@ for iGroup = 1 : length(GroupNameList)
 		
 		fnPlotStackedCategoriesAtPositionWrapper('StackedBottomToTop', 0.15, StackedSameDiffCatXData, y_lim, StackedSameDiffCatColor, StackedSameDiffCatBGTransparency);
 		
+		
 		% what to do in solo sessions?
 		if (Plot_RT_differences) && (ProcessSideA) && (ProcessSideA)
 			%plot(JointTrialX_Vector, AB_InitialHoldReleaseRT_diff(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor/3 + SideBColor/3), 'LineWidth', 2);
@@ -2059,14 +2069,53 @@ for iGroup = 1 : length(GroupNameList)
 			if (ProcessSideA)
 				%plot(JointTrialX_Vector, A_InitialHoldReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor/3), 'LineWidth', 2);
 				plot(JointTrialX_Vector, A_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (2*SideAColor/3), 'LineWidth', project_line_width*0.66);
+				if (RT_detrend_order > 0)
+					[A_InitialTargetReleaseRT_p, A_InitialTargetReleaseRT_s, A_InitialTargetReleaseRT_mu] = polyfit(JointTrialX_Vector, A_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector))', RT_detrend_order);
+					detrended_A_InitialTargetReleaseRT = polyval(A_InitialTargetReleaseRT_p, (GoodTrialsIdx(JointTrialX_Vector)), [], A_InitialTargetReleaseRT_mu);
+					plot(JointTrialX_Vector, detrended_A_InitialTargetReleaseRT, 'Color', (2*SideAColor/3), 'LineWidth', project_line_width*1.0);
+				end
 				plot(JointTrialX_Vector, A_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor), 'LineWidth', project_line_width);
+			end
+			if (RT_detrend_order > 0)
+				[A_TargetAcquisitionRT_p, A_TargetAcquisitionRT_s, A_TargetAcquisitionRT_mu] = polyfit(JointTrialX_Vector, A_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector))', RT_detrend_order);
+				detrended_A_TargetAcquisitionRT = polyval(A_TargetAcquisitionRT_p, (GoodTrialsIdx(JointTrialX_Vector)), [], A_TargetAcquisitionRT_mu);
+				plot(JointTrialX_Vector, detrended_A_TargetAcquisitionRT, 'Color', (SideAColor), 'LineWidth', project_line_width*1.0);
 			end
 			if (ProcessSideB)
 				%plot(JointTrialX_Vector, B_InitialHoldReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideBColor/3), 'LineWidth', 2);
 				plot(JointTrialX_Vector, B_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (2*SideBColor/3), 'LineWidth', project_line_width*0.66);
+				if (RT_detrend_order > 0)
+					[B_InitialTargetReleaseRT_p, B_InitialTargetReleaseRT_s, B_InitialTargetReleaseRT_mu] = polyfit(JointTrialX_Vector, B_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector))', RT_detrend_order);
+					detrended_B_InitialTargetReleaseRT = polyval(B_InitialTargetReleaseRT_p, (GoodTrialsIdx(JointTrialX_Vector)), [], B_InitialTargetReleaseRT_mu);
+					plot(JointTrialX_Vector, detrended_B_InitialTargetReleaseRT, 'Color', (2*SideBColor/3), 'LineWidth', project_line_width*1.0);
+				end
 				plot(JointTrialX_Vector, B_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideBColor), 'LineWidth', project_line_width);
+				if (RT_detrend_order > 0)
+					[B_TargetAcquisitionRT_p, B_TargetAcquisitionRT_s, B_TargetAcquisitionRT_mu] = polyfit(JointTrialX_Vector, B_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector))', RT_detrend_order);
+					detrended_B_TargetAcquisitionRT = polyval(B_TargetAcquisitionRT_p, (GoodTrialsIdx(JointTrialX_Vector)), [], B_TargetAcquisitionRT_mu);
+					plot(JointTrialX_Vector, detrended_B_TargetAcquisitionRT, 'Color', (SideBColor), 'LineWidth', project_line_width*1.0);
+				end
 			end
 		end
+		
+		if (ProcessSideA) && (ProcessSideA) && ~(IsSoloGroup)
+			% TODO correlation on residuals after detrending?
+			% also show the pearson correlations between the matching curves of both agents
+			[ITRel_r, ITRel_p, ITRel_r_ci_lower, ITRel_r_ci_upper] = corrcoef(A_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), B_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)));
+			[TAcq_r, TAcq_p, TAcq_r_ci_lower, TAcq_r_ci_upper] = corrcoef(A_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector)), B_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector)));
+			% add this as title
+			df_corr = length(JointTrialX_Vector) - 2;
+			titleText_A = {['InitialTargetRelease time correlation: r(', num2str(df_corr), '): ', num2str(ITRel_r(2, 1), '%.4f'),  ', p <= ', num2str(ITRel_p(2, 1)),], ...
+				[['TargetAcquisition time correlation: r(', num2str(df_corr), '): ', num2str(TAcq_r(2, 1), '%.4f'),  ', p <= ', num2str(TAcq_p(2, 1)),]]};
+			if (RT_detrend_order > 0)
+				[ITRel_r_detrended, ITRel_p_detrended] = corrcoef(A_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector))-detrended_A_InitialTargetReleaseRT, B_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector))-detrended_B_InitialTargetReleaseRT);
+				[TAcq_r_detrended, TAcq_p_detrended] = corrcoef(A_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector))-detrended_A_TargetAcquisitionRT, B_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector))-detrended_B_TargetAcquisitionRT);
+				titleText_A{end+1} = ['detrended (', num2str(RT_detrend_order),') InitialTargetRelease time correlation: r(', num2str(df_corr), '): ', num2str(ITRel_r_detrended(2, 1), '%.4f'),  ', p <= ', num2str(ITRel_p_detrended(2, 1)),];
+				titleText_A{end+1} = [['detrended (', num2str(RT_detrend_order),') TargetAcquisition time correlation: r(', num2str(df_corr), '): ', num2str(TAcq_r_detrended(2, 1), '%.4f'),  ', p <= ', num2str(TAcq_p_detrended(2, 1)),]];		
+			end			
+			title(titleText_A, 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
+		end
+		
 		
 		hold off
 		%
@@ -2089,6 +2138,11 @@ for iGroup = 1 : length(GroupNameList)
 		if (PlotLegend)
 			legend(legend_list, 'Interpreter', 'None');
 		end
+		
+		
+		
+		
+		
 		%write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
 		CurrentTitleSetDescriptorString = TitleSetDescriptorString;
 		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.BySameness.', OutPutType]);
@@ -2237,7 +2291,7 @@ for iGroup = 1 : length(GroupNameList)
 				title_text = ['t-Test: Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, coordinated_trial_idx))), ')', ...
 					' vs. Anti-Coordination (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, anticoordinated_trial_idx))), ')', ...
 					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-								
+				
 				% SameA versus SameB
 				CurSameA_idx = find(SameOwnA_lidx & (Invisible_AB == 0));
 				CurSameB_idx = find(SameOwnB_lidx & (Invisible_AB == 0));
@@ -2249,7 +2303,7 @@ for iGroup = 1 : length(GroupNameList)
 				title_text2 = ['t-Test (hands visible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
 					' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
 					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-
+				
 				% SameA versus 0
 				[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
 					0,...
@@ -2259,7 +2313,7 @@ for iGroup = 1 : length(GroupNameList)
 				title_text2A = ['t-Test (hands visible): A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
 					' vs. 0', ...
 					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-
+				
 				% SameA versus 0
 				[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
 					0,...
@@ -2307,7 +2361,7 @@ for iGroup = 1 : length(GroupNameList)
 				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.legend.', histogram_RT_type_string, '.', OutPutType]);
 				write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
 			end
-
+			
 			
 			% only select immediate post-pair-switch trials
 			if (PlotRTHistogramsByByPayoffMatrixPostSwitchOnly)
@@ -2429,7 +2483,7 @@ for iGroup = 1 : length(GroupNameList)
 				title_text2 = ['t-Test (hands visible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
 					' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
 					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-
+				
 				% SameA versus 0
 				[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
 					0,...
@@ -2439,7 +2493,7 @@ for iGroup = 1 : length(GroupNameList)
 				title_text2A = ['t-Test (hands visible): A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
 					' vs. 0', ...
 					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-
+				
 				% SameA versus 0
 				[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
 					0,...
@@ -2468,14 +2522,14 @@ for iGroup = 1 : length(GroupNameList)
 				else
 					title_text_list = {title_text; title_text2; title_text2A; title_text2B};
 				end
-
+				
 				
 				if (show_RTdiff_ttests)
 					title(title_text_list, 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
 				end
 				fn_save_string_list_to_file(current_stats_to_text_fd, [], {''; 'PlotRTHistogramsByByPayoffMatrixPostSwitchOnly'}, [], write_stats_to_text_file);
 				fn_save_string_list_to_file(current_stats_to_text_fd, [], title_text_list, [' : ', histogram_RT_type_string], write_stats_to_text_file);
-
+				
 				
 				if (plot_differences) && (ProcessSideA) && (ProcessSideA)
 					CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
@@ -2488,7 +2542,7 @@ for iGroup = 1 : length(GroupNameList)
 				legend(legend_list, 'Interpreter', 'None');
 				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySamenessPostSwitchTrials.legend.', histogram_RT_type_string, '.', OutPutType]);
 				write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
-			end			
+			end
 			
 			
 			
@@ -2583,7 +2637,7 @@ for iGroup = 1 : length(GroupNameList)
 			end
 			
 			if (PlotRTbyChoiceCombination)
-				% find the trial indices for the selected switch trials				
+				% find the trial indices for the selected switch trials
 				% for each member in selected_choice_combinaton_pattern_list
 				% extract a histogram form a given data list
 				CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
@@ -2690,31 +2744,31 @@ end
 % y_height = (y_lim(2) - y_lim(1));
 % num_stacked_items = size(StackedXData, 1);
 % new_y_lim = y_lim;
-% 
+%
 % switch PositionLabel
 % 	case 'StackedOnTop'
 % 		% make room for the category markers on top of the existing plot
 % 		y_increment_per_stack = y_height * StackHeightToInitialPLotHeightRatio / (num_stacked_items + 1);
 % 		new_y_lim = [y_lim(1), (y_lim(2) + (StackHeightToInitialPLotHeightRatio) * y_height)];
 % 		set(gca(), 'YLim', new_y_lim);
-% 		
+%
 % 	case 'StackedOnBottom'
 % 		% make room for the category markers below the existing plot
 % 		y_increment_per_stack = y_height * StackHeightToInitialPLotHeightRatio / (num_stacked_items + 1);
 % 		new_y_lim = [(y_lim(1) - (StackHeightToInitialPLotHeightRatio) * y_height), y_lim(2)];
 % 		set(gca(), 'YLim', new_y_lim);
-% 		
+%
 % 	case 'StackedBottomToTop'
 % 		% just fill the existing plot area
 % 		y_increment_per_stack = y_height / (num_stacked_items);
 % 		new_y_lim = y_lim;
-% 		
+%
 % 	otherwise
 % 		disp(['Position label: ', PositionLabel, ' not implemented yet, skipping...'])
 % 		return
 % end
-% 
-% 
+%
+%
 % for iStackItem = 1 : num_stacked_items
 % 	CurrentCategoryByXVals = StackedXData{iStackItem};
 % 	CurrentColorByCategoryList = StackedColors{iStackItem};
@@ -2724,12 +2778,12 @@ end
 % 			% we want one y_increment as separator from the plots intial YLimits
 % 			CurrentLowY = y_lim(2) + ((iStackItem) * y_increment_per_stack);
 % 			CurrentHighY = CurrentLowY + y_increment_per_stack;
-% 			
+%
 % 		case 'StackedOnBottom'
 % 			% we want one y_increment as separator from the plots intial YLimits
 % 			CurrentLowY = new_y_lim(1) + ((iStackItem - 1) * y_increment_per_stack);
 % 			CurrentHighY = CurrentLowY + y_increment_per_stack;
-% 			
+%
 % 		case 'StackedBottomToTop'
 % 			% we want one y_increment as separator from the plots intial
 % 			% YLimits
@@ -2739,7 +2793,7 @@ end
 % 	% now plot
 % 	fnPlotBackgroundByCategory(CurrentCategoryByXVals, [CurrentLowY, CurrentHighY], CurrentColorByCategoryList, CurrentTransparency);
 % end
-% 
+%
 % return
 % end
 
