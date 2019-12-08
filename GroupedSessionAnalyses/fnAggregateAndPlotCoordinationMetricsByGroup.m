@@ -797,12 +797,16 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 				text(x_list(i_session)+dx, y_list(i_session)+dy, {cur_ID_string},'Color', current_scatter_color, 'Fontsize', 8);
 			end
 		end
-		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', 'approximate', 'tail', 'both');
+		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', 'exact', 'tail', 'both');
 		% (Mdn = 0.85) than in male faces (Mdn = 0.65), Z = 4.21, p < .001, r = .76.
 		% A measure of effect size, r, can be calculated by dividing Z by the square root of N(r = Z / ?N).
-		title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
-			'), Z: ', num2str(signrank_stats.zval), ', p < ', num2str(p), ', r: ', num2str(signrank_stats.zval/sqrt(length(late_AVG_rewardAB)))];
-		
+		if isfield(signrank_stats, 'zval')
+			title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
+				'), Z: ', num2str(signrank_stats.zval), ', p < ', num2str(p), ', r: ', num2str(signrank_stats.zval/sqrt(length(late_AVG_rewardAB)))];
+		else
+			title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
+				'), SignedRank: ', num2str(signrank_stats.signedrank), ', p < ', num2str(p)];			
+		end
 		if (AR_scatter_show_FET)
 			title(title_text, 'FontSize', 6);
 		end
@@ -1329,11 +1333,21 @@ if (plot_AR_scatter_by_session_state_early_late)
 			end
 		end
 		
-		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', 'approximate', 'tail', 'both');
+		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', 'exact', 'tail', 'both');
 		% (Mdn = 0.85) than in male faces (Mdn = 0.65), Z = 4.21, p < .001, r = .76.
 		% A measure of effect size, r, can be calculated by dividing Z by the square root of N(r = Z / ?N).
-		title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
-			'), Z: ', num2str(signrank_stats.zval), ', p < ', num2str(p), ', r: ', num2str(signrank_stats.zval/sqrt(length(late_AVG_rewardAB)))];
+% 		title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
+% 			'), Z: ', num2str(signrank_stats.zval), ', p < ', num2str(p), ', r: ', num2str(signrank_stats.zval/sqrt(length(late_AVG_rewardAB)))];
+		
+		if isfield(signrank_stats, 'zval')
+			title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
+				'), Z: ', num2str(signrank_stats.zval), ', p < ', num2str(p), ', r: ', num2str(signrank_stats.zval/sqrt(length(late_AVG_rewardAB)))];
+		else
+			title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
+				'), SignedRank: ', num2str(signrank_stats.signedrank), ', p < ', num2str(p)];
+		end
+
+		
 		title(title_text, 'FontSize', 6);
 		
 		hold off
@@ -1367,7 +1381,21 @@ if (plot_RT_by_switch_type)
 		cur_trial_idx = group_concatenated_pertrial_data.selected_trial_idx;
 		A_RT_data = group_concatenated_pertrial_data.(['A_', RT_type]);
 		B_RT_data = group_concatenated_pertrial_data.(['B_', RT_type]);
+		
+		% display the min and max halfway times	
+		selected_trials_ldx = logical(group_concatenated_pertrial_data.TrialIsRewarded);
+		IFR_A_RT_data = group_concatenated_pertrial_data.(['A_', 'InitialTargetReleaseRT'])(selected_trials_ldx);
+		IFR_B_RT_data = group_concatenated_pertrial_data.(['B_', 'InitialTargetReleaseRT'])(selected_trials_ldx);
+		tmp_A_RT_data = A_RT_data(selected_trials_ldx);
+		tmp_B_RT_data = B_RT_data(selected_trials_ldx);
+		disp([current_group_label, ' ', 'InitialTargetReleaseRT', ' A(min:max): ', num2str(min(IFR_A_RT_data(find(IFR_A_RT_data > 0 & IFR_A_RT_data < 1500)))), ' : ', num2str(max(IFR_A_RT_data(find(IFR_A_RT_data > 0 & IFR_A_RT_data < 1500))))]);
+		disp([current_group_label, ' ', 'InitialTargetReleaseRT', ' B(min:max): ', num2str(min(IFR_B_RT_data(find(IFR_B_RT_data > 0 & IFR_B_RT_data < 1500)))), ' : ', num2str(max(IFR_B_RT_data(find(IFR_B_RT_data > 0 & IFR_B_RT_data < 1500))))]);
+		disp([current_group_label, ' ', RT_type, ' A(min:max): ', num2str(min(tmp_A_RT_data(find(tmp_A_RT_data > 0 & tmp_A_RT_data < 1500)))), ' : ', num2str(max(tmp_A_RT_data(find(tmp_A_RT_data > 0 & tmp_A_RT_data < 1500))))]);
+		disp([current_group_label, ' ', RT_type, ' B(min:max): ', num2str(min(tmp_B_RT_data(find(tmp_B_RT_data > 0 & tmp_B_RT_data < 1500)))), ' : ', num2str(max(tmp_B_RT_data(find(tmp_B_RT_data > 0 & tmp_B_RT_data < 1500))))]);
+				
 		choice_combination_color_string = group_concatenated_pertrial_data.choice_combination_color_string;
+		
+		% summarize the average run lengths
 		
 		
 		% loop over the individual sessions to avoid edge effects
