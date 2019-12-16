@@ -65,6 +65,12 @@ flaffusCuriusConfFilenames = {...
 	'DATA_20180427T142541.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice'
 	};
 
+flaffusCuriusConfFilenames = {...
+	'DATA_20180419T141311.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
+	'DATA_20180426T171117.A_Flaffus.B_Curius.SCP_01.triallog.A.Flaffus.B.Curius_IC_JointTrials.isOwnChoice_sideChoice', ...
+	};
+
+
 
 % [pSeeNaiv, pOtherChoiceNaiv, corrCoefValueNaive, corrPValueNaive, ...
 %     corrCoefAveragedNaive, corrPValueAveragedNaive] = compute_prob_to_see_for_dataset(folder, flaffusCuriusNaiveFilenames, windowSize, [], minDRT, k);
@@ -122,7 +128,7 @@ for i_val_src = 1 : length(value_source_string_list)
 	y_label_string = 'Pearson correlation coefficient r';
 	
 	
-	use_fixed_y_limits = 1;
+	use_fixed_y_limits = 0;
 	use_semilogy = 0;
 	if regexp(value_source_string, '^corrPValue');
 		use_fixed_y_limits = 0;
@@ -155,6 +161,9 @@ for i_val_src = 1 : length(value_source_string_list)
 		cur_A_list(:, i_value) = data.(value_source_string)(1, :);
 		cur_B_list(:, i_value) = data.(value_source_string)(2, :);
 	end
+	
+	x_pos_array = x_pos_array(size(cur_A_list, 1), :);
+	x_val_array = x_val_array(size(cur_A_list, 1), :);
 	
 	x_array = x_pos_array;
 	%x_array = x_val_array;
@@ -228,6 +237,9 @@ for i_val_src = 1 : length(value_source_string_list)
 		cur_A_list(:, i_value) = data.(value_source_string)(1, :);
 		cur_B_list(:, i_value) = data.(value_source_string)(2, :);
 	end
+
+	x_pos_array = x_pos_array(size(cur_A_list, 1), :);
+	x_val_array = x_val_array(size(cur_A_list, 1), :);	
 	
 	x_array = x_pos_array;
 	x_ticks = x_array(1, :);
