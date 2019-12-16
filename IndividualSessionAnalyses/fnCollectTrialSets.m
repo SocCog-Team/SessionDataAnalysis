@@ -57,10 +57,25 @@ TrialSets.ByActivity.SingleSubjectTrials = setdiff(TrialSets.All, TrialSets.ByAc
 TrialSets.ByActivity.SideA.SingleSubjectTrials = setdiff(TrialSets.ByActivity.SideA.ActiveTrials, TrialSets.ByActivity.SideB.ActiveTrials);
 TrialSets.ByActivity.SideB.SingleSubjectTrials = setdiff(TrialSets.ByActivity.SideB.ActiveTrials, TrialSets.ByActivity.SideA.ActiveTrials);
 
+% try to find all trials a subject was active in
+TrialSets.ByActivity.SideA.AllTrials = union(TrialSets.ByActivity.SideA.DualSubjectTrials, TrialSets.ByActivity.SideA.SingleSubjectTrials);
+TrialSets.ByActivity.SideB.AllTrials = union(TrialSets.ByActivity.SideB.DualSubjectTrials, TrialSets.ByActivity.SideB.SingleSubjectTrials);
+TrialSets.ByActivity.AllTrials = union(TrialSets.ByActivity.SideA.AllTrials, TrialSets.ByActivity.SideB.AllTrials);
+
+
+
 % these are real joint trials when both subject work together
 % test for touching the initial target:
 TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_InitialFixationTouchTime_ms) > 0);
 TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_InitialFixationTouchTime_ms) > 0);
+
+% restrict this to the initiated trials...
+TrialSets.ByActivity.SideA.AllTrials = intersect(TrialSets.ByActivity.SideA.AllTrials, find(LogStruct.data(:, LogStruct.cn.A_InitialFixationTouchTime_ms) > 0));
+TrialSets.ByActivity.SideB.AllTrials = intersect(TrialSets.ByActivity.SideB.AllTrials, find(LogStruct.data(:, LogStruct.cn.B_InitialFixationTouchTime_ms) > 0));
+TrialSets.ByActivity.AllTrials = union(TrialSets.ByActivity.SideA.AllTrials, TrialSets.ByActivity.SideB.AllTrials);
+
+
+
 TrialSets.ByJointness.DualSubjectJointTrials = intersect(TmpJointTrialsA, TmpJointTrialsB);
 
 TrialSets.ByJointness.SideA.SoloSubjectTrials = setdiff(TmpJointTrialsA, TmpJointTrialsB);
@@ -338,22 +353,30 @@ EqualPositionSlackPixels = 2;	% how many pixels two position are allowed to diff
 
 A_LeftChoiceIdx = find(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_X) > LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_X));
 A_RightChoiceIdx = find(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_X) < LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_X));
+% remove trials when the side was not playing
+A_LeftChoiceIdx = intersect(A_LeftChoiceIdx, TrialSets.ByActivity.SideA.AllTrials);
+A_RightChoiceIdx = intersect(A_RightChoiceIdx, TrialSets.ByActivity.SideA.AllTrials);
 
 TrialSets.ByChoice.SideA.ChoiceLeft = A_LeftChoiceIdx;
 TrialSets.ByChoice.SideA.ChoiceRight = A_RightChoiceIdx;
 % allow some slack for improper rounding errors
 TrialSets.ByChoice.SideA.ChoiceCenterX = find(abs(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_X) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels);
+TrialSets.ByChoice.SideA.ChoiceCenterX = intersect(TrialSets.ByChoice.SideA.ChoiceCenterX, TrialSets.ByActivity.SideA.AllTrials);
 TrialSets.ByChoice.SideA.ChoiceScreenFromALeft = A_LeftChoiceIdx;
 TrialSets.ByChoice.SideA.ChoiceScreenFromARight = A_RightChoiceIdx;
 
 B_LeftChoiceIdx = find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_X) < LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X));
 B_RightChoiceIdx = find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_X) > LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X));
 
+B_LeftChoiceIdx = intersect(B_LeftChoiceIdx, TrialSets.ByActivity.SideB.AllTrials);
+B_RightChoiceIdx = intersect(B_RightChoiceIdx, TrialSets.ByActivity.SideB.AllTrials);
+
+
 TrialSets.ByChoice.SideB.ChoiceLeft = B_LeftChoiceIdx;
 TrialSets.ByChoice.SideB.ChoiceRight = B_RightChoiceIdx;
 % allow some slack for improper rounding errors
 TrialSets.ByChoice.SideB.ChoiceCenterX = find(abs(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_X) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_X)) <= EqualPositionSlackPixels);
-
+TrialSets.ByChoice.SideB.ChoiceCenterX = intersect(TrialSets.ByChoice.SideB.ChoiceCenterX, TrialSets.ByActivity.SideB.AllTrials);
 % for Side B the subjective choice sides are flipped as seen from side A in
 % eventide screen coordinates
 TrialSets.ByChoice.SideB.ChoiceScreenFromALeft = B_RightChoiceIdx;
@@ -361,12 +384,15 @@ TrialSets.ByChoice.SideB.ChoiceScreenFromARight = B_LeftChoiceIdx;
 
 % create indices for up down positions as well, note top left corner is
 % 0,0, bottom right is 1920,1080
-TrialSets.ByChoice.SideA.ChoiceTop = find(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) > LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y));
-TrialSets.ByChoice.SideA.ChoiceBottom = find(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) < LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y));
-TrialSets.ByChoice.SideA.ChoiceCenterY = find(abs(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels);
-TrialSets.ByChoice.SideB.ChoiceTop = find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) > LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y));
-TrialSets.ByChoice.SideB.ChoiceBottom = find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) < LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y));
-TrialSets.ByChoice.SideB.ChoiceCenterY = find(abs(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels);
+TrialSets.ByChoice.SideA.ChoiceTop = intersect(find(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) > LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)), TrialSets.ByActivity.SideA.AllTrials);
+TrialSets.ByChoice.SideA.ChoiceBottom = intersect(find(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) < LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)), TrialSets.ByActivity.SideA.AllTrials);
+TrialSets.ByChoice.SideA.ChoiceCenterY = intersect(find(abs(LogStruct.data(:, LogStruct.cn.A_TouchInitialFixationPosition_Y) - LogStruct.data(:, LogStruct.cn.A_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels), TrialSets.ByActivity.SideA.AllTrials);
+TrialSets.ByChoice.SideB.ChoiceTop = intersect(find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) > LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y)), TrialSets.ByActivity.SideB.AllTrials);
+TrialSets.ByChoice.SideB.ChoiceBottom = intersect(find(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) < LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y)), TrialSets.ByActivity.SideB.AllTrials);
+TrialSets.ByChoice.SideB.ChoiceCenterY = intersect(find(abs(LogStruct.data(:, LogStruct.cn.B_TouchInitialFixationPosition_Y) - LogStruct.data(:, LogStruct.cn.B_TouchSelectedTargetPosition_Y)) <= EqualPositionSlackPixels), TrialSets.ByActivity.SideB.AllTrials);
+%TODO prune to TrialSets.ByActivity.SideA.AllTrials TrialSets.ByActivity.SideB.AllTrial
+
+
 
 % Extract information about the selected target reward value (assume only two values for now)
 if (isfield(TrialSets.ByRewardFunction, 'BOSMATRIXV01'))
@@ -389,18 +415,22 @@ end
 A_SelectedTargetEqualsRandomizedTargetTrialIdx = intersect(A_SelectedTargetEqualsRandomizedTargetTrialIdx, find(LogStruct.data(:, LogStruct.cn.A_TargetTouchTime_ms) > 0.0));
 B_SelectedTargetEqualsRandomizedTargetTrialIdx = intersect(B_SelectedTargetEqualsRandomizedTargetTrialIdx, find(LogStruct.data(:, LogStruct.cn.B_TargetTouchTime_ms) > 0.0));
 
+A_SelectedTargetEqualsRandomizedTargetTrialIdx = intersect(A_SelectedTargetEqualsRandomizedTargetTrialIdx, TrialSets.ByActivity.SideA.AllTrials);
+B_SelectedTargetEqualsRandomizedTargetTrialIdx = intersect(B_SelectedTargetEqualsRandomizedTargetTrialIdx, TrialSets.ByActivity.SideB.AllTrials);
+
+
 % keep the randomisation information, to allow fake by value analysus for
 % freecgoice trials to compare agains left right and against informed
 % trials
 TrialSets.ByChoice.SideA.ProtoTargetValueHigh = A_SelectedTargetEqualsRandomizedTargetTrialIdx; % here the randomized position equals higher payoff
-TrialSets.ByChoice.SideA.ProtoTargetValueLow = setdiff(TrialSets.All, A_SelectedTargetEqualsRandomizedTargetTrialIdx);
-TrialSets.ByChoice.SideB.ProtoTargetValueHigh = setdiff(TrialSets.All, B_SelectedTargetEqualsRandomizedTargetTrialIdx);
+TrialSets.ByChoice.SideA.ProtoTargetValueLow = intersect(setdiff(TrialSets.All, A_SelectedTargetEqualsRandomizedTargetTrialIdx), TrialSets.ByActivity.SideA.AllTrials);
+TrialSets.ByChoice.SideB.ProtoTargetValueHigh = intersect(setdiff(TrialSets.All, B_SelectedTargetEqualsRandomizedTargetTrialIdx), TrialSets.ByActivity.SideB.AllTrials);
 TrialSets.ByChoice.SideB.ProtoTargetValueLow = B_SelectedTargetEqualsRandomizedTargetTrialIdx; % here the randomized position equals lower payoff
 
 % here only add trials that are used a target value indicator
 TrialSets.ByChoice.SideA.TargetValueHigh = intersect(TrialSets.ByTrialType.InformedTrials, A_SelectedTargetEqualsRandomizedTargetTrialIdx); % here the randomized position equals higher payoff
-TrialSets.ByChoice.SideA.TargetValueLow = intersect(TrialSets.ByTrialType.InformedTrials, setdiff(TrialSets.All, A_SelectedTargetEqualsRandomizedTargetTrialIdx));
-TrialSets.ByChoice.SideB.TargetValueHigh = intersect(TrialSets.ByTrialType.InformedTrials, setdiff(TrialSets.All, B_SelectedTargetEqualsRandomizedTargetTrialIdx));
+TrialSets.ByChoice.SideA.TargetValueLow = intersect(intersect(TrialSets.ByTrialType.InformedTrials, setdiff(TrialSets.All, A_SelectedTargetEqualsRandomizedTargetTrialIdx)), TrialSets.ByActivity.SideA.AllTrials);
+TrialSets.ByChoice.SideB.TargetValueHigh = intersect(intersect(TrialSets.ByTrialType.InformedTrials, setdiff(TrialSets.All, B_SelectedTargetEqualsRandomizedTargetTrialIdx)), TrialSets.ByActivity.SideB.AllTrials);
 TrialSets.ByChoice.SideB.TargetValueLow = intersect(TrialSets.ByTrialType.InformedTrials, B_SelectedTargetEqualsRandomizedTargetTrialIdx); % here the randomized position equals lower payoff
 
 %TODO make sure that the higher rewarded trials are truely from trials
