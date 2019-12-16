@@ -1230,8 +1230,22 @@ for iGroup = 1 : length(GroupNameList)
 	
 	
 	% Show the value and side selection combinations
-	StackedTargetSideXData = {[SameTargetA(GoodTrialsIdx(JointTrialX_Vector)) + (2 * SameTargetB(GoodTrialsIdx(JointTrialX_Vector))) + (3 * DiffOwnTarget(GoodTrialsIdx(JointTrialX_Vector))) + + (4 * DiffOtherTarget(GoodTrialsIdx(JointTrialX_Vector)))]; ...
-		[A_left_B_left(GoodTrialsIdx(JointTrialX_Vector)) + (2 * A_right_B_right(GoodTrialsIdx(JointTrialX_Vector))) + (3 * A_left_B_right(GoodTrialsIdx(JointTrialX_Vector))) + (4 * A_right_B_left(GoodTrialsIdx(JointTrialX_Vector)))]};
+	if ~(IsSoloGroup)
+		StackedTargetSideXData = {[SameTargetA(GoodTrialsIdx(JointTrialX_Vector)) + (2 * SameTargetB(GoodTrialsIdx(JointTrialX_Vector))) + (3 * DiffOwnTarget(GoodTrialsIdx(JointTrialX_Vector))) + + (4 * DiffOtherTarget(GoodTrialsIdx(JointTrialX_Vector)))]; ...
+			[A_left_B_left(GoodTrialsIdx(JointTrialX_Vector)) + (2 * A_right_B_right(GoodTrialsIdx(JointTrialX_Vector))) + (3 * A_left_B_right(GoodTrialsIdx(JointTrialX_Vector))) + (4 * A_right_B_left(GoodTrialsIdx(JointTrialX_Vector)))]};
+% 		StackedTargetSideColor = {[SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor]; ...
+% 			[A_left_B_left_Color; A_right_B_right_Color; A_left_B_right_Color; A_right_B_left_Color]};
+	else
+		% solo
+		A_selected = A_selects_A + B_selects_A;
+		B_selected = A_selects_B + B_selects_B;
+		left_selected = SubjectiveLeftTargetSelected_A + SubjectiveLeftTargetSelected_B;
+		right_selected = SubjectiveRightTargetSelected_A + SubjectiveRightTargetSelected_B;
+		StackedTargetSideXData = {[A_selected(GoodTrialsIdx(JointTrialX_Vector)) + (2 * B_selected(GoodTrialsIdx(JointTrialX_Vector)))]; ...
+			[(3 * left_selected(GoodTrialsIdx(JointTrialX_Vector))) + (4 * right_selected(GoodTrialsIdx(JointTrialX_Vector)))]};
+% 		StackedTargetSideColor = {[SameOwnAColor; SameOwnBColor]; ...
+% 			[A_left_B_right_Color; A_right_B_left_Color]};
+	end
 	StackedTargetSideColor = {[SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor]; ...
 		[A_left_B_left_Color; A_right_B_right_Color; A_left_B_right_Color; A_right_B_left_Color]};
 	StackedTargetSideBGTransparency = {[1.0], [1.0]};
@@ -1654,13 +1668,21 @@ for iGroup = 1 : length(GroupNameList)
 			fnPlotStackedCategoriesAtPositionWrapper('StackedOnTop', 0.15, StackedXData, y_lim, StackedRightEffectorColor, StackedRightEffectorBGTransparency);
 		end
 		
-		
+		title_list = {};
 		if (ProcessSideA)
 			plot(FilteredJointTrialX_Vector, FilteredJointTrials_SubjectiveLeftTargetSelected_A(FilteredJointTrialX_Vector), 'Color', SideAColor, 'LineWidth', project_line_width);
 			if ~isempty(FilteredJointTrialX_Vector)
 				TmpMean = mean(SubjectiveLeftTargetSelected_A(GoodTrialsIdx));
 				line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
 			end
+			A_left_high = sum(SubjectiveLeftTargetSelected_A(GoodTrialsIdx) & PreferableTargetSelected_A(GoodTrialsIdx));
+			A_left_low = sum(SubjectiveLeftTargetSelected_A(GoodTrialsIdx) & NonPreferableTargetSelected_A(GoodTrialsIdx));
+			A_right_high = sum(SubjectiveRightTargetSelected_A(GoodTrialsIdx) & PreferableTargetSelected_A(GoodTrialsIdx));
+			A_right_low = sum(SubjectiveRightTargetSelected_A(GoodTrialsIdx) & NonPreferableTargetSelected_A(GoodTrialsIdx));
+			
+			[~, p] = fishertest([A_left_high, A_left_low; A_right_high, A_right_low]);
+			
+			title_list{end+1} = ['A: LeftHigh: ', num2str(A_left_high), '; LeftLow: ', num2str(A_left_low), '; RightHigh: ', num2str(A_right_high), '; RightLow: ', num2str(A_right_low), '; FET(p): ', num2str(p)];
 		end
 		if (ProcessSideB)
 			plot(FilteredJointTrialX_Vector, FilteredJointTrials_SubjectiveLeftTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', project_line_width);
@@ -1668,7 +1690,18 @@ for iGroup = 1 : length(GroupNameList)
 				TmpMean = mean(SubjectiveLeftTargetSelected_B(GoodTrialsIdx));
 				line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
 			end
+			B_left_high = sum(SubjectiveLeftTargetSelected_B(GoodTrialsIdx) & PreferableTargetSelected_B(GoodTrialsIdx));
+			B_left_low = sum(SubjectiveLeftTargetSelected_B(GoodTrialsIdx) & NonPreferableTargetSelected_B(GoodTrialsIdx));
+			B_right_high = sum(SubjectiveRightTargetSelected_B(GoodTrialsIdx) & PreferableTargetSelected_B(GoodTrialsIdx));
+			B_right_low = sum(SubjectiveRightTargetSelected_B(GoodTrialsIdx) & NonPreferableTargetSelected_B(GoodTrialsIdx));
+			[~, p] = fishertest([B_left_high, B_left_low; B_right_high, B_right_low]);
+
+			title_list{end+1} = ['B: LeftHigh: ', num2str(B_left_high), '; LeftLow: ', num2str(B_left_low), '; RightHigh: ', num2str(B_right_high), '; RightLow: ', num2str(B_right_low), '; FET(p): ', num2str(p)];
 		end
+		
+		title(title_list, 'FontSize', title_fontsize, 'Interpreter', 'none', 'FontWeight', title_fontweight);
+		
+	
 		hold off
 		%
 		set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
