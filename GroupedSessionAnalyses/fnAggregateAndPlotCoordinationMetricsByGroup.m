@@ -105,7 +105,7 @@ generate_session_reports = 1;
 
 % control variables
 plot_avererage_reward_by_group = 1;
-AR_by_group_setlabel_list = {'HumansTransparent', 'Macaques_early', 'Macaques_late', 'ConfederateTrainedMacaques'};
+AR_by_group_setlabel_list = {'HumansTransparent', 'Macaques_early', 'Macaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'};
 
 confidence_interval_alpha = 0.05;
 wilcoxon_signed_rank_alpha = 0.05;
@@ -115,12 +115,16 @@ MI_space_set_list = {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesM
 MI_space_set_list = {'Humans', 'Macaques_late', 'HumansOpaque', 'Humans50_50'}; % the set names to display
 MI_space_set_list = {'GoodHumans', 'Macaques_late', 'BadHumans'}; % the set names to display HumansEC:= without the session without solo training
 % paper
-MI_space_set_list = {'HumansTransparent', 'Macaques_late', 'ConfederateTrainedMacaques'}; % the set names to display
+MI_space_set_list = {'HumansTransparent', 'Macaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'}; % the set names to display
 
+
+MI_space_type_list = {'MIS_by_MIT', 'Strength_by_Type'};
 
 MI_jitter_x_on_collision = 0.05;
 MI_jitter_y_on_collision = 0.05;
 
+MI_jitter_x_on_collision = 0;
+MI_jitter_y_on_collision = 0;
 
 MI_space_mark_non_significant_sessions = 1;% our MI space x-postion is only reliable if at least one of MIs and MIt are significantly different from zero
 mark_flaffus_curius = 0;
@@ -129,6 +133,14 @@ XX_marker_ID_use_captions = 1;
 MI_normalize_coordination_strength_50_50 = 1;
 MI_coordination_strength_method = 'max';% max or vectorlength
 MI_threshold = [];
+
+
+plot_RT_correlations = 0;
+RT_correlation_type_list = {'TargetAcquisitionRT', 'InitialTargetReleaseRT', 'InitialHoldReleaseRT', 'IniTargRel_05MT_RT'};
+RT_correlation_detrend_order_string = 'detrend_order_1';
+
+
+
 AR_SCATTER_mark_all = 1;
 
 AR_scatter_show_FET = 1;
@@ -269,11 +281,16 @@ if (generate_session_reports)
 		n_sessions_in_set = length(current_session_id_list);
 		
 		
-		header = {'ArBr', 'ArBy', 'AyBr', 'AyBy', 'ARBR', 'ARBL', 'ALBR', 'ALBL', 'Coordinated', 'Noncoordinated'};
+		header = {'ArBr', 'ArBy', 'AyBr', 'AyBy', 'ARBR', 'ARBL', 'ALBR', 'ALBL', 'Coordinated', 'Noncoordinated', ...
+			'InitialTargetReleaseRT_corr_r', 'InitialTargetReleaseRT_corr_p', 'InitialTargetReleaseRT_corr_df', ...
+			'IniTargRel_05MT_RT_corr_r', 'IniTargRel_05MT_RT_corr_p', 'IniTargRel_05MT_RT_corr_df', ...
+			'TargetAcquisitionRT_corr_r', 'TargetAcquisitionRT_corr_p', 'TargetAcquisitionRT_corr_df'};
+		
 		data = zeros([n_sessions_in_set, length(header)]);
 		cn = local_get_column_name_indices(header);
 		
 		for i_jointtrialfile = 1 : length(current_session_id_list)
+			%value
 			tmp_struct = [];
 			tmp_struct = load(fullfile(indir, [current_session_id_list{i_jointtrialfile}, '.mat']));
 			tmp_idx = intersect(tmp_struct.TrialSets.ByChoice.SideA.TargetValueHigh, tmp_struct.TrialSets.ByChoice.SideB.TargetValueLow);
@@ -289,12 +306,13 @@ if (generate_session_reports)
 			AyBy = length(intersect(tmp_struct.TrialsInCurrentSetIdx, tmp_idx));
 			data(i_jointtrialfile, cn.AyBy) = AyBy;
 			
+			% coordination
 			Coordinated = ArBr + AyBy;
 			data(i_jointtrialfile, cn.Coordinated) = Coordinated;
 			Noncoordinated = ArBy + AyBr;
 			data(i_jointtrialfile, cn.Noncoordinated) = Noncoordinated;
 			
-			
+			% sides			
 			tmp_idx = intersect(tmp_struct.TrialSets.ByChoice.SideA.ChoiceRight, tmp_struct.TrialSets.ByChoice.SideB.ChoiceRight);
 			ARBR = length(intersect(tmp_struct.TrialsInCurrentSetIdx, tmp_idx));
 			data(i_jointtrialfile, cn.ARBR) = ARBR;
@@ -307,6 +325,24 @@ if (generate_session_reports)
 			tmp_idx = intersect(tmp_struct.TrialSets.ByChoice.SideA.ChoiceLeft, tmp_struct.TrialSets.ByChoice.SideB.ChoiceLeft);
 			ALBL = length(intersect(tmp_struct.TrialsInCurrentSetIdx, tmp_idx));
 			data(i_jointtrialfile, cn.ALBL) = ALBL;
+			
+			% "RT" correlations
+			
+			cur_coord_metrics_table_cn = local_get_column_name_indices(tmp_struct.cur_coordination_metrics_table_header);
+			
+			data(i_jointtrialfile, cn.InitialTargetReleaseRT_corr_r) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['intialTargetReleaseTimecorr_', RT_correlation_detrend_order_string, '_r']));
+			data(i_jointtrialfile, cn.InitialTargetReleaseRT_corr_p) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['intialTargetReleaseTimecorr_', RT_correlation_detrend_order_string, '_p']));
+			data(i_jointtrialfile, cn.InitialTargetReleaseRT_corr_df) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['intialTargetReleaseTimecorr_', RT_correlation_detrend_order_string, '_df']));
+
+			data(i_jointtrialfile, cn.IniTargRel_05MT_RT_corr_r) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['IniTargRel_05MT_Timecorr_', RT_correlation_detrend_order_string, '_r']));
+			data(i_jointtrialfile, cn.IniTargRel_05MT_RT_corr_p) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['IniTargRel_05MT_Timecorr_', RT_correlation_detrend_order_string, '_p']));
+			data(i_jointtrialfile, cn.IniTargRel_05MT_RT_corr_df) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['IniTargRel_05MT_Timecorr_', RT_correlation_detrend_order_string, '_df']));
+
+			data(i_jointtrialfile, cn.TargetAcquisitionRT_corr_r) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['targetAcquisitionTimecorr_', RT_correlation_detrend_order_string, '_r']));
+			data(i_jointtrialfile, cn.TargetAcquisitionRT_corr_p) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['targetAcquisitionTimecorr_', RT_correlation_detrend_order_string, '_p']));
+			data(i_jointtrialfile, cn.TargetAcquisitionRT_corr_df) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['targetAcquisitionTimecorr_', RT_correlation_detrend_order_string, '_df']));
+			
+			
 			% collect data over all members of a group.
 			group_concatenated_pertrial_data = fn_concatenate_pertrial_data_over_sessions(group_concatenated_pertrial_data, tmp_struct.FullPerTrialStruct, tmp_struct.TrialsInCurrentSetIdx);
 		end
@@ -325,12 +361,24 @@ if (generate_session_reports)
 		Side_ARBL = data(:, cn.ARBL);
 		Side_ALBR = data(:, cn.ALBR);
 		Side_ALBL = data(:, cn.ALBL);
-		data_struct_table = table(Color_ArBr, Color_ArBy, Color_AyBr, Color_AyBy, Side_ARBR, Side_ARBL, Side_ALBR, Side_ALBL, current_session_id_list', 'RowNames', current_session_id_list);
-		
-		data_struct_table = table(Color_ArBr, Color_ArBy, Color_AyBr, Color_AyBy, current_session_id_list', 'RowNames', current_session_id_list);
-		
+		data_struct_table = table(Color_ArBr, Color_ArBy, Color_AyBr, Color_AyBy, Side_ARBR, Side_ARBL, Side_ALBR, Side_ALBL, current_session_id_list', 'RowNames', current_session_id_list);	
+		data_struct_table = table(Color_ArBr, Color_ArBy, Color_AyBr, Color_AyBy, current_session_id_list', 'RowNames', current_session_id_list);		
 		writetable(data_struct_table, fullfile(outdir, ['session_report_table.txt']), 'WriteVariableNames', true, 'Delimiter', ';');
 		data_struct_list{i_group} = data_struct;
+		
+		% write correlation values as well:
+		
+		corr_var_name_list = {'InitialTargetReleaseRT_corr_r', 'InitialTargetReleaseRT_corr_p', 'InitialTargetReleaseRT_corr_df', ...
+			'IniTargRel_05MT_RT_corr_r', 'IniTargRel_05MT_RT_corr_p', 'IniTargRel_05MT_RT_corr_df', ...
+			'TargetAcquisitionRT_corr_r', 'TargetAcquisitionRT_corr_p', 'TargetAcquisitionRT_corr_df', ...
+			'SessionID'};
+		corr_data_struct_table = table(data(:, cn.InitialTargetReleaseRT_corr_r), data(:, cn.InitialTargetReleaseRT_corr_p), data(:, cn.InitialTargetReleaseRT_corr_df), ...
+			data(:, cn.IniTargRel_05MT_RT_corr_r), data(:, cn.IniTargRel_05MT_RT_corr_p), data(:, cn.IniTargRel_05MT_RT_corr_df), ...
+			data(:, cn.TargetAcquisitionRT_corr_r), data(:, cn.TargetAcquisitionRT_corr_p), data(:, cn.TargetAcquisitionRT_corr_df), ...
+			current_session_id_list', 'RowNames', current_session_id_list, 'VariableNames', corr_var_name_list);
+		writetable(corr_data_struct_table, fullfile(outdir, ['session_report_table_RT_corr.', RT_correlation_detrend_order_string, '.txt']), 'WriteVariableNames', true, 'Delimiter', ';');
+		
+		
 	end
 	disp('Created all session reports...');
 	%return
@@ -542,166 +590,237 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			MIs_by_group.atan{i_group} = tmp;
 		end
 		
-		FileName = CollectionName;
-		Cur_fh_avg_reward_by_group = figure('Name', 'mutual information space plot', 'visible', figure_visibility_string);
-		fnFormatDefaultAxes(DefaultAxesType);
-		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
-		legend_list = {};
-		hold on
 		
-		for i_group = 1 : n_groups
+		for i_MI_space_type = 1 : length(MI_space_type_list)
+			current_MI_space_type = MI_space_type_list{i_MI_space_type};
 			
-			current_group_label = group_struct_list{i_group}.setLabel;
-			if ~ismember(current_group_label, MI_space_set_list)
-				continue;
-			end
+			FileName = CollectionName;
+			Cur_fh_avg_reward_by_group = figure('Name', ['mutual information space plot ', current_MI_space_type], 'visible', figure_visibility_string);
+			fnFormatDefaultAxes(DefaultAxesType);
+			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			legend_list = {};
+			hold on
 			
-			if strcmp(group_struct_list{i_group}.Symbol, 'none')
-				% skip sets no symbol, as scatter does not tolerate
-				continue
-			end
-			current_group_name = group_struct_list{i_group}.setName;
-			legend_list{end+1} = current_group_name;
-			
-			ScatterSymbolSize = 25;
-			ScatterLineWidth = 0.75;
-			current_scatter_color = group_struct_list{i_group}.color;
-			%current_scatter_color = [0.5 0.5 0.5];
-			x_list = MIs_by_group.atan{i_group};
-			y_list = MIs_by_group.(MI_coordination_strength_method){i_group};
-			switch MI_coordination_strength_method
-				case 'max'
-					y_list = MIs_by_group.max{i_group};
-				case 'vectorlength'
-					y_list = MIs_by_group.vectorlength{i_group};
-					error(['Unhandled MI_coordination_strength_method: ', MI_coordination_strength_method]);
-			end
-			
-			
-			orig_x_list = x_list;
-			if (MI_jitter_x_on_collision ~= 0)
-				% to display all individial values as scatter plots randomize the
-				% positions for each group
-				scatter_width = MI_jitter_x_on_collision;
-				scatter_offset_list = (scatter_width * rand(size(x_list))) - (scatter_width * 0.5);
-				if (length(x_list) > 1)
-					x_list = x_list + scatter_offset_list;
-					negative_x_idx = find(x_list < 0);
-					x_list(negative_x_idx) = 0;
+			for i_group = 1 : n_groups
+				
+				current_group_label = group_struct_list{i_group}.setLabel;
+				if ~ismember(current_group_label, MI_space_set_list)
+					continue;
 				end
-			end
-			
-			orig_y_list = y_list;
-			if (MI_normalize_coordination_strength_50_50) && ~strcmp(MI_coordination_strength_method, 'max')
-				for i_x = 1 : length(orig_x_list)
-					cur_orig_x = orig_x_list(i_x);
-					%cur_y_adjust_factor = sqrt(tan(min([cur_orig_x, (0.5 * pi - cur_orig_x)])) + 1);
-					cur_y_adjust_factor = sqrt(tan(min([cur_orig_x, (0.5 * pi - cur_orig_x)]))^2 + 1);
-					y_list(i_x) = orig_y_list(i_x) / cur_y_adjust_factor;
+				
+				if strcmp(group_struct_list{i_group}.Symbol, 'none')
+					% skip sets no symbol, as scatter does not tolerate
+					continue
 				end
-			end
-			
-			if (MI_jitter_y_on_collision ~= 0)
-				% to display all individial values as scatter plots randomize the
-				% positions for each group
-				scatter_height = MI_jitter_y_on_collision;
-				scatter_offset_list = (scatter_height * rand(size(y_list))) - (scatter_height * 0.5);
-				if (length(y_list) > 1)
-					y_list = y_list + scatter_offset_list;
-					negative_y_idx = find(y_list < 0);
-					y_list(negative_y_idx) = 0;
+				current_group_name = group_struct_list{i_group}.setName;
+				legend_list{end+1} = current_group_name;
+				
+				ScatterSymbolSize = 25;
+				ScatterLineWidth = 0.75;
+				current_scatter_color = group_struct_list{i_group}.color;
+				%current_scatter_color = [0.5 0.5 0.5];
+				
+				
+				switch current_MI_space_type
+					case 'Strength_by_Type'
+						x_list = MIs_by_group.atan{i_group};
+						y_list = MIs_by_group.(MI_coordination_strength_method){i_group};
+						switch MI_coordination_strength_method
+							case 'max'
+								y_list = MIs_by_group.max{i_group};
+							case 'vectorlength'
+								y_list = MIs_by_group.vectorlength{i_group};
+								error(['Unhandled MI_coordination_strength_method: ', MI_coordination_strength_method]);
+						end
+						
+					case 'MIS_by_MIT'
+						x_list = MIs_by_group_mitarget_list{i_group};
+						y_list = MIs_by_group_miside_list{i_group};
 				end
-			end
-			
-			if group_struct_list{i_group}.FilledSymbols
-				scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
-			else
-				scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
-			end
-			
-			% now re-color the non-significant positions
-			if (MI_space_mark_non_significant_sessions) && ~isempty( MIs_by_group.bothMIsNotSignif_idx{i_group})
-				tmp_current_scatter_color = [1 0 0];
-				%tmp_current_scatter_color = current_scatter_color;
-				cur_bothMIsNotSignif_idx = MIs_by_group.bothMIsNotSignif_idx{i_group};
+				
+				
+				
+				orig_x_list = x_list;
+				if (MI_jitter_x_on_collision ~= 0)
+					% to display all individial values as scatter plots randomize the
+					% positions for each group
+					scatter_width = MI_jitter_x_on_collision;
+					scatter_offset_list = (scatter_width * rand(size(x_list))) - (scatter_width * 0.5);
+					if (length(x_list) > 1)
+						x_list = x_list + scatter_offset_list;
+						negative_x_idx = find(x_list < 0);
+						x_list(negative_x_idx) = 0;
+					end
+				end
+				
+				orig_y_list = y_list;
+				if (MI_normalize_coordination_strength_50_50) && ~strcmp(MI_coordination_strength_method, 'max')
+					for i_x = 1 : length(orig_x_list)
+						cur_orig_x = orig_x_list(i_x);
+						%cur_y_adjust_factor = sqrt(tan(min([cur_orig_x, (0.5 * pi - cur_orig_x)])) + 1);
+						cur_y_adjust_factor = sqrt(tan(min([cur_orig_x, (0.5 * pi - cur_orig_x)]))^2 + 1);
+						y_list(i_x) = orig_y_list(i_x) / cur_y_adjust_factor;
+					end
+				end
+				
+				if (MI_jitter_y_on_collision ~= 0)
+					% to display all individial values as scatter plots randomize the
+					% positions for each group
+					scatter_height = MI_jitter_y_on_collision;
+					scatter_offset_list = (scatter_height * rand(size(y_list))) - (scatter_height * 0.5);
+					if (length(y_list) > 1)
+						y_list = y_list + scatter_offset_list;
+						negative_y_idx = find(y_list < 0);
+						y_list(negative_y_idx) = 0;
+					end
+				end
+				
 				if group_struct_list{i_group}.FilledSymbols
-					scatter(x_list(cur_bothMIsNotSignif_idx), y_list(cur_bothMIsNotSignif_idx), ScatterSymbolSize, tmp_current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
+					scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
 				else
-					scatter(x_list(cur_bothMIsNotSignif_idx), y_list(cur_bothMIsNotSignif_idx), ScatterSymbolSize, tmp_current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
+					scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
 				end
-				legend_list{end+1} = [current_group_name, ' (no strategy)'];
-			end
-			
-			%% test for maximum equivalence to other operation
-			%tmp_y_list = max([MIs_by_group_miside_list{i_group}, MIs_by_group_mitarget_list{i_group}], [], 2);
-			%scatter(x_list, tmp_y_list, ScatterSymbolSize, [0 1 0], group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
-			
-			
-			
-			
-			if (mark_flaffus_curius)
-				if strcmp(group_struct_list{i_group}.setName, 'Macaques early') || strcmp(group_struct_list{i_group}.setName, 'Macaques late')
-					for i_session = 1 : length(group_struct_list{i_group}.filenames)
-						if ~isempty(strfind(group_struct_list{i_group}.filenames{i_session}, 'A_Flaffus.B_Curius'))
-							dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
-							text(x_list(i_session)+dx, y_list(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+				
+				% now re-color the non-significant positions
+				if (MI_space_mark_non_significant_sessions) && ~isempty( MIs_by_group.bothMIsNotSignif_idx{i_group})
+					tmp_current_scatter_color = [1 0 0];
+					%tmp_current_scatter_color = current_scatter_color;
+					cur_bothMIsNotSignif_idx = MIs_by_group.bothMIsNotSignif_idx{i_group};
+					if group_struct_list{i_group}.FilledSymbols
+						scatter(x_list(cur_bothMIsNotSignif_idx), y_list(cur_bothMIsNotSignif_idx), ScatterSymbolSize, tmp_current_scatter_color, group_struct_list{i_group}.Symbol, 'filled', 'LineWidth', ScatterLineWidth);
+					else
+						scatter(x_list(cur_bothMIsNotSignif_idx), y_list(cur_bothMIsNotSignif_idx), ScatterSymbolSize, tmp_current_scatter_color, group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
+					end
+					legend_list{end+1} = [current_group_name, ' (no strategy)'];
+				end
+				
+				%% test for maximum equivalence to other operation
+				%tmp_y_list = max([MIs_by_group_miside_list{i_group}, MIs_by_group_mitarget_list{i_group}], [], 2);
+				%scatter(x_list, tmp_y_list, ScatterSymbolSize, [0 1 0], group_struct_list{i_group}.Symbol, 'LineWidth', ScatterLineWidth);
+				
+				
+				
+				
+				if (mark_flaffus_curius)
+					if strcmp(group_struct_list{i_group}.setName, 'Macaques early') || strcmp(group_struct_list{i_group}.setName, 'Macaques late')
+						for i_session = 1 : length(group_struct_list{i_group}.filenames)
+							if ~isempty(strfind(group_struct_list{i_group}.filenames{i_session}, 'A_Flaffus.B_Curius'))
+								dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+								text(x_list(i_session)+dx, y_list(i_session)+dy, {num2str(i_session)},'Color', current_scatter_color, 'Fontsize', 8);
+							end
 						end
 					end
 				end
-			end
-			
-			if (MI_mark_all)
-				for i_session = 1 : length(group_struct_list{i_group}.filenames)
-					dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
-					if (XX_marker_ID_use_captions)
-						cur_ID_string = group_struct_list{i_group}.Captions{i_session};
-					else
-						cur_ID_string = num2str(i_session);
+				
+				if (MI_mark_all)
+					for i_session = 1 : length(group_struct_list{i_group}.filenames)
+						dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+						if (XX_marker_ID_use_captions)
+							cur_ID_string = group_struct_list{i_group}.Captions{i_session};
+						else
+							cur_ID_string = num2str(i_session);
+						end
+						text(x_list(i_session)+dx, y_list(i_session)+dy, {cur_ID_string},'Color', current_scatter_color, 'Fontsize', 8);
 					end
-					text(x_list(i_session)+dx, y_list(i_session)+dy, {cur_ID_string},'Color', current_scatter_color, 'Fontsize', 8);
 				end
 			end
 			
+			switch current_MI_space_type
+				case 'Strength_by_Type'
+					if ~isempty(MI_threshold)
+						plot([-0.05, pi()/2+0.1], [MI_threshold, MI_threshold], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+					end
+					hold off
+					axis([-0.05, pi()/2+0.1, -0.05, 1.4]);
+					ylabel('Coordination strength (MI magnitude) [a.u.]', 'Interpreter', 'none');
+					if (MI_normalize_coordination_strength_50_50)
+						axis([-0.05, pi()/2+0.1, -0.05, 1.05]);
+						ylabel('Normalized coordination strength', 'Interpreter', 'none');
+					end
+					xlabel('Coordination type (angle between MI`s) [degree]', 'Interpreter', 'none');
+					set( gca, 'xTick', [0, pi()/4, pi()/2], 'xTickLabel', {'Side-based (0)', 'Trial-by-trial (45)', 'Target-based (90)'});
+					
+				case 'MIS_by_MIT'
+					hold off
+					axis equal
+					axis([0, 1, 0, 1]);
+					ylabel('MI side [bit]', 'Interpreter', 'none');
+					xlabel('MI target [bit]', 'Interpreter', 'none');
+					%set( gca, 'xTick', [0, pi()/4, pi()/2], 'xTickLabel', {'Side-based (0)', 'Trial-by-trial (45)', 'Target-based (90)'});
+			end
 			
-		end
-		if ~isempty(MI_threshold)
-			plot([-0.05, pi()/2+0.1], [MI_threshold, MI_threshold], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
-		end
-		
-		hold off
-		axis([-0.05, pi()/2+0.1, -0.05, 1.4]);
-		ylabel('Coordination strength (MI magnitude) [a.u.]', 'Interpreter', 'none');
-		if (MI_normalize_coordination_strength_50_50)
-			axis([-0.05, pi()/2+0.1, -0.05, 1.05]);
-			ylabel('Normalized coordination strength', 'Interpreter', 'none');
-		end
-		xlabel('Coordination type (angle between MI`s) [degree]', 'Interpreter', 'none');
-		set( gca, 'xTick', [0, pi()/4, pi()/2], 'xTickLabel', {'Side-based (0)', 'Trial-by-trial (45)', 'Target-based (90)'});
-		
-		%     if (PlotLegend)
-		%         legend(legend_list, 'Interpreter', 'None');
-		%     end
-		CurrentTitleSetDescriptorString = TitleSetDescriptorString;
-		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', OutPutType]);
-		write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', 'pdf']);
-		write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-		if (save_fig)
-			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', 'fig']);
+			
+			%     if (PlotLegend)
+			%         legend(legend_list, 'Interpreter', 'None');
+			%     end
+			CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', current_MI_space_type, '.', OutPutType]);
 			write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-		end
-		
-		legend(legend_list, 'Interpreter', 'None', 'Location', 'northwest');
-		legend('boxoff');
-		
-		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', OutPutType]);
-		write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', 'pdf']);
-		write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
-		if (save_fig)
-			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', 'fig']);
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', current_MI_space_type, '.', 'pdf']);
 			write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+			if (save_fig)
+				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.', current_MI_space_type, '.', 'fig']);
+				write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+			end
+			
+			legend(legend_list, 'Interpreter', 'None', 'Location', 'northwest');
+			legend('boxoff');
+			
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', current_MI_space_type, '.', OutPutType]);
+			write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', current_MI_space_type, '.', 'pdf']);
+			write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+			if (save_fig)
+				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.MIspaceCooordinates.legend.', current_MI_space_type, '.', 'fig']);
+				write_out_figure(Cur_fh_avg_reward_by_group, outfile_fqn);
+			end
+		end
+	end
+	
+	if (plot_RT_correlations)
+		for i_RT_type = 1 : length(RT_correlation_type_list)
+			current_RT_type = RT_correlation_type_list{i_RT_type};			
+			% collect the actual data
+			MIs_by_group_miside_list = cell(size(group_struct_list)); % the actual MIside values per group
+			MIs_by_group_mitarget_list = cell(size(group_struct_list)); % the actual MItarget values per group
+			
+			MIs_by_group.miTargetSignif = cell(size(group_struct_list));
+			MIs_by_group.miSideSignif = cell(size(group_struct_list));
+			MIs_by_group.bothMIsNotSignif_idx = cell(size(group_struct_list));
+			
+			MIs_by_group.group_names = cell(size(group_struct_list));
+			MIs_by_group.group_labels = cell(size(group_struct_list));
+			MIs_by_group.vectorlength = cell(size(group_struct_list));
+			MIs_by_group.atan = cell(size(group_struct_list));
+			MIs_by_group.max = cell(size(group_struct_list));
+			
+			% now collect the
+			for i_group = 1 : n_groups
+				MIs_by_group.group_names{i_group} = group_struct_list{i_group}.setName;
+				MIs_by_group.group_labels{i_group} = group_struct_list{i_group}.label;
+				
+				current_group_data = metrics_by_group_list{i_group};
+				
+				MIs_by_group.miTargetSignif{i_group} = current_group_data(:, coordination_metrics_table.cn.miTargetSignif);
+				MIs_by_group.miSideSignif{i_group} = current_group_data(:, coordination_metrics_table.cn.miSideSignif);
+				MIs_by_group.bothMIsNotSignif_idx{i_group} = find((MIs_by_group.miTargetSignif{i_group} + MIs_by_group.miSideSignif{i_group}) == 0);
+				
+				MIs_by_group_miside_list{i_group} = current_group_data(:, coordination_metrics_table.cn.miSide);
+				MIs_by_group_mitarget_list{i_group} = current_group_data(:, coordination_metrics_table.cn.miTarget);
+				MIs_by_group.vectorlength{i_group} = sqrt(MIs_by_group_miside_list{i_group}.^2 + MIs_by_group_mitarget_list{i_group}.^2);
+				MIs_by_group.max{i_group} = max([MIs_by_group_miside_list{i_group}, MIs_by_group_mitarget_list{i_group}], [], 2);
+				
+				tmp = atan(MIs_by_group_miside_list{i_group} ./ MIs_by_group_mitarget_list{i_group});
+				% since division by zero is undefined we need to special case of
+				% MI target == 0, here we just clamp to the extreme right value
+				tmp(MIs_by_group_mitarget_list{i_group} == 0) = pi()/2;
+				MIs_by_group.atan{i_group} = tmp;
+			end
+			
+			
+			
+			
 		end
 	end
 	
@@ -805,7 +924,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 				'), Z: ', num2str(signrank_stats.zval), ', p < ', num2str(p), ', r: ', num2str(signrank_stats.zval/sqrt(length(late_AVG_rewardAB)))];
 		else
 			title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
-				'), SignedRank: ', num2str(signrank_stats.signedrank), ', p < ', num2str(p)];			
+				'), SignedRank: ', num2str(signrank_stats.signedrank), ', p < ', num2str(p)];
 		end
 		if (AR_scatter_show_FET)
 			title(title_text, 'FontSize', 6);
@@ -840,7 +959,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			end
 			
 			
-			%if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaques'})
+			%if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'})
 			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque', ...
 					'Humans50_55__80_20', 'Humans50_50', 'GoodHumans', 'BadHumans', 'HumansTransparent'})
 				cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
@@ -1021,7 +1140,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 				continue
 			end
 			
-			%if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaques'})
+			%if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'})
 			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', ...
 					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', })
 				cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
@@ -1336,8 +1455,8 @@ if (plot_AR_scatter_by_session_state_early_late)
 		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', 'exact', 'tail', 'both');
 		% (Mdn = 0.85) than in male faces (Mdn = 0.65), Z = 4.21, p < .001, r = .76.
 		% A measure of effect size, r, can be calculated by dividing Z by the square root of N(r = Z / ?N).
-% 		title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
-% 			'), Z: ', num2str(signrank_stats.zval), ', p < ', num2str(p), ', r: ', num2str(signrank_stats.zval/sqrt(length(late_AVG_rewardAB)))];
+		% 		title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
+		% 			'), Z: ', num2str(signrank_stats.zval), ', p < ', num2str(p), ', r: ', num2str(signrank_stats.zval/sqrt(length(late_AVG_rewardAB)))];
 		
 		if isfield(signrank_stats, 'zval')
 			title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
@@ -1346,7 +1465,7 @@ if (plot_AR_scatter_by_session_state_early_late)
 			title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
 				'), SignedRank: ', num2str(signrank_stats.signedrank), ', p < ', num2str(p)];
 		end
-
+		
 		
 		title(title_text, 'FontSize', 6);
 		
@@ -1382,7 +1501,7 @@ if (plot_RT_by_switch_type)
 		A_RT_data = group_concatenated_pertrial_data.(['A_', RT_type]);
 		B_RT_data = group_concatenated_pertrial_data.(['B_', RT_type]);
 		
-		% display the min and max halfway times	
+		% display the min and max halfway times
 		selected_trials_ldx = logical(group_concatenated_pertrial_data.TrialIsRewarded);
 		IFR_A_RT_data = group_concatenated_pertrial_data.(['A_', 'InitialTargetReleaseRT'])(selected_trials_ldx);
 		IFR_B_RT_data = group_concatenated_pertrial_data.(['B_', 'InitialTargetReleaseRT'])(selected_trials_ldx);
@@ -1392,7 +1511,7 @@ if (plot_RT_by_switch_type)
 		disp([current_group_label, ' ', 'InitialTargetReleaseRT', ' B(min:max): ', num2str(min(IFR_B_RT_data(find(IFR_B_RT_data > 0 & IFR_B_RT_data < 1500)))), ' : ', num2str(max(IFR_B_RT_data(find(IFR_B_RT_data > 0 & IFR_B_RT_data < 1500))))]);
 		disp([current_group_label, ' ', RT_type, ' A(min:max): ', num2str(min(tmp_A_RT_data(find(tmp_A_RT_data > 0 & tmp_A_RT_data < 1500)))), ' : ', num2str(max(tmp_A_RT_data(find(tmp_A_RT_data > 0 & tmp_A_RT_data < 1500))))]);
 		disp([current_group_label, ' ', RT_type, ' B(min:max): ', num2str(min(tmp_B_RT_data(find(tmp_B_RT_data > 0 & tmp_B_RT_data < 1500)))), ' : ', num2str(max(tmp_B_RT_data(find(tmp_B_RT_data > 0 & tmp_B_RT_data < 1500))))]);
-				
+		
 		choice_combination_color_string = group_concatenated_pertrial_data.choice_combination_color_string;
 		
 		% summarize the average run lengths
@@ -1444,21 +1563,21 @@ if (plot_RT_by_switch_type)
 				aggregate_type_list = {current_aggregate_type, current_aggregate_type};
 				
 				[Cur_fh_RTbyChoiceCombinationSwitches, merged_classifier_char_string] = fn_plot_RT_histogram_by_switches(Cur_fh_RTbyChoiceCombinationSwitches, RT_by_switch_struct_list, selected_choice_combinaton_pattern_list, RT_by_switch_title_prefix_list, RT_by_switch_switch_pre_bins_list, RT_by_switch_switch_n_bins_list, RT_by_switch_color_list, aggregate_type_list);
-
+				
 				trial_outcome_list = zeros(size(merged_classifier_char_string));
 				trial_outcome_list(merged_classifier_char_string == 'R') = 1;
 				trial_outcome_list(merged_classifier_char_string == 'B') = 2;
 				trial_outcome_list(merged_classifier_char_string == 'M') = 3;
 				trial_outcome_list(merged_classifier_char_string == 'G') = 4;
-				% 
+				%
 				trial_outcome_colors = [SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor];
 				trial_outcome_BGTransparency = [1.0];
 				
-				y_lim = get(gca(), 'YLim');				
+				y_lim = get(gca(), 'YLim');
 				fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, {trial_outcome_list}, y_lim, {trial_outcome_colors}, {trial_outcome_BGTransparency});
 				y_lim = get(gca(), 'YLim');
-
-
+				
+				
 				
 				
 				
