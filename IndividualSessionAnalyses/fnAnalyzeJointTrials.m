@@ -645,6 +645,12 @@ for iGroup = 1 : length(GroupNameList)
 	NonPreferableTargetSelected_B = zeros([NumTrials, 1]);
 	NonPreferableTargetSelected_B(TrialSets.ByChoice.SideB.ProtoTargetValueLow) = 1;
 	
+
+	% get vectors for side/value choices
+	PreferableNoneNonpreferableSelected_A = zeros([NumTrials, 1]) + PreferableTargetSelected_A - NonPreferableTargetSelected_A;
+	PreferableNoneNonpreferableSelected_B = zeros([NumTrials, 1]) + PreferableTargetSelected_B - NonPreferableTargetSelected_B;
+	
+	
 	
 	% how about solo trials
 	A_selects_A = PreferableTargetSelected_A;
@@ -698,6 +704,17 @@ for iGroup = 1 : length(GroupNameList)
 	RightTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceScreenFromARight) = 1;
 	RightTargetSelected_B = zeros([NumTrials, 1]);
 	RightTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceScreenFromARight) = 1;
+
+	
+	% get vectors for side/value choices
+	%PreferableNoneNonpreferableSelected_A = zeros([NumTrials, 1]) + PreferableTargetSelected_A - NonPreferableTargetSelected_A;
+	%PreferableNoneNonpreferableSelected_B = zeros([NumTrials, 1]) + PreferableTargetSelected_B - NonPreferableTargetSelected_B;
+	RightNoneLeftSelected_A = zeros([NumTrials, 1]) + RightTargetSelected_A - LeftTargetSelected_A;
+	RightNoneLeftSelected_B = zeros([NumTrials, 1]) + RightTargetSelected_B - LeftTargetSelected_B;
+	SubjectiveRightNoneLeftSelected_A = zeros([NumTrials, 1]) + SubjectiveRightTargetSelected_A - SubjectiveLeftTargetSelected_A;
+	SubjectiveRightNoneLeftSelected_B = zeros([NumTrials, 1]) + SubjectiveRightTargetSelected_B - SubjectiveLeftTargetSelected_B;
+
+	
 	
 	
 	A_left = LeftTargetSelected_A;
@@ -959,6 +976,16 @@ for iGroup = 1 : length(GroupNameList)
 		FullPerTrialStruct.SubjectiveLeftTargetSelected_B = SubjectiveLeftTargetSelected_B(:);
 		FullPerTrialStruct.SubjectiveRightTargetSelected_A = SubjectiveRightTargetSelected_A(:);
 		FullPerTrialStruct.SubjectiveRightTargetSelected_B = SubjectiveRightTargetSelected_B(:);
+
+		
+		% get vectors for side/value choices
+		FullPerTrialStruct.PreferableNoneNonpreferableSelected_A = PreferableNoneNonpreferableSelected_A;
+		FullPerTrialStruct.PreferableNoneNonpreferableSelected_B = PreferableNoneNonpreferableSelected_B;
+		FullPerTrialStruct.RightNoneLeftSelected_A = RightNoneLeftSelected_A;
+		FullPerTrialStruct.RightNoneLeftSelected_B = RightNoneLeftSelected_B;
+		FullPerTrialStruct.SubjectiveRightNoneLeftSelected_A = SubjectiveRightNoneLeftSelected_A;
+		FullPerTrialStruct.SubjectiveRightNoneLeftSelected_B = SubjectiveRightNoneLeftSelected_B;
+
 		
 		
 		FullPerTrialStruct.TrialIsJoint = TrialIsJoint(:);
