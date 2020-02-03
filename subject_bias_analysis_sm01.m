@@ -18,12 +18,11 @@ end
 copy_triallogs_to_outputdir = 0;
 ProcessNewestFirst = 1;
 RunSingleSessionAnalysis = 1;
-ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
-
-
+ProcessFreshSessionsOnly = 0;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
 project_name = [];
 project_name = 'BoS_manuscript';
-project_name = 'SfN2008'; % this loops back to 2019
+%project_name = 'SfN2008'; % this loops back to 2019
+%project_name = 'SfN2018'; % this loops back to 2019
 
 
 % special case for the paper set
@@ -69,7 +68,8 @@ switch CurrentAnalysisSetName
 		
 	case {'SCP_DATA', 'SCP_DATA_SFN2018'}
 		experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
-		experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA');
+		experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01'); % avoid the analysis folder with its looped sym links
+		%experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA');
 		LogFileWildCardString = '*.triallog.txt';
 		
 	case {'SCP01'}
@@ -117,6 +117,9 @@ switch CurrentAnalysisSetName
 	case {'SCP_DATA_SFN2018'}
 		% for PrimNeuro2018, /space/data_local/moeller/DPZ/Projects/ProgressReportsAndPresentations/PrimateNeurobiology2018_TUE/
 		SCPDirs.OutputDir = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'Projects', 'ProgressReportsAndPresentations', '20181103_SfN-Meeting_San_Diego', 'ANALYSES');
+	case {'SCP_DATA'}
+		% for PrimNeuro2018, /space/data_local/moeller/DPZ/Projects/ProgressReportsAndPresentations/PrimateNeurobiology2018_TUE/
+		SCPDirs.OutputDir = fullfile(experimentFolder, '..', 'ANALYSES', SCPDirs.CurrentShortHostName);
 	otherwise
 		% the default...
 		SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES', SCPDirs.CurrentShortHostName);
@@ -130,6 +133,8 @@ TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyymmddTHHMMSS'));
 TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyymmdd'));
 % by year
 TmpOutBaseDir = fullfile(SCPDirs.OutputDir, datestr(now, 'yyyy'));
+
+TmpOutBaseDir = fullfile(SCPDirs.OutputDir, '2019');
 % for DPZEvaluation2017
 %TmpOutBaseDir = SCPDirs.OutputDir;
 
@@ -150,9 +155,9 @@ ExperimentFileFQN_list = {fullfile(experimentFolder, '20170602/20170602T151337.A
 ExperimentFileFQN_list = {fullfile(experimentFolder, '20171019/20171019T132932.A_Flaffus.B_Curius.SCP_01/20171019T132932.A_Flaffus.B_Curius.SCP_01.log')};
 
 ExperimentFileFQN_list = {...
-	fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171215/20171215T122633.A_SM.B_Curius.SCP_01.sessiondir/20171215T122633.A_SM.B_Curius.SCP_01.triallog.txt'), ...
-	fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171221/20171221T135010.A_SM.B_Curius.SCP_01.sessiondir/20171221T135010.A_SM.B_Curius.SCP_01.triallog.txt'), ...
-	fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171222/20171222T104137.A_SM.B_Curius.SCP_01.sessiondir/20171222T104137.A_SM.B_Curius.SCP_01.triallog.txt'), ...
+	fullfile(experimentFolder, 'SESSIONLOGS/2017/171215/20171215T122633.A_SM.B_Curius.SCP_01.sessiondir/20171215T122633.A_SM.B_Curius.SCP_01.triallog.txt'), ...
+	fullfile(experimentFolder, 'SESSIONLOGS/2017/171221/20171221T135010.A_SM.B_Curius.SCP_01.sessiondir/20171221T135010.A_SM.B_Curius.SCP_01.triallog.txt'), ...
+	fullfile(experimentFolder, 'SESSIONLOGS/2017/171222/20171222T104137.A_SM.B_Curius.SCP_01.sessiondir/20171222T104137.A_SM.B_Curius.SCP_01.triallog.txt'), ...
 	};
 
 ExperimentFileFQN_list = {...
@@ -347,6 +352,7 @@ save(fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat']), 'out
 
 if strcmp(project_name, 'BoS_manuscript')
 	% the set for the 2019 paper
+	%fnAggregateAndPlotCoordinationMetricsByGroup([], [], [], 'BoS_manuscript');
 	fnAggregateAndPlotCoordinationMetricsByGroup([], [], [], project_name);
 	plot_RTdiff_correlation_BoS_hum_mac(project_name);
 	run_switches_test_BoS_hum_mac(project_name)
