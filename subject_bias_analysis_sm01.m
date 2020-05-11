@@ -18,7 +18,7 @@ end
 copy_triallogs_to_outputdir = 0;
 ProcessNewestFirst = 1;
 RunSingleSessionAnalysis = 1;
-ProcessFreshSessionsOnly = 0;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
+ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
 project_name = [];
 project_name = 'BoS_manuscript';
 %project_name = 'SfN2008'; % this loops back to 2019
@@ -27,7 +27,7 @@ project_name = 'BoS_manuscript';
 
 % special case for the paper set
 if strcmp(project_name, 'BoS_manuscript')
-	ProcessFreshSessionsOnly = 0;
+	ProcessFreshSessionsOnly = 1;
 end
 
 
