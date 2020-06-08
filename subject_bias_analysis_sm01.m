@@ -21,13 +21,13 @@ RunSingleSessionAnalysis = 1;
 ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
 project_name = [];
 project_name = 'BoS_manuscript';
-%project_name = 'SfN2008'; % this loops back to 2019
+project_name = 'SfN2008'; % this loops back to 2019
 %project_name = 'SfN2018'; % this loops back to 2019
 
 
 % special case for the paper set
 if strcmp(project_name, 'BoS_manuscript')
-	ProcessFreshSessionsOnly = 1;
+	ProcessFreshSessionsOnly = 0;
 end
 
 
@@ -58,6 +58,7 @@ override_directive = 'local';
 SCPDirs = GetDirectoriesByHostName(override_directive);
 LogFileWildCardString2018 = '*.triallog.txt';   % new file extension to allow better wildcarding and better typing
 
+use_triallog_witout_extension = 0;
 switch CurrentAnalysisSetName
 	
 	case {'PrimateNeurobiology2018DPZ'}
@@ -71,6 +72,10 @@ switch CurrentAnalysisSetName
 		experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01'); % avoid the analysis folder with its looped sym links
 		%experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA');
 		LogFileWildCardString = '*.triallog.txt';
+		
+		LogFileWildCardString = '*.triallog*';	%
+		use_triallog_witout_extension = 1;
+		
 		
 	case {'SCP01'}
 		experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
@@ -221,6 +226,23 @@ ExperimentFileFQN_list = [];
 if isempty(ExperimentFileFQN_list)
 	disp(['Trying to find all logfiles in ', experimentFolder]);
 	experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
+	
+	if (use_triallog_witout_extension) && regexp(LogFileWildCardString, 'triallog\*$')
+		% now get all files matching
+		for i_exp_file = 1 : length(experimentFile)
+			% canonize the extension to .triallog (handle all variations)
+			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.gz$', '.triallog');
+			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.Fixed.txt$', '.triallog');
+			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.orig$', '.triallog');
+			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt$', '.triallog');
+			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.v[0-9][0-9][0-9].mat$', '.triallog');			
+			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.v[0-9][0-9][0-9].mat$', '.triallog');	
+			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.fixed.v[0-9][0-9][0-9].mat$', '.triallog');	
+			%experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.broken.v013.mat$', '.triallog');	
+		end
+		experimentFile = fnUnsortedUnique(experimentFile);	% to keep temporal ordering intact...
+	end
+	
 	% the merge has happened, so this will just double the number of input
 	% files
 	%     % merge old with new (remove once all old files have been renamed)
@@ -229,6 +251,8 @@ if isempty(ExperimentFileFQN_list)
 else
 	experimentFile = ExperimentFileFQN_list;
 end
+
+
 % allow to ignore some sessions
 %TODO fix up the parser to deal with older well-formed report files, switch
 %to selective exclusion of individual days instead of whole months...
@@ -236,7 +260,7 @@ ExcludeWildCardList = {'_TESTVERSIONS', '20170106', '201701', '201702', '201703'
 ExcludeWildCardList = {'ANALYSES', '201701', '201702', '201703', '20170403', '20170404', '20170405', '20170406', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
 ExcludeWildCardList = {'ANALYSES', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
 
-ExcludeWildCardList = {'Exclude.', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
+ExcludeWildCardList = {'.broken.', 'A_None.B_None', 'Exclude.', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
 
 if ~isempty(ExcludeWildCardList)
 	IncludedFilesIdx = [];
@@ -330,17 +354,45 @@ if (RunSingleSessionAnalysis)
 		end
 		
 		if (ProcessFreshSessionsOnly)
-			[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
-			MatFilename = fullfile(current_triallog_path, [current_triallog_name CurrentEventIDEReportParserVersionString '.mat']);
-			if (exist(MatFilename, 'file'))
-				continue
+			% look for existence of a parsed triallog mat-file, very coarre
+			fresh_definition_string = 'no_statistics_txt';
+			switch fresh_definition_string
+				case 'no_triallog_mat'
+					% does not work for merged sessins
+					[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
+					MatFilename = fullfile(current_triallog_path, [current_triallog_name CurrentEventIDEReportParserVersionString '.mat']);
+					if (exist(MatFilename, 'file'))
+						continue
+					end
+				case 'no_coordination_check_mat'
+					% does not work for single/solo only sessions
+					check_dir = fullfile(TmpOutBaseDir, 'CoordinationCheck');
+					check_prefix = 'DATA_';
+					check_suffix = 'isOwnChoice_sideChoice.mat';
+					check_dir_stat = dir(fullfile(check_dir, [check_prefix, current_triallog_name, '*', check_suffix]));
+					if ~isempty(check_dir_stat)
+						disp(['Found existing ', check_suffix,' file for ', current_triallog_name, '; assuming already processed session, skipping over.'])
+						continue
+					else
+						disp(['No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
+					end		
+				case 'no_statistics_txt'
+					check_dir = fullfile(TmpOutBaseDir);
+					check_prefix = '';
+					check_suffix = '.statistics.txt';
+					check_dir_stat = dir(fullfile(check_dir, [check_prefix, current_triallog_name, '*', check_suffix]));
+					if ~isempty(check_dir_stat)
+						disp(['Found existing ', check_suffix,' file for ', current_triallog_name, '; assuming already processed session, skipping over.'])
+						continue
+					else
+						disp(['No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
+					end					
 			end
-		end
-		
-		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir, project_name);
-		if ~isempty(out)
-			out_list{end+1} = out;
-		end
+			
+			out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir, project_name);
+			if ~isempty(out)
+				out_list{end+1} = out;
+			end
 	end
 end
 
@@ -368,3 +420,19 @@ disp([mfilename, ' took: ', num2str(timestamps.(mfilename).end / 60), ' minutes.
 return
 end
 
+return
+end
+
+
+function [out_list, in_list_idx] = local_fnUnsortedUnique(in_list)
+% unsorted_unique auto-undo the sorting in the return values of unique
+% the outlist gives the unique elements of the in_list at the relative
+% position of the last occurrence in the in_list, in_list_idx gives the
+% index of that position in the in_list
+
+[sorted_unique_list, sort_idx] = unique(in_list);
+[in_list_idx, unsort_idx] = sort(sort_idx);
+out_list = sorted_unique_list(unsort_idx);
+
+return
+end
