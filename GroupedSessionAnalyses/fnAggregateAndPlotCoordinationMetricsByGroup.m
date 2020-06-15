@@ -156,6 +156,10 @@ if strcmp(project_name, 'BoS_manuscript')
 end
 
 plot_coordination_metrics_for_each_group = 1;
+
+plot_coordination_metrics_for_each_group_SciAdv = 1;	% new reduced style for SciAdv submission
+
+
 plot_coordination_metrics_for_each_group_graph_type = 'line';% bar or line
 coordination_metrics_sort_by_string = 'AVG_rewardAB'; % 'none', 'AVG_rewardAB'
 
@@ -252,7 +256,9 @@ project_line_width = 0.5;
 OutPutType = 'pdf'; % this currently also saves pdf and fig
 %OutPutType = 'pdf';
 DefaultAxesType = 'BoS_manuscript'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
-DefaultPaperSizeType = 'Plos'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+%DefaultPaperSizeType = 'Plos'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+DefaultPaperSizeType = 'SciAdv';
+
 %output_rect_fraction = 0.5; % default 0.5
 output_rect_fraction = 1/2.54; % matlab's print will interpret values as INCH even for PaperUnit centimeter specified figures...
 
@@ -1416,6 +1422,286 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 		end
 	end
 	
+	% new style
+	if (plot_coordination_metrics_for_each_group_SciAdv)
+		for i_group = 1 : n_groups
+			current_group_label = group_struct_list{i_group}.setLabel;
+			cur_plot_coordination_metrics_for_each_group_graph_type = plot_rt_correlations_for_each_group_graph_type;
+			
+			% here we only want to ook at the blocked experiments
+			if ismember(current_group_label, {'ConfederateSMCuriusBlocked', 'ConfederateSMFlaffusBlocked'})
+				continue
+			end
+			
+			%if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'})
+			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', ...
+					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', })
+				cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
+				cur_plot_coordination_metrics_for_each_group_graph_type_override = [];
+				x_label_string = 'Pair ID';
+			else
+				disp('Doh...');
+				cur_plot_coordination_metrics_for_each_group_graph_type_override = 'list_order';
+				x_label_string = 'Session ID';
+			end
+			
+			
+			% collect the data lines for the current group
+			current_group_data = metrics_by_group_list{i_group};
+			% now collect the actual data of interest
+			% Share of Own Choices
+			SOC_targetA = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_A);
+			SOC_targetB = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_B);
+			SOC_sideA = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_A);
+			SOC_sideB = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_B);
+			% Mutual Informatin
+			MI_side = current_group_data(:, coordination_metrics_table.cn.miSide);
+			MI_target = current_group_data(:, coordination_metrics_table.cn.miTarget);
+			% averafed reward
+			AVG_rewardA = current_group_data(:, coordination_metrics_table.cn.playerReward_A);
+			AVG_rewardB = current_group_data(:, coordination_metrics_table.cn.playerReward_B);
+			AVG_rewardAB = current_group_data(:, coordination_metrics_table.cn.averReward);
+			% non-random reward component
+			Non_random_reward = current_group_data(:, coordination_metrics_table.cn.dltReward);
+			Non_random_reward_significance = current_group_data(:, coordination_metrics_table.cn.dltSignif);
+			Non_random_reward_CI_lower = current_group_data(:, coordination_metrics_table.cn.dltConfInterval_Upper);
+			Non_random_reward_CI_upper = current_group_data(:, coordination_metrics_table.cn.dltConfInterval_Lower);
+			Non_random_reward_CI_hw = (Non_random_reward_CI_upper - Non_random_reward);
+			
+			
+			% allow sorting the plots by
+			switch coordination_metrics_sort_by_string
+				case {'', 'none', 'None'}
+					cur_sort_idx = (1:1:size(current_group_data, 1));
+				case {'AVG_rewardAB'}
+					[~, cur_sort_idx] = sort(AVG_rewardAB, 'ascend');
+				otherwise
+					error(['coordination_metrics_sort_by_string ', coordination_metrics_sort_by_string, ' not supported, add or correct spelling?']);
+			end
+			
+			if strcmp(cur_plot_coordination_metrics_for_each_group_graph_type_override, 'list_order')
+				disp('Overriding sort type request, line plots should reflect session list order');
+				cur_sort_idx = (1:1:size(current_group_data, 1));
+			end
+			
+			if isequal(current_group_label, 'Macaques_late')
+				Macaque_late_early_sort_idx = cur_sort_idx;
+			end
+			if isequal(current_group_label, 'Macaques_early')
+				if ~isempty(Macaque_late_early_sort_idx)
+					cur_sort_idx = Macaque_late_early_sort_idx;
+				else
+					error('Macaque_late_early_sort_idx not defined yet?');
+				end
+			end
+			
+			
+			% create the plot
+			FileName = CollectionName;
+			Cur_fh_coordination_metrics_for_each_group = figure('Name', 'Coordination Metrics plot SciAdv', 'visible', figure_visibility_string);
+			fnFormatDefaultAxes(DefaultAxesType);
+			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			legend_list = {};
+			%hold on
+			
+			
+			
+% 			% SOC target
+% 			current_axis_h = subplot(2, 3, 1);
+% 			box(gca(), 'off');
+% 			x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
+% 			y_vec_arr = [SOC_targetA(cur_sort_idx), SOC_targetB(cur_sort_idx)];
+% 			instance_list = {'SOC_targetA', 'SOC_targetB'};
+% 			color_list = {[1,0,0], [0,0,1]};
+% 			symbol_list = {'o', 's'};
+% 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+% 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
+% 			% label the axes
+% 			ylabel('Share of own choices', 'Interpreter', 'none');
+% 			xlabel(x_label_string, 'Interpreter', 'none');
+% 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+% 			set(gca, 'Ylim', [0 1.1]);
+% 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+% 			box(gca(), 'off');
+			
+			
+			% SOC target SoC_A by SOC_B
+			current_axis_h = subplot(1, 3, 1);
+			box(gca(), 'on');
+			x_vec_arr = [SOC_targetA(cur_sort_idx)];
+			y_vec_arr = [SOC_targetB(cur_sort_idx)];
+			instance_list = {'SOC_AvsB'};
+			color_list = {[0.5,0,0.5]};
+			symbol_list = {'o'};
+			plot([0 1], [0 1], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+			tmp_cur_plot_coordination_metrics_for_each_group_graph_type = cur_plot_coordination_metrics_for_each_group_graph_type;
+			tmp_cur_plot_coordination_metrics_for_each_group_graph_type = 'marker'; % 'XY'
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, tmp_cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
+			% label the axes
+			ylabel('Share own choices B', 'Interpreter', 'none');
+			xlabel('Share own choices A', 'Interpreter', 'none');
+			axis equal;
+			axis square;
+			set(gca, 'Ylim', [0 1]);
+			set(gca, 'XLim', [0 1]);
+			
+			set(gca, 'XTick', [0 0.5 1]);
+			set(gca, 'YTick', [0 0.5 1]);
+			%axis equal;
+			%box(gca(), 'on');
+			
+% 			%TODO add labels?
+% 			if (AR_SCATTER_mark_all)
+% 				for i_session = 1 : length(group_struct_list{mac_group_idx}.filenames)
+% 					dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+% 					if (XX_marker_ID_use_captions)
+% 						cur_ID_string = group_struct_list{mac_group_idx}.Captions{i_session};
+% 					else
+% 						cur_ID_string = num2str(i_session);
+% 					end
+% 					text(x_list(i_session)+dx, y_list(i_session)+dy, {cur_ID_string},'Color', current_scatter_color, 'Fontsize', 8);
+% 				end
+% 			end
+			
+			
+			
+			
+			
+			
+% 			% SOC side
+% 			current_axis_h = subplot(2, 3, 2);
+% 			box(gca(), 'off');
+% 			x_vec_arr = [(1:1:length(SOC_sideA)); (1:1:length(SOC_sideB))]';
+% 			y_vec_arr = [SOC_sideA(cur_sort_idx), SOC_sideB(cur_sort_idx)];
+% 			instance_list = {'SOC_sideA', 'SOC_sideB'};
+% 			color_list = {[1,0,0], [0,0,1]};
+% 			symbol_list = {'o', 's'};
+% 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+% 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
+% 			% label the axes
+% 			ylabel('Share of obj. left choices', 'Interpreter', 'none');
+% 			xlabel(x_label_string, 'Interpreter', 'none');
+% 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+% 			set(gca, 'Ylim', [0 1.1]);
+% 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+% 			box(gca(), 'off');
+			
+			
+			% AVG reward
+			current_axis_h = subplot(1, 3, 2);
+			box(gca(), 'off');
+			%x_vec_arr = [(1:1:length(AVG_rewardA));(1:1:length(AVG_rewardAB)); (1:1:length(AVG_rewardB)); ]';
+			%y_vec_arr = [AVG_rewardA(cur_sort_idx), AVG_rewardAB(cur_sort_idx), AVG_rewardB(cur_sort_idx)];
+			%instance_list = {'AVG_rewardA', 'AVG_rewardAB', 'AVG_rewardB'};
+			x_vec_arr = [(1:1:length(AVG_rewardA)); (1:1:length(AVG_rewardB)); ]';
+			y_vec_arr = [AVG_rewardA(cur_sort_idx), AVG_rewardB(cur_sort_idx)];
+			instance_list = {'AVG_rewardA', 'AVG_rewardB'};
+			color_list = {[1,0,0], [0,0,1]};
+			symbol_list = {'o', 's'};
+			hold on
+			% the chance reward
+			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [2.5 2.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+			% maximum grand average reward
+			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [3.5 3.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
+			% label the axes
+			ylabel('Average reward', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
+			axis square;
+			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+			set(gca, 'Ylim', [0.9 4.1]);
+			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+			hold off
+			box(gca(), 'off');
+			
+% 			% MI target
+% 			current_axis_h = subplot(2, 3, 4);
+% 			box(gca(), 'off');
+% 			x_vec_arr = [(1:1:length(MI_target))]';
+% 			y_vec_arr = [MI_target(cur_sort_idx)];
+% 			instance_list = {'MI_target'};
+% 			color_list = {[0.5,0,0.5]};
+% 			symbol_list = {'d'};
+% 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
+% 			% label the axes
+% 			ylabel('MI target', 'Interpreter', 'none');
+% 			xlabel(x_label_string, 'Interpreter', 'none');
+% 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+% 			set(gca, 'Ylim', [0 1.1]);
+% 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+% 			box(gca(), 'off');
+			
+% 			% MI side
+% 			current_axis_h = subplot(2, 3, 5);
+% 			box(gca(), 'off');
+% 			x_vec_arr = [(1:1:length(MI_side))]';
+% 			y_vec_arr = [MI_side(cur_sort_idx)];
+% 			instance_list = {'MI_side'};
+% 			color_list = {[0.5,0,0.5]};
+% 			symbol_list = {'d'};
+% 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
+% 			% label the axes
+% 			ylabel('MI side', 'Interpreter', 'none');
+% 			xlabel(x_label_string, 'Interpreter', 'none');
+% 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+% 			set(gca, 'Ylim', [0 1.1]);
+% 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+% 			box(gca(), 'off');
+			
+			% non-random reward, aka dynamic coordination reward DCR
+			current_axis_h = subplot(1, 3, 3);
+			box(gca(), 'off');
+			x_vec_arr = [(1:1:length(Non_random_reward))]';
+			y_vec_arr = [Non_random_reward(cur_sort_idx)];
+			instance_list = {'Non_random_reward'};
+			color_list = {[0.5,0,0.5]};
+			symbol_list = {'d'};
+			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0 0], 'Color', [0 0 0], 'Marker', 'none');
+			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
+			% label the axes
+			ylabel('Dynamic coordination reward', 'Interpreter', 'none');
+			xlabel(x_label_string, 'Interpreter', 'none');
+			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+			set(gca, 'Ylim', [-0.2 1.2]);
+			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+			% add the CI
+			hold on
+			errorbar(x_vec_arr, y_vec_arr, Non_random_reward_CI_hw, 'LineStyle', 'none', 'Color', [0,0,0], 'LineWidth', 1.0);
+			hold off
+			axis square;
+			box(gca(), 'off');
+			
+			
+			% save out the results
+			current_group_name = group_struct_list{i_group}.setName;
+			CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label, '.', cur_plot_coordination_metrics_for_each_group_graph_type];
+			if ~strcmp(OutPutType, 'pdf')
+				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.SciAdv.', OutPutType]);
+				write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+			end
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.SciAdv.', 'pdf']);
+			write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+			if (save_fig)
+				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.SciAdv.', 'fig']);
+				write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+			end
+			
+			%         legend(legend_list, 'Interpreter', 'None');
+			%         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', OutPutType]);
+			%         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+			%         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', 'pdf']);
+			%         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+			%		  if (save_fig)
+			%         outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.CoordinationMetrics.legend.', 'fig']);
+			%         write_out_figure(Cur_fh_coordination_metrics_for_each_group, outfile_fqn);
+			%		  end
+			
+		end
+	end
+	
+	
+	
 	
 	if (plot_rt_correlations_for_each_group)
 		for i_group = 1 : n_groups
@@ -2567,6 +2853,8 @@ for i_instance = 1 : n_instances
 			plot(cur_x_vec, cur_y_vec, 'Color', cur_color, 'Marker', cur_marker, 'LineStyle', 'none');
 		case 'filled_marker'
 			plot(cur_x_vec, cur_y_vec, 'Color', cur_color, 'Marker', cur_marker, 'MarkerEdgeColor', cur_color, 'MarkerFaceColor', cur_marker_face_color, 'LineStyle', 'none');
+% 		case 'XY'
+% 			plot(cur_x_vec, cur_y_vec, 'Color', cur_color, 'Marker', cur_marker, 'MarkerEdgeColor', cur_color, 'MarkerFaceColor', cur_marker_face_color, 'LineStyle', 'none');
 		otherwise
 			error(['Unknown graph_type: ', graph_type]);
 	end
