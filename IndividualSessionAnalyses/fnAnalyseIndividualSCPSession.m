@@ -53,18 +53,25 @@ if isdir(OutputPath) && CleanOutputDir
 	rmdir(OutputPath, 's');
 end
 
-% check the current parser version
-[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
-MatFilename = fullfile(PathStr, [FileName CurrentEventIDEReportParserVersionString '.mat']);
-% load if a mat file of the current parsed version exists, otherwise
-% reparse
-if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
-	tmpDataStruct = load(MatFilename);
-	DataStruct = tmpDataStruct.report_struct;
-	clear tmpDataStruct;
-else
+if strcmp(SessionLogExt, '.triallog')
+	% use magic .triallog extension to load the freshest version cheaply,
+	% the logic moved into fnParseEventIDEReportSCPv06
 	DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]));
-	%save(matFilename, 'DataStruct'); % fnParseEventIDEReportSCPv06 saves by default
+	FileName = [FileName, SessionLogExt]; % to meet old behaviour
+elseif strcmp(SessionLogExt, '.txt')
+	% check the current parser version
+	[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
+	MatFilename = fullfile(PathStr, [FileName CurrentEventIDEReportParserVersionString '.mat']);
+	% load if a mat file of the current parsed version exists, otherwise
+	% reparse
+	if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
+		tmpDataStruct = load(MatFilename);
+		DataStruct = tmpDataStruct.report_struct;
+		clear tmpDataStruct;
+	else
+		DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]));
+		%save(matFilename, 'DataStruct'); % fnParseEventIDEReportSCPv06 saves by default
+	end
 end
 
 disp(['Processing: ', SessionLogFQN]);
