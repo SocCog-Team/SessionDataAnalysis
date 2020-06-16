@@ -76,7 +76,10 @@ DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, Pri
 
 
 
-[PathStr, FileName, ~] = fileparts(SessionLogFQN);
+[PathStr, FileName, SessionLogExt] = fileparts(SessionLogFQN);
+if strcmp(SessionLogExt, '.triallog')
+	FileName = [FileName, SessionLogExt];
+end
 
 orange = [255 165 0]/256;
 green = [0 1 0];
@@ -153,6 +156,14 @@ Plot_RT_difference_histogramBySelectedSideAndEffector = 0;
 
 Plot_RT_differences = 0;
 Plot_RT_difference_histogram = 1;
+Plot_histogram_as_boxwhisker_plot = 0;	% not too helpful
+
+% generate scatterplots for RT_A over RT_B and color points by choice/side
+% use joint choices, as well as choices of each individual
+Plot_RT_scatter_AB_by_choices = 1;
+Plot_RT_scatter_AB_by_sides = 1;
+
+
 histnorm_string = 'count'; % count, probability, pdf, cdf
 histdisplaystyle_string = 'stairs';% bar, stairs
 %histogram_RT_type_string = 'TargetAcquisitionRT';% InitialHoldReleaseRT, InitialTargetReleaseRT, TargetAcquisitionRT
@@ -247,6 +258,40 @@ switch project_name
 		histogram_show_median = 0;
 		Add_AR_subplot_to_SoC_plot = 1;
 		InvisibleFigures = 1;
+
+% 	% PLOS
+% 	case 'BoS_manuscript'
+% 		ShowSelectedSidePerSubjectInRewardPlotBG = 0;
+% 		ShowEffectorHandInBackground = 0;
+% 		project_line_width = 0.5;
+% 		show_coordination_results_in_fig_title = 0;
+% 		OutPutType = 'png';
+% 		OutPutType = 'pdf';
+% 		ShowOnlyTargetChoiceCombinations = 1;
+% 		ShowTargetSideChoiceCombinations = 1;
+% 		StackHeightToInitialPLotHeightRatio = 0.05;
+% 		ShowEffectorHandInBackground = 0;
+% 		ShowFasterSideInBackground = 0;
+% 		calc_extra_aggregate_measures = 1;
+% 		
+% 		DefaultAxesType = 'BoS_manuscript'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+% 		DefaultPaperSizeType = 'BoS_manuscript.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+% 		DefaultPaperSizeType = 'Plos'; % Plos_text_col or Plos
+% 		output_rect_fraction = output_rect_fraction * 0.5;	% only take half
+% 		title_fontsize = 7;
+% 		title_fontweight = 'normal';
+% 		show_RTdiff_ttests = 0;
+% 		show_SOC_percentage = 0;
+% 		%make the who-was-faster-plots effectively invisible but still
+% 		%scale the plot to accomodate the required space
+% 		%SideARTColor = [1 1 1];
+% 		%SideBRTColor = [1 1 1];
+% 		%SideABEqualRTColor = [1 1 1];
+% 		selected_choice_combinaton_pattern_list = {'RM', 'MR', 'BM', 'MB', 'RB', 'BR'};
+% 		RTCatPlotInvisible = 0;
+% 		histogram_show_median = 0;
+% 		Add_AR_subplot_to_SoC_plot = 1;
+% 		InvisibleFigures = 1;
 		
 	case 'BoS_manuscript'
 		ShowSelectedSidePerSubjectInRewardPlotBG = 0;
@@ -264,7 +309,7 @@ switch project_name
 		
 		DefaultAxesType = 'BoS_manuscript'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 		DefaultPaperSizeType = 'BoS_manuscript.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
-		DefaultPaperSizeType = 'Plos'; % Plos_text_col or Plos
+		DefaultPaperSizeType = 'SciAdv'; % Plos_text_col or Plos
 		output_rect_fraction = output_rect_fraction * 0.5;	% only take half
 		title_fontsize = 7;
 		title_fontweight = 'normal';
@@ -323,20 +368,45 @@ current_stats_to_text_ext = '.statistics.txt';
 
 % load the data if it does not exist yet
 if ~exist('DataStruct', 'var')
-	% check the current parser version
-	[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
-	MatFilename = fullfile(PathStr, [FileName CurrentEventIDEReportParserVersionString '.mat']);
-	% load if a mat file of the current parsed version exists, otherwise
-	% reparse
-	if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
-		tmplogData = load(MatFilename);
-		DataStruct = tmplogData.report_struct;
-		clear tmplogData;
-	else
-		DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName '.log']));
-		%save(matFilename, 'logData'); % fnParseEventIDEReportSCPv06 saves by default
+	[PathStr, FileName, SessionLogExt] = fileparts(SessionLogFQN);
+	if strcmp(SessionLogExt, '.triallog')
+		% use magic .triallog extension to load the freshest version cheaply,
+		% the logic moved into fnParseEventIDEReportSCPv06
+		DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]));
+		disp(['Processing: ', SessionLogFQN]);
+		FileName = [FileName, SessionLogExt];
+	elseif strcmp(SessionLogExt, '.txt')
+		% check the current parser version
+		[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
+		MatFilename = fullfile(PathStr, [FileName CurrentEventIDEReportParserVersionString '.mat']);
+		% load if a mat file of the current parsed version exists, otherwise
+		% reparse
+		if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
+			tmpDataStruct = load(MatFilename);
+			DataStruct = tmpDataStruct.report_struct;
+			clear tmpDataStruct;
+		else
+			DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]));
+			%save(matFilename, 'DataStruct'); % fnParseEventIDEReportSCPv06 saves by default
+		end
+		disp(['Processing: ', SessionLogFQN]);
 	end
-	disp(['Processing: ', SessionLogFQN]);
+	
+% old mode
+% 	%% check the current parser version
+% 	%[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
+% 	%MatFilename = fullfile(PathStr, [FileName CurrentEventIDEReportParserVersionString '.mat']);
+% 	% load if a mat file of the current parsed version exists, otherwise
+% 	% reparse
+% 	if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
+% 		tmplogData = load(MatFilename);
+% 		DataStruct = tmplogData.report_struct;
+% 		clear tmplogData;
+% 	else
+% 		DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName '.log']));
+% 		%save(matFilename, 'logData'); % fnParseEventIDEReportSCPv06 saves by default
+% 	end
+% 	disp(['Processing: ', SessionLogFQN]);
 end
 
 if (SaveCoordinationSummary)
@@ -368,6 +438,9 @@ end
 
 
 [SessionLogPath, SessionLogName, SessionLogExtension] = fileparts(SessionLogFQN);
+if strcmp(SessionLogExtension, '.triallog')
+	SessionLogName = [SessionLogName, SessionLogExtension];
+end
 
 
 if ~exist('TrialSets', 'var')
@@ -2198,10 +2271,7 @@ for iGroup = 1 : length(GroupNameList)
 		if (PlotLegend)
 			legend(legend_list, 'Interpreter', 'None');
 		end
-		
-		
-		
-		
+				
 		
 		%write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
 		CurrentTitleSetDescriptorString = TitleSetDescriptorString;
@@ -2420,6 +2490,65 @@ for iGroup = 1 : length(GroupNameList)
 				legend(legend_list, 'Interpreter', 'None');
 				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySameness.legend.', histogram_RT_type_string, '.', OutPutType]);
 				write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+				
+				% also plot the data as matlab box-whisker plot
+				if (Plot_histogram_as_boxwhisker_plot)
+					% TODO create this function to plot the box whisker
+					% plots for the Reaction time
+					Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeBoxWhiskerBySameness', 'visible', figure_visibility_string);
+					fnFormatDefaultAxes(DefaultAxesType);
+					[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+					set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+					%legend_list = {};
+					
+					CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
+					plot_differences = Plot_RT_difference_histogram;
+					switch plot_differences
+						case 0
+							current_histogram_edge_list = histogram_edges;
+						case 1
+							current_histogram_edge_list =   histogram_diff_edges;
+					end
+					
+					
+					% shorten the legend list
+					short_legent_list = legend_list;
+					for i_cat = 1 : length(legend_list)
+						%legend_list = {'Same_Own_A', 'Same_Own_B', 'Diff_Own', 'Diff_Other', 'Opaque_Same_Own_A', 'Opaque_Same_Own_B', 'Opaque_Diff_Own', 'Opaque_Diff_Other'};
+						cur_cat_name = legend_list{i_cat};
+						cur_cat_name = regexprep(cur_cat_name, 'Opaque_', 'opaq');
+						cur_cat_name = regexprep(cur_cat_name, 'Same_Own_A', 'ArBr');
+						cur_cat_name = regexprep(cur_cat_name, 'Same_Own_B', 'AbBb');
+						cur_cat_name = regexprep(cur_cat_name, 'Diff_Own', 'ArBb');
+						cur_cat_name = regexprep(cur_cat_name, 'Diff_Other', 'AbBr');
+						short_legent_list{i_cat} = cur_cat_name;
+					end
+					
+					StackedCatData.CatNameList = short_legent_list;
+					
+					% for the scaling...
+					fnPlotBoxWhisker(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, plot_differences, ProcessSideA, ProcessSideB, project_line_width);
+					
+					set(gca(), 'YLim', [-800 800]);
+					x_lim = get(gca(), 'XLim');
+					% the zero line
+					plot([x_lim], [0 0], 'Color', [0 0 0], 'LineWidth', project_line_width, 'LineStyle', '-');
+					hold on
+					fnPlotBoxWhisker(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, plot_differences, ProcessSideA, ProcessSideB, project_line_width);				
+					%set(gca(), 'YLim', [-800 800]);
+					y_lim = get(gca(), 'YLim');
+					set(gca(), 'YLim', [-(max(abs(y_lim))) max(abs(y_lim))]);
+					
+					hold off
+					
+					outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.BoxWhiskerBySameness.', histogram_RT_type_string, '.', OutPutType]);
+					write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+					
+					% legend does not make sense for BoxWhisker plots.
+					%legend(legend_list, 'Interpreter', 'None');
+					%outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.BoxWhiskerBySameness.legend.', histogram_RT_type_string, '.', OutPutType]);
+					%write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
+				end			
 			end
 			
 			
@@ -2857,6 +2986,102 @@ end
 % return
 % end
 
+
+function [] = fnPlotBoxWhisker(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, plot_differences, ProcessSideA, ProcessSideB, project_line_width)
+
+my_PlotStyle = 'traditional'; % traditional or compact
+
+
+%TODO:
+%	allow empty categories (create single NaN entry in bw_data with the
+%	matching cat name
+%	clean up function signature
+% allow multiple sets of data and suffixes?
+
+% for solo/single data default to non-difference data
+if (ProcessSideA) && (ProcessSideB) && (plot_differences)
+	
+else
+	plot_differences = 0;
+end
+
+
+if (plot_differences)
+	AB_RT_data_diff = A_RT_data - B_RT_data;
+end
+
+% create the data and label set
+n_cats = length(StackedCatData.CatNameList);
+% here we construct the data input for box plot, to allow overlapping trial
+% sets we will replicate some RT data if need be
+bw_data = [];
+bw_cat_list = {};
+for i_cat = 1 : length(StackedCatData.CatNameList)
+	cur_cat_name = StackedCatData.CatNameList{i_cat};
+	cur_cat_trial_ldx = StackedCatData.TrialIdxList{i_cat};
+	n_cat_trials = sum(cur_cat_trial_ldx);
+	% only take good trials
+	cur_cat_trial_idx = intersect(find(cur_cat_trial_ldx), CurrentGroupGoodTrialsIdx);
+	
+	n_cat_trials = length(cur_cat_trial_idx);
+	
+	if (plot_differences)
+		if (ProcessSideA) && (ProcessSideB)
+			cur_data = A_RT_data - B_RT_data;
+		end
+		cur_cat_list = cell([1, n_cat_trials]);
+		for i_cat_trial = 1 : n_cat_trials
+			cur_cat_list{i_cat_trial} = [cur_cat_name, '(A-B)'];
+		end
+		if (n_cat_trials > 0)
+			bw_data = [bw_data, cur_data(cur_cat_trial_idx)'];
+			bw_cat_list = [bw_cat_list, cur_cat_list];
+		else
+			bw_data(end+1) = NaN;
+			bw_cat_list{end+1} = [cur_cat_name, '(A-B)'];
+		end
+	else
+		cur_data = [];
+		% here we concatenate for the sides and add a suffix to the CatName
+		if (ProcessSideA)
+			cur_cat_list = cell([1, n_cat_trials]);
+			for i_cat_trial = 1 : n_cat_trials
+				cur_cat_list{i_cat_trial} = [cur_cat_name, '(A)'];
+			end
+			if (n_cat_trials > 0)
+				%tmp_data = bw_data;
+				bw_data = [bw_data, A_RT_data(cur_cat_trial_idx)'];
+				tmp_bw_cat_list = bw_cat_list;
+				bw_cat_list = [bw_cat_list, cur_cat_list];
+			else
+				bw_data(end+1) = NaN;
+				bw_cat_list{end+1} = [cur_cat_name, '(A)'];
+			end
+			
+		end
+		if (ProcessSideB)
+			cur_cat_list = cell([1, n_cat_trials]);
+			for i_cat_trial = 1 : n_cat_trials
+				cur_cat_list{i_cat_trial} = [cur_cat_name, '(B)'];
+			end
+			if (n_cat_trials > 0)
+				bw_data = [bw_data, B_RT_data(cur_cat_trial_idx)'];
+				bw_cat_list = [bw_cat_list, cur_cat_list];
+			else
+				bw_data(end+1) = NaN;
+				bw_cat_list{end+1} = [cur_cat_name, '(B)'];
+			end
+		end
+	end
+end
+
+%boxplot(bw_data, bw_cat_list, 'Notch', 'on', 'Labels', StackedCatData.CatNameList);
+
+boxplot(bw_data, bw_cat_list, 'Notch', 'on', 'PlotStyle', my_PlotStyle, 'LabelOrientation', 'horizontal');
+
+
+return
+end
 
 
 function [] = fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width)
