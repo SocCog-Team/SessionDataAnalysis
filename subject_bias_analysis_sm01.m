@@ -19,15 +19,19 @@ copy_triallogs_to_outputdir = 0;
 ProcessNewestFirst = 1;
 RunSingleSessionAnalysis = 1;
 ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
+use_named_set = 0;
 project_name = [];
 project_name = 'BoS_manuscript';
-project_name = 'SfN2008'; % this loops back to 2019
+
+%project_name = 'SfN2008'; % this loops back to 2019
 %project_name = 'SfN2018'; % this loops back to 2019
 
 
 % special case for the paper set
 if strcmp(project_name, 'BoS_manuscript')
 	ProcessFreshSessionsOnly = 0;
+	use_named_set = 1;
+	set_name = 'BoS_manuscript';
 end
 
 
@@ -282,9 +286,13 @@ end
 % by using wildcard (preferably the unique session IDs)
 IncludeWildcardList = {};
 
-if strcmp(project_name, 'BoS_manuscript')
-	% the set for the 2019 paper
-	[~, IncludeWildcardList] = fn_get_session_group('BoS_manuscript');
+% if strcmp(project_name, 'BoS_manuscript')
+% 	% the set for the 2019 paper
+% 	[~, IncludeWildcardList] = fn_get_session_group('BoS_manuscript');
+% end
+
+if (use_named_set)
+	[~, IncludeWildcardList] = fn_get_session_group(set_name);
 end
 
 if ~isempty(IncludeWildcardList)
@@ -344,7 +352,7 @@ if (RunSingleSessionAnalysis)
 	for iSession = 1 : length(experimentFile)
 		CurentSessionLogFQN = experimentFile{iSession};
 		[current_triallog_path, current_triallog_name, current_triallog_ext] = fileparts(CurentSessionLogFQN);
-					
+		
 		if (copy_triallogs_to_outputdir)
 			tmp_out_path = fullfile(TmpOutBaseDir, 'triallogs');
 			if isempty(dir(tmp_out_path)),
@@ -375,7 +383,7 @@ if (RunSingleSessionAnalysis)
 						continue
 					else
 						disp(['No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
-					end		
+					end
 				case 'no_statistics_txt'
 					check_dir = fullfile(TmpOutBaseDir);
 					check_prefix = '';
@@ -386,15 +394,19 @@ if (RunSingleSessionAnalysis)
 						continue
 					else
 						disp(['No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
-					end					
+					end
 			end
-			
+		end
+			% only of either session is fresh or ProcessFreshSessionsOnly
+			% was set to zero, otherwise we jump over this for existing
+			% sessions
 			out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir, project_name);
 			if ~isempty(out)
 				out_list{end+1} = out;
 			end
+		end
 	end
-end
+
 
 % collect the output from
 % loop over all cells of out and create meaningful performance plots (show perf in %)
@@ -420,8 +432,6 @@ disp([mfilename, ' took: ', num2str(timestamps.(mfilename).end / 60), ' minutes.
 return
 end
 
-return
-end
 
 
 function [out_list, in_list_idx] = local_fnUnsortedUnique(in_list)
