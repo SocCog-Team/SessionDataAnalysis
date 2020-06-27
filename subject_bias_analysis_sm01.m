@@ -2,7 +2,7 @@ function [] = subject_bias_analysis_sm01(ProcessFirstOnly)
 %clear variables;
 
 timestamps.(mfilename).start = tic;
-disp(['Starting: ', mfilename]);
+disp([mfilename, ': Starting: ', mfilename]);
 dbstop if error
 fq_mfilename = mfilename('fullpath');
 mfilepath = fileparts(fq_mfilename);
@@ -12,7 +12,7 @@ if ~exist('ProcessFirstOnly', 'var')
 	% manual override
 	ProcessFirstOnly = 0;
 else
-	disp(['ProcessFirstOnly from caller: ', num2str(ProcessFirstOnly)]);
+	disp([mfilename, ': ProcessFirstOnly from caller: ', num2str(ProcessFirstOnly)]);
 end
 
 copy_triallogs_to_outputdir = 0;
@@ -231,7 +231,7 @@ ExperimentFileFQN_list = [];
 %ExperimentFileFQN_list = {'/space/data_local/moeller/DPZ/taskcontroller/SCP_DATA/SCP-CTRL-01/SESSIONLOGS/2018/180420/20180420T192826.A_SM.B_52005.SCP_01.sessiondir/20180420T192826.A_SM.B_52005.SCP_01.triallog.txt'};
 
 if isempty(ExperimentFileFQN_list)
-	disp(['Trying to find all logfiles in ', experimentFolder]);
+	disp([mfilename, ': Trying to find all logfiles in ', experimentFolder]);
 	experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
 	
 	if (use_triallog_witout_extension) && regexp(LogFileWildCardString, 'triallog\*$')
@@ -331,7 +331,9 @@ out_list = {};
 % make sure we always fill a fresh CoordinationSummary
 CoordinationSummaryFileName = 'CoordinationSummary.txt';
 CoordinationSummaryFQN = fullfile(TmpOutBaseDir, CoordinationSummaryFileName);
-delete(CoordinationSummaryFQN);
+if ~isempty()dir(CoordinationSummaryFQN)
+	delete(CoordinationSummaryFQN);
+end
 
 % test for uniqueness
 % tmp2 = cell([size(experimentFile)]);
@@ -346,7 +348,7 @@ delete(CoordinationSummaryFQN);
 
 unique_experimentFile = unique(experimentFile);
 if length(unique_experimentFile) < length(experimentFile)
-	disp(['The experimentFile list contained ', num2str(length(experimentFile)-length(unique_experimentFile)), ' duplicates, which we will ignore']);
+	disp([mfilename, ': The experimentFile list contained ', num2str(length(experimentFile)-length(unique_experimentFile)), ' duplicates, which we will ignore']);
 	experimentFile = unique_experimentFile;
 end
 
@@ -382,10 +384,10 @@ if (RunSingleSessionAnalysis)
 					check_suffix = 'isOwnChoice_sideChoice.mat';
 					check_dir_stat = dir(fullfile(check_dir, [check_prefix, current_triallog_name, '*', check_suffix]));
 					if ~isempty(check_dir_stat)
-						disp(['Found existing ', check_suffix,' file for ', current_triallog_name, '; assuming already processed session, skipping over.'])
+						disp([mfilename, ': Found existing ', check_suffix,' file for ', current_triallog_name, '; assuming already processed session, skipping over.'])
 						continue
 					else
-						disp(['No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
+						disp([mfilename, ': No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
 					end
 				case 'no_statistics_txt'
 					check_dir = fullfile(TmpOutBaseDir);
@@ -393,10 +395,10 @@ if (RunSingleSessionAnalysis)
 					check_suffix = '.statistics.txt';
 					check_dir_stat = dir(fullfile(check_dir, [check_prefix, current_triallog_name, '*', check_suffix]));
 					if ~isempty(check_dir_stat)
-						disp(['Found existing ', check_suffix,' file for ', current_triallog_name, '; assuming already processed session, skipping over.'])
+						disp([mfilename, ': Found existing ', check_suffix,' file for ', current_triallog_name, '; assuming already processed session, skipping over.'])
 						continue
 					else
-						disp(['No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
+						disp([mfilename, ': No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
 					end
 			end
 		end
@@ -413,7 +415,7 @@ if (RunSingleSessionAnalysis)
 
 % collect the output from
 % loop over all cells of out and create meaningful performance plots (show perf in %)
-disp(['Saving summary as ', fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat'])]);
+disp([mfilename, ': Saving summary as ', fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat'])]);
 save(fullfile(SCPDirs.OutputDir, [CurrentAnalysisSetName, '.Summary.mat']), 'out_list');
 
 
