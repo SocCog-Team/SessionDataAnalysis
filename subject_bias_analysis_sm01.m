@@ -18,20 +18,23 @@ end
 copy_triallogs_to_outputdir = 0;
 ProcessNewestFirst = 1;
 RunSingleSessionAnalysis = 1;
-ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
+ProcessFreshSessionsOnly = 0;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
 use_named_set = 0;
+fresh_definition_string = 'no_statistics_txt';
 project_name = [];
 project_name = 'BoS_manuscript';
 
-%project_name = 'SfN2008'; % this loops back to 2019
+project_name = 'SfN2008'; % this loops back to 2019
 %project_name = 'SfN2018'; % this loops back to 2019
 
 
 % special case for the paper set
 if strcmp(project_name, 'BoS_manuscript')
-	ProcessFreshSessionsOnly = 0;
+	ProcessFreshSessionsOnly = 1;
 	use_named_set = 1;
 	set_name = 'BoS_manuscript';
+	%fresh_definition_string = 'no_statistics_txt';
+	fresh_definition_string = 'no_coordination_check_mat';
 end
 
 
@@ -363,7 +366,7 @@ if (RunSingleSessionAnalysis)
 		
 		if (ProcessFreshSessionsOnly)
 			% look for existence of a parsed triallog mat-file, very coarre
-			fresh_definition_string = 'no_statistics_txt';
+			
 			switch fresh_definition_string
 				case 'no_triallog_mat'
 					% does not work for merged sessins
