@@ -49,7 +49,7 @@ else
 end
 
 if isdir(OutputPath) && CleanOutputDir
-	disp(['Deleting ', OutputPath]);
+	disp([mfilename, ': Deleting ', OutputPath]);
 	rmdir(OutputPath, 's');
 end
 
@@ -74,7 +74,7 @@ elseif strcmp(SessionLogExt, '.txt')
 	end
 end
 
-disp(['Processing: ', SessionLogFQN]);
+disp([mfilename, ': Processing: ', SessionLogFQN]);
 
 % now do something
 
@@ -82,7 +82,7 @@ disp(['Processing: ', SessionLogFQN]);
 % position, rewards-payout (target preference) dualNHP trials
 TrialSets = fnCollectTrialSets(DataStruct);
 if isempty(TrialSets)
-	disp(['Found zero trial records in ', SessionLogFQN, ' bailing out...']);
+	disp([mfilename, ': Found zero trial records in ', SessionLogFQN, ' bailing out...']);
 	return
 end
 
@@ -124,7 +124,7 @@ elseif ~isempty(TrialSets.ByActivity.SingleSubjectTrials) || ~isempty(TrialSets.
 	[tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets, project_name);
 	output.single = tmp_output;
 	if (ProcessJointTrialsOnly)
-		disp(['Found zero joint trial records in ', SessionLogFQN, ' bailing out...']);
+		disp([mfilename, ': Found zero joint trial records in ', SessionLogFQN, ' bailing out...']);
 		return
 	end
 end
@@ -133,9 +133,9 @@ if (ProcessBarPlots)
 	
 	% for starters only analyse single subject sessions?
 	if ~isempty(TrialSets.ByActivity.DualSubjectTrials)
-		%disp('Currently only analyze Single Subject Sessions');
+		%disp([mfilename, ': Currently only analyze Single Subject Sessions']);
 		%return
-		disp('Dual Subject Session; first process each subject individually')
+		disp([mfilename, ': Dual Subject Session; first process each subject individually'])
 		
 		% extract the name to side mapping (initially assume non changing name
 		% to side mappings during an experiment)
@@ -183,7 +183,7 @@ if (ProcessBarPlots)
 		TitleSetDescriptorStringName = [TitleSetDescriptorString, SeparatorString, CurrentSubject];
 		%TitleSetDescriptorStringName = [TitleSetDescriptorString, CurrentSubject];
 		if isempty(IncludeNameTrialsIdx)
-			disp(['No trials found for subject name ', CurrentSubject]);
+			disp([mfilename, ': No trials found for subject name ', CurrentSubject]);
 			continue;
 		end
 		
@@ -200,7 +200,7 @@ if (ProcessBarPlots)
 			IncludePositioningMethodTrialsIdx = intersect(IncludeNameTrialsIdx, TrialSets.ByTouchTargetPositioningMethod.(CurrentPositioningMethod));
 			ExcludePositioningMethodTrialsIdx = intersect(ExcludeNameTrialsIdx, TrialSets.ByTouchTargetPositioningMethod.(CurrentPositioningMethod));
 			if isempty(IncludePositioningMethodTrialsIdx)
-				disp(['No good trials found for touch target positioning method name ', CurrentPositioningMethod]);
+				disp([mfilename, ': No good trials found for touch target positioning method name ', CurrentPositioningMethod]);
 				continue;
 			end
 			TitleSetDescriptorStringPositioningMethod = [TitleSetDescriptorStringName, TitleSeparator, CurrentPositioningMethod];
@@ -211,7 +211,7 @@ if (ProcessBarPlots)
 			% TODO loop over Sides (to allow sme subject on both sides)
 			% TODO turn into proper loop
 			if ~isempty(TrialSets.ByActivity.SideA) && ~isempty(TrialSets.ByActivity.SideB)
-				disp(['Encountered a nominal single subject session with active trials from both sides, fixing for now']);
+				disp([mfilename, ': Encountered a nominal single subject session with active trials from both sides, fixing for now']);
 				if ~isempty(TrialSets.ByName.SideA.(CurrentSubject))
 					ActiveSideName = 'SideA';
 					SideShortHand = 'A';
@@ -245,7 +245,7 @@ if (ProcessBarPlots)
 				ExcludeTrialsIdx = intersect(ExcludeNameTrialsIdx, TrialSets.ByEffector.(ActiveSideName).(CurrentEffector));
 				
 				if isempty(IncludeTrialsIdx)
-					disp(['No trials found for effector name ', CurrentEffector]);
+					disp([mfilename, ': No trials found for effector name ', CurrentEffector]);
 					continue;
 				end
 				CurrentTitleSetDescriptorString = [TitleSetDescriptorStringPositioningMethod, TitleSeparator, ActiveSideName, TitleSeparator, CurrentEffector];
@@ -475,7 +475,7 @@ if (ProcessBarPlots)
 					% this is a Q'n'D proof of concept
 					output.(CurrentSubject).(CurrentPositioningMethod).(ActiveSideName).(CurrentEffector).ContingencyTable = ContingencyTable;
 				else
-					disp([FileName, ': no trials found in the requested subsets, skipping...']);
+					disp([mfilename, ': ', FileName, ': no trials found in the requested subsets, skipping...']);
 				end
 			end % effectors
 		end % PositioningMethods
@@ -519,7 +519,7 @@ end
 
 if (strcmp(raw_field_name, ' '))
 	sanitized_field_name = 'EmptyString';
-	disp('Found empty string as field name, replacing with "None"...');
+	disp([mfilename, ': Found empty string as field name, replacing with "None"...']);
 end
 
 % numeric names are not allowed, so
