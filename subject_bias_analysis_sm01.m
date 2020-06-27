@@ -176,29 +176,11 @@ end
 Options.OutFormat = '.pdf';
 
 % examples for development
-% DAG_VERTICALCHOICE DirectFreeGazeReaches, no dual target trials
-ExperimentFileFQN_list = {fullfile(experimentFolder, '20170531/20170531T145722.A_Magnus.B_None.SCP_01/20170531T145722.A_Magnus.B_None.SCP_01.log')};
-% DAG_VERTICALCHOICE DirectFreeGazeFreeChoice
-ExperimentFileFQN_list = {fullfile(experimentFolder, '20170602/20170602T151337.A_Magnus.B_None.SCP_01/20170602T151337.A_Magnus.B_None.SCP_01.log')};
-
-ExperimentFileFQN_list = {fullfile(experimentFolder, '20171019/20171019T132932.A_Flaffus.B_Curius.SCP_01/20171019T132932.A_Flaffus.B_Curius.SCP_01.log')};
-
-ExperimentFileFQN_list = {...
-	fullfile(experimentFolder, 'SESSIONLOGS/2017/171215/20171215T122633.A_SM.B_Curius.SCP_01.sessiondir/20171215T122633.A_SM.B_Curius.SCP_01.triallog.txt'), ...
-	fullfile(experimentFolder, 'SESSIONLOGS/2017/171221/20171221T135010.A_SM.B_Curius.SCP_01.sessiondir/20171221T135010.A_SM.B_Curius.SCP_01.triallog.txt'), ...
-	fullfile(experimentFolder, 'SESSIONLOGS/2017/171222/20171222T104137.A_SM.B_Curius.SCP_01.sessiondir/20171222T104137.A_SM.B_Curius.SCP_01.triallog.txt'), ...
-	};
-
-ExperimentFileFQN_list = {...
-	fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171215/20171215T122633.A_SM.B_Curius.SCP_01.sessiondir/20180420T142213.A_TN.B_SM.SCP_01.triallog.txt'), ...
-	fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2018/180420/20180420T142213.A_TN.B_SM.SCP_01.sessiondir/20180420T142213.A_TN.B_SM.SCP_01.triallog.txt'), ...
-	};
 
 % this is human pair number 6 for retreat2018, oxfoed 2018, sfn2018
 ExperimentFileFQN_list = {...
 	fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171127/20171127T164730.A_20021.B_20022.SCP_01.sessiondir/20171127T164730.A_20021.B_20022.SCP_01.triallog.txt'), ...
 	};
-
 % these are the confederate sessions SMCurius, SMCurius,
 % CuriusConfFlaffusConf
 ExperimentFileFQN_list = {...
@@ -233,19 +215,11 @@ ExperimentFileFQN_list = {...
 	fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2018/180427/20180427T142541.A_Flaffus.B_Curius.SCP_01.sessiondir/20180427T142541.A_Flaffus.B_Curius.SCP_01.triallog.txt'), ...
 	fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2018/180427/20180427T153406.A_Flaffus.B_Curius.SCP_01.sessiondir/20180427T153406.A_Flaffus.B_Curius.SCP_01.triallog.txt'), ...
 	};
-
-
-% testing for visibility block data:
-ExperimentFileFQN_list = {fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2018/180309/20180309T110024.A_SM.B_Flaffus.SCP_01.sessiondir/20180309T110024.A_SM.B_Flaffus.SCP_01.triallog.txt')};
-
 % the best joint session
 ExperimentFileFQN_list = {fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2018/180419/20180419T141311.A_Flaffus.B_Curius.SCP_01.sessiondir/20180419T141311.A_Flaffus.B_Curius.SCP_01.triallog.txt')};
-
 ExperimentFileFQN_list = {fullfile(experimentFolder, 'SCP-CTRL-01/SESSIONLOGS/2017/171121/20171121T162619.A_10018.B_20017.SCP_01.sessiondir/20171121T162619.A_10018.B_20017.SCP_01.triallog.txt')};
-
-
 ExperimentFileFQN_list = [];
-%ExperimentFileFQN_list = {'/space/data_local/moeller/DPZ/taskcontroller/SCP_DATA/SCP-CTRL-01/SESSIONLOGS/2018/180420/20180420T192826.A_SM.B_52005.SCP_01.sessiondir/20180420T192826.A_SM.B_52005.SCP_01.triallog.txt'};
+
 
 if isempty(ExperimentFileFQN_list)
 	disp([mfilename, ': Trying to find all logfiles in ', experimentFolder]);
@@ -280,11 +254,8 @@ end
 % allow to ignore some sessions
 %TODO fix up the parser to deal with older well-formed report files, switch
 %to selective exclusion of individual days instead of whole months...
-ExcludeWildCardList = {'_TESTVERSIONS', '20170106', '201701', '201702', '201703', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test'};
-ExcludeWildCardList = {'ANALYSES', '201701', '201702', '201703', '20170403', '20170404', '20170405', '20170406', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
-ExcludeWildCardList = {'ANALYSES', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
 
-ExcludeWildCardList = {'.broken.', 'A_None.B_None', 'Exclude.', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
+ExcludeWildCardList = {'isOwnChoice_sideChoice.mat', 'DATA_', '.broken.', 'A_None.B_None', 'Exclude.', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
 
 if ~isempty(ExcludeWildCardList)
 	IncludedFilesIdx = [];
