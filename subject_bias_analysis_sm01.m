@@ -21,12 +21,7 @@ RunSingleSessionAnalysis = 1;
 ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
 use_named_set = 0;
 fresh_definition_string = 'no_statistics_txt';
-
-
 override_directive = 'local';
-
-
-
 project_name = [];
 project_name = 'BoS_manuscript';
 
@@ -50,6 +45,8 @@ end
 if (fnIsMatlabRunningInTextMode)
 	override_directive = 'local_code';
 	project_name = 'SfN2008';
+	project_name = [];
+	fresh_definition_string = 'no_statistics_txt';
 	ProcessFirstOnly = 0;
 	ProcessFreshSessionsOnly = 1;
 end
