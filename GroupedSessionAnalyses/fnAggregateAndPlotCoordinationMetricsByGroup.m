@@ -266,7 +266,7 @@ save_fig = 0;
 
 InvisibleFigures = 0;
 
-if ~exist('fnFormatDefaultAxes')
+if ~exist('fnFormatDefaultAxes') %#ok<EXIST>
 	set(0, 'DefaultAxesLineWidth', 0.5, 'DefaultAxesFontName', 'Arial', 'DefaultAxesFontSize', fontsizes.axis, 'DefaultAxesFontWeight', 'normal');
 end
 
@@ -341,6 +341,9 @@ if (generate_session_reports)
 			'TargetAcquisitionRT_corr_r', 'TargetAcquisitionRT_corr_p', 'TargetAcquisitionRT_corr_df'};
 		
 		data = zeros([n_sessions_in_set, length(header)]);
+		
+		%data_all = zeros([n_sessions_in_set, length(header)]);
+		
 		cn = local_get_column_name_indices(header);
 		
 		for i_jointtrialfile = 1 : length(current_session_id_list)
@@ -390,23 +393,23 @@ if (generate_session_reports)
 			
 			cur_coord_metrics_table_cn = local_get_column_name_indices(tmp_struct.cur_coordination_metrics_table_header);
 			
-			data(i_jointtrialfile, cn.InitialTargetReleaseRT_corr_r) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['intialTargetReleaseTimecorr_', RT_correlation_detrend_order_string, '_r']));
-			data(i_jointtrialfile, cn.InitialTargetReleaseRT_corr_p) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['intialTargetReleaseTimecorr_', RT_correlation_detrend_order_string, '_p']));
-			data(i_jointtrialfile, cn.InitialTargetReleaseRT_corr_df) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['intialTargetReleaseTimecorr_', RT_correlation_detrend_order_string, '_df']));
+			data(i_jointtrialfile, cn.InitialTargetReleaseRT_corr_r) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['intialTargetReleaseTime_allcorr_', RT_correlation_detrend_order_string, '_r']));
+			data(i_jointtrialfile, cn.InitialTargetReleaseRT_corr_p) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['intialTargetReleaseTime_allcorr_', RT_correlation_detrend_order_string, '_p']));
+			data(i_jointtrialfile, cn.InitialTargetReleaseRT_corr_df) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['intialTargetReleaseTime_allcorr_', RT_correlation_detrend_order_string, '_df']));
 			
-			data(i_jointtrialfile, cn.IniTargRel_05MT_RT_corr_r) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['IniTargRel_05MT_Timecorr_', RT_correlation_detrend_order_string, '_r']));
-			data(i_jointtrialfile, cn.IniTargRel_05MT_RT_corr_p) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['IniTargRel_05MT_Timecorr_', RT_correlation_detrend_order_string, '_p']));
-			data(i_jointtrialfile, cn.IniTargRel_05MT_RT_corr_df) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['IniTargRel_05MT_Timecorr_', RT_correlation_detrend_order_string, '_df']));
+			data(i_jointtrialfile, cn.IniTargRel_05MT_RT_corr_r) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['IniTargRel_05MT_Time_allcorr_', RT_correlation_detrend_order_string, '_r']));
+			data(i_jointtrialfile, cn.IniTargRel_05MT_RT_corr_p) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['IniTargRel_05MT_Time_allcorr_', RT_correlation_detrend_order_string, '_p']));
+			data(i_jointtrialfile, cn.IniTargRel_05MT_RT_corr_df) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['IniTargRel_05MT_Time_allcorr_', RT_correlation_detrend_order_string, '_df']));
 			
-			data(i_jointtrialfile, cn.TargetAcquisitionRT_corr_r) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['targetAcquisitionTimecorr_', RT_correlation_detrend_order_string, '_r']));
-			data(i_jointtrialfile, cn.TargetAcquisitionRT_corr_p) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['targetAcquisitionTimecorr_', RT_correlation_detrend_order_string, '_p']));
-			data(i_jointtrialfile, cn.TargetAcquisitionRT_corr_df) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['targetAcquisitionTimecorr_', RT_correlation_detrend_order_string, '_df']));
+			data(i_jointtrialfile, cn.TargetAcquisitionRT_corr_r) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['targetAcquisitionTime_allcorr_', RT_correlation_detrend_order_string, '_r']));
+			data(i_jointtrialfile, cn.TargetAcquisitionRT_corr_p) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['targetAcquisitionTime_allcorr_', RT_correlation_detrend_order_string, '_p']));
+			data(i_jointtrialfile, cn.TargetAcquisitionRT_corr_df) = tmp_struct.cur_coordination_metrics_table_row(:, cur_coord_metrics_table_cn.(['targetAcquisitionTime_allcorr_', RT_correlation_detrend_order_string, '_df']));
 			
 			
 			% collect data over all members of a group.
 			group_concatenated_pertrial_data = fn_concatenate_pertrial_data_over_sessions(group_concatenated_pertrial_data, tmp_struct.FullPerTrialStruct, tmp_struct.TrialsInCurrentSetIdx);
 		end
-		bygroup{end+1} = group_concatenated_pertrial_data;
+		bygroup{end+1} = group_concatenated_pertrial_data; %#ok<*AGROW>
 		data_struct.header = header;
 		data_struct.data = data;
 		data_struct.cn = cn;
@@ -710,7 +713,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 					if (length(x_list) > 1)
 						x_list = x_list + scatter_offset_list;
 						negative_x_idx = find(x_list < 0);
-						x_list(negative_x_idx) = 0;
+						x_list(negative_x_idx) = 0; %#ok<*FNDSB>
 					end
 				end
 				
@@ -1209,11 +1212,11 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', ...
 					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', })
 				cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
-				cur_plot_coordination_metrics_for_each_group_graph_type_override = [];
+				cur_plot_coord_metrics_4_each_group_graph_type_override = [];
 				x_label_string = 'Pair ID';
 			else
 				disp('Doh...');
-				cur_plot_coordination_metrics_for_each_group_graph_type_override = 'list_order';
+				cur_plot_coord_metrics_4_each_group_graph_type_override = 'list_order';
 				x_label_string = 'Session ID';
 			end
 			
@@ -1251,7 +1254,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 					error(['coordination_metrics_sort_by_string ', coordination_metrics_sort_by_string, ' not supported, add or correct spelling?']);
 			end
 			
-			if strcmp(cur_plot_coordination_metrics_for_each_group_graph_type_override, 'list_order')
+			if strcmp(cur_plot_coord_metrics_4_each_group_graph_type_override, 'list_order')
 				disp('Overriding sort type request, line plots should reflect session list order');
 				cur_sort_idx = (1:1:size(current_group_data, 1));
 			end
@@ -1437,11 +1440,11 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', ...
 					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', })
 				cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
-				cur_plot_coordination_metrics_for_each_group_graph_type_override = [];
+				cur_plot_coord_metrics_4_each_group_graph_type_override = [];
 				x_label_string = 'Pair ID';
 			else
 				disp('Doh...');
-				cur_plot_coordination_metrics_for_each_group_graph_type_override = 'list_order';
+				cur_plot_coord_metrics_4_each_group_graph_type_override = 'list_order';
 				x_label_string = 'Session ID';
 			end
 			
@@ -1479,7 +1482,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 					error(['coordination_metrics_sort_by_string ', coordination_metrics_sort_by_string, ' not supported, add or correct spelling?']);
 			end
 			
-			if strcmp(cur_plot_coordination_metrics_for_each_group_graph_type_override, 'list_order')
+			if strcmp(cur_plot_coord_metrics_4_each_group_graph_type_override, 'list_order')
 				disp('Overriding sort type request, line plots should reflect session list order');
 				cur_sort_idx = (1:1:size(current_group_data, 1));
 			end
@@ -1783,10 +1786,10 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 					hold on
 					cur_detrend_order = rt_correlations_detrend_order_list(i_detrend_order);
 					% the column name
-					%cur_col_name = [cur_rt_measure, 'Timecorr_detrend_order_', num2str(cur_detrend_order), '_r'];
-					cur_r_col_name = [cur_rt_measure, 'Timecorr_detrend_order_', num2str(cur_detrend_order), '_r'];
-					cur_p_col_name = [cur_rt_measure, 'Timecorr_detrend_order_', num2str(cur_detrend_order), '_p'];
-					cur_df_col_name = [cur_rt_measure, 'Timecorr_detrend_order_', num2str(cur_detrend_order), '_df'];
+					%cur_col_name = [cur_rt_measure, 'Time_allcorr_detrend_order_', num2str(cur_detrend_order), '_r'];
+					cur_r_col_name = [cur_rt_measure, 'Time_allcorr_detrend_order_', num2str(cur_detrend_order), '_r'];
+					cur_p_col_name = [cur_rt_measure, 'Time_allcorr_detrend_order_', num2str(cur_detrend_order), '_p'];
+					cur_df_col_name = [cur_rt_measure, 'Time_allcorr_detrend_order_', num2str(cur_detrend_order), '_df'];
 					
 					% access to data looks like: current_group_data(:, coordination_metrics_table.cn.(cur_col_name));
 					if isfield(coordination_metrics_table.cn, cur_r_col_name)
@@ -2017,9 +2020,9 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			
 			% get the detrended
 			cur_detrend_order = AvgRTCorr_detrend_order;
-			cur_r_col_name = [cur_rt_measure, 'Timecorr_detrend_order_', num2str(cur_detrend_order), '_r'];
-			cur_p_col_name = [cur_rt_measure, 'Timecorr_detrend_order_', num2str(cur_detrend_order), '_p'];
-			cur_df_col_name = [cur_rt_measure, 'Timecorr_detrend_order_', num2str(cur_detrend_order), '_df'];
+			cur_r_col_name = [cur_rt_measure, 'Time_allcorr_detrend_order_', num2str(cur_detrend_order), '_r'];
+			cur_p_col_name = [cur_rt_measure, 'Time_allcorr_detrend_order_', num2str(cur_detrend_order), '_p'];
+			cur_df_col_name = [cur_rt_measure, 'Time_allcorr_detrend_order_', num2str(cur_detrend_order), '_df'];
 			% access to data looks like: current_group_data(:, coordination_metrics_table.cn.(cur_col_name));
 			if isfield(coordination_metrics_table.cn, cur_r_col_name)
 				%cur_r_group_data = current_group_data(:, coordination_metrics_table.cn.(cur_r_col_name));
@@ -2157,7 +2160,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 				AvgRTCorrByMetaGroup.ci_halfwidth = zeros(size(AvgRTCorr_by_meta_group_ID_name_list));
 				AvgRTCorrByMetaGroup.group_names = cell(size(AvgRTCorr_by_meta_group_ID_name_list));
 				%AvgRTCorrByMetaGroup.group_labels = cell(size(AvgRTCorr_by_meta_group_ID_name_list));		
-				AvgRTCorr_by_meta_pair_ID_list
+				%AvgRTCorr_by_meta_pair_ID_list
 				
 				% now aggregate of the groups
 				for i_metagroup = 1 : n_meta_groups
@@ -2311,7 +2314,7 @@ if (plot_AR_scatter_by_session_state_early_late)
 	
 	for i_group = 1 : n_groups
 		if sum(ismember({'last200', 'first100'}, session_metrics_datafile_IDtag_list)) < 2
-			disp(['plot_AR_scatter_by_session_state_early_late: could not find both last200 and first100 session_metrics_data']);
+			disp(['plot_AR_scatter_by_session_state_early_late: could not find both last200 and first100 session_metrics_data']); %#ok<*NBRAK>
 			continue
 		end
 		
@@ -2384,7 +2387,7 @@ if (plot_AR_scatter_by_session_state_early_late)
 			end
 		end
 		
-		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', 'exact', 'tail', 'both');
+		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', 'exact', 'tail', 'both'); %#ok<*ASGLU>
 		% (Mdn = 0.85) than in male faces (Mdn = 0.65), Z = 4.21, p < .001, r = .76.
 		% A measure of effect size, r, can be calculated by dividing Z by the square root of N(r = Z / ?N).
 		% 		title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
@@ -2411,22 +2414,20 @@ if (plot_AR_scatter_by_session_state_early_late)
 		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'pdf']);
 		write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
 		if (save_fig)
-			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'fig']);
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'fig']); %#ok<*UNRCH>
 			write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
 		end
 	end
 end
 
 if (plot_RT_by_switch_type)
-	
-	
 	for i_group = 1 : length(bygroup)
 		group_concatenated_pertrial_data = bygroup{i_group};
 		current_group_label = group_struct_list{i_group}.setLabel;
 		SideA_pattern_histogram_pertrial_struct = [];
 		SideB_pattern_histogram_pertrial_struct = [];
 		SideA_pattern_histogram_struct = [];
-		SideB_pattern_histogram_struct = [];
+		SideB_pattern_histogram_struct = []; %#ok<*NASGU>
 		
 		% extract and aggregate the data per defined switch
 		cur_trial_idx = group_concatenated_pertrial_data.selected_trial_idx;
@@ -2537,10 +2538,7 @@ if (plot_RT_by_switch_type)
 				y_lim = get(gca(), 'YLim');
 				fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, {trial_outcome_list}, y_lim, {trial_outcome_colors}, {trial_outcome_BGTransparency});
 				y_lim = get(gca(), 'YLim');
-				
-				
-				
-				
+								
 				
 				CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label];
 				if ~strcmp(OutPutType, 'pdf')
@@ -2573,7 +2571,7 @@ disp([mfilename, ' took: ', num2str(timestamps.(mfilename).end / 60), ' minutes.
 return
 end
 
-function [ output_rect ] = fnFormatPaperSizelocal( type, gcf_h, fraction, do_center_in_paper )
+function [ output_rect ] = fnFormatPaperSizelocal( type, gcf_h, fraction, do_center_in_paper ) %#ok<DEFNU>
 %FNFORMATPAPERSIZE Set the paper size for a plot, also return a reasonably
 %tight output_rect.
 % 20070827sm: changed default output formatting to allow pretty paper output
@@ -2913,7 +2911,7 @@ return
 end
 
 
-function [ ] = fn_create_RT_report_by_group(out_file_FQN, concatenated_pertrial_data, selected_trial_idx, RT_group_col_base_list, RT_group_prefix_list, RT_group_suffix_list);
+function [ ] = fn_create_RT_report_by_group(out_file_FQN, concatenated_pertrial_data, selected_trial_idx, RT_group_col_base_list, RT_group_prefix_list, RT_group_suffix_list)
 
 
 % open file
@@ -2948,7 +2946,7 @@ for i_field = 1 : length(RT_group_col_base_list)
 	
 end
 
-fclose(outfile_fd)
+fclose(outfile_fd);
 
 return
 end
