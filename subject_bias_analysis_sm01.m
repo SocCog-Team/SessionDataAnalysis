@@ -18,11 +18,19 @@ end
 copy_triallogs_to_outputdir = 0;
 ProcessNewestFirst = 1;
 RunSingleSessionAnalysis = 1;
-ProcessFreshSessionsOnly = 0;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
+ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
 use_named_set = 0;
 fresh_definition_string = 'no_statistics_txt';
+
+
+override_directive = 'local';
+
+
+
 project_name = [];
 project_name = 'BoS_manuscript';
+
+
 
 project_name = 'SfN2008'; % this loops back to 2019
 %project_name = 'SfN2018'; % this loops back to 2019
@@ -36,6 +44,16 @@ if strcmp(project_name, 'BoS_manuscript')
 	%fresh_definition_string = 'no_statistics_txt';
 	fresh_definition_string = 'no_coordination_check_mat';
 end
+
+
+% from the linux VM
+if (fnIsMatlabRunningInTextMode)
+	override_directive = 'local_code';
+	project_name = 'SfN2008';
+	ProcessFirstOnly = 0;
+	ProcessFreshSessionsOnly = 1;
+end
+
 
 
 % human subjects
@@ -59,8 +77,7 @@ CurrentAnalysisSetName = 'SCP_DATA';
 
 %experimentFolder = '201705ReachBiasData\\SCP-CTRL-01\\SESSIONLOGS\\';
 %experimentFolder = fullfile('201705ReachBiasData', 'SCP-CTRL-01', 'SESSIONLOGS');
-override_directive = 'local_code';
-override_directive = 'local';
+
 
 SCPDirs = GetDirectoriesByHostName(override_directive);
 LogFileWildCardString2018 = '*.triallog.txt';   % new file extension to allow better wildcarding and better typing
@@ -448,6 +465,20 @@ function [out_list, in_list_idx] = local_fnUnsortedUnique(in_list)
 [sorted_unique_list, sort_idx] = unique(in_list);
 [in_list_idx, unsort_idx] = sort(sort_idx);
 out_list = sorted_unique_list(unsort_idx);
+
+return
+end
+
+function [ running_in_text_mode ] = fnIsMatlabRunningInTextMode( input_args )
+%FNISMATLABRUNNINGINTEXTMODE is this matlab instance running as textmode
+%application
+%   Detailed explanation goes here
+
+running_in_text_mode = 0;
+
+if (~usejava('awt'))
+    running_in_text_mode = 1;
+end
 
 return
 end
