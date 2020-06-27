@@ -331,7 +331,7 @@ out_list = {};
 % make sure we always fill a fresh CoordinationSummary
 CoordinationSummaryFileName = 'CoordinationSummary.txt';
 CoordinationSummaryFQN = fullfile(TmpOutBaseDir, CoordinationSummaryFileName);
-if ~isempty()dir(CoordinationSummaryFQN)
+if ~isempty(dir(CoordinationSummaryFQN))
 	delete(CoordinationSummaryFQN);
 end
 
