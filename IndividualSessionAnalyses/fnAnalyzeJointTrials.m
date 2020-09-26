@@ -229,6 +229,14 @@ title_fontsize = 8;
 title_fontweight = 'bold';
 StackHeightToInitialPLotHeightRatio = 0.15;
 
+double_row_aspect_ratio = [];
+
+% show the joint choices for all sufficiently different GoSignalTimes
+plot_joint_choices_by_diffGoSignal = 1;
+GoSignalQuantum_ms = 100; % how many milliseconds jitter we allow and still consider GoSignalTimes equal, this needs to match the randomizer somewhat
+split_diffGoSignal_eq_0_by_RT = 1;	% instead of reporting the 0 difference case as one class, split it into two, depending on the faster actor
+diffGoSignal_eq_0_by_RT_RT_type = 'IniTargRel_05MT_RT';
+
 calc_extra_aggregate_measures = 0;
 switch project_name
 	case 'PrimateNeurobiology2018DPZ'
@@ -258,40 +266,40 @@ switch project_name
 		histogram_show_median = 0;
 		Add_AR_subplot_to_SoC_plot = 1;
 		InvisibleFigures = 1;
-
-% 	% PLOS
-% 	case 'BoS_manuscript'
-% 		ShowSelectedSidePerSubjectInRewardPlotBG = 0;
-% 		ShowEffectorHandInBackground = 0;
-% 		project_line_width = 0.5;
-% 		show_coordination_results_in_fig_title = 0;
-% 		OutPutType = 'png';
-% 		OutPutType = 'pdf';
-% 		ShowOnlyTargetChoiceCombinations = 1;
-% 		ShowTargetSideChoiceCombinations = 1;
-% 		StackHeightToInitialPLotHeightRatio = 0.05;
-% 		ShowEffectorHandInBackground = 0;
-% 		ShowFasterSideInBackground = 0;
-% 		calc_extra_aggregate_measures = 1;
-% 		
-% 		DefaultAxesType = 'BoS_manuscript'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
-% 		DefaultPaperSizeType = 'BoS_manuscript.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
-% 		DefaultPaperSizeType = 'Plos'; % Plos_text_col or Plos
-% 		output_rect_fraction = output_rect_fraction * 0.5;	% only take half
-% 		title_fontsize = 7;
-% 		title_fontweight = 'normal';
-% 		show_RTdiff_ttests = 0;
-% 		show_SOC_percentage = 0;
-% 		%make the who-was-faster-plots effectively invisible but still
-% 		%scale the plot to accomodate the required space
-% 		%SideARTColor = [1 1 1];
-% 		%SideBRTColor = [1 1 1];
-% 		%SideABEqualRTColor = [1 1 1];
-% 		selected_choice_combinaton_pattern_list = {'RM', 'MR', 'BM', 'MB', 'RB', 'BR'};
-% 		RTCatPlotInvisible = 0;
-% 		histogram_show_median = 0;
-% 		Add_AR_subplot_to_SoC_plot = 1;
-% 		InvisibleFigures = 1;
+		
+		% 	% PLOS
+		% 	case 'BoS_manuscript'
+		% 		ShowSelectedSidePerSubjectInRewardPlotBG = 0;
+		% 		ShowEffectorHandInBackground = 0;
+		% 		project_line_width = 0.5;
+		% 		show_coordination_results_in_fig_title = 0;
+		% 		OutPutType = 'png';
+		% 		OutPutType = 'pdf';
+		% 		ShowOnlyTargetChoiceCombinations = 1;
+		% 		ShowTargetSideChoiceCombinations = 1;
+		% 		StackHeightToInitialPLotHeightRatio = 0.05;
+		% 		ShowEffectorHandInBackground = 0;
+		% 		ShowFasterSideInBackground = 0;
+		% 		calc_extra_aggregate_measures = 1;
+		%
+		% 		DefaultAxesType = 'BoS_manuscript'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+		% 		DefaultPaperSizeType = 'BoS_manuscript.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+		% 		DefaultPaperSizeType = 'Plos'; % Plos_text_col or Plos
+		% 		output_rect_fraction = output_rect_fraction * 0.5;	% only take half
+		% 		title_fontsize = 7;
+		% 		title_fontweight = 'normal';
+		% 		show_RTdiff_ttests = 0;
+		% 		show_SOC_percentage = 0;
+		% 		%make the who-was-faster-plots effectively invisible but still
+		% 		%scale the plot to accomodate the required space
+		% 		%SideARTColor = [1 1 1];
+		% 		%SideBRTColor = [1 1 1];
+		% 		%SideABEqualRTColor = [1 1 1];
+		% 		selected_choice_combinaton_pattern_list = {'RM', 'MR', 'BM', 'MB', 'RB', 'BR'};
+		% 		RTCatPlotInvisible = 0;
+		% 		histogram_show_median = 0;
+		% 		Add_AR_subplot_to_SoC_plot = 1;
+		% 		InvisibleFigures = 1;
 		
 	case 'BoS_manuscript'
 		ShowSelectedSidePerSubjectInRewardPlotBG = 0;
@@ -322,13 +330,27 @@ switch project_name
 		%SideABEqualRTColor = [1 1 1];
 		selected_choice_combinaton_pattern_list = {'RM', 'MR', 'BM', 'MB', 'RB', 'BR'};
 		RTCatPlotInvisible = 0;
-		histogram_show_median = 0;
 		Add_AR_subplot_to_SoC_plot = 1;
 		InvisibleFigures = 1;
+		
+		Plot_histogram_as_boxwhisker_plot = 0;	% not too helpful
+		%histnorm_string = 'count'; % count, probability, pdf, cdf
+		%histnorm_string = 'normalized_count'; % this is spcial to deal with to class histgrams with one inverted/negative class
+		histnorm_string = 'percentage_count'; % this is spcial to deal with to class histgrams with one inverted/negative class
+		
+		histdisplaystyle_string = 'stairs';% bar, stairs
+		%histogram_RT_type_string = 'TargetAcquisitionRT';% InitialHoldReleaseRT, InitialTargetReleaseRT, TargetAcquisitionRT
+		histogram_RT_type_list = {'TargetAcquisitionRT', 'InitialTargetReleaseRT', 'InitialHoldReleaseRT', 'IniTargRel_05MT_RT'};
+		histogram_bin_width_ms = 50;
+		histogram_edges = (0:histogram_bin_width_ms:1500);
+		histogram_diff_edges = (-750:histogram_bin_width_ms:750);
+		histogram_show_median = 0;
+		histogram_use_histogram_func = 0;
+		double_row_aspect_ratio = 1/3*2;
 end
 
 % manual override
-%InvisibleFigures = 0;
+% InvisibleFigures = 0;
 
 % no GUI means no figure windows possible, so try to work around that
 if (fnIsMatlabRunningInTextMode())
@@ -392,21 +414,21 @@ if ~exist('DataStruct', 'var')
 		disp(['Processing: ', SessionLogFQN]);
 	end
 	
-% old mode
-% 	%% check the current parser version
-% 	%[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
-% 	%MatFilename = fullfile(PathStr, [FileName CurrentEventIDEReportParserVersionString '.mat']);
-% 	% load if a mat file of the current parsed version exists, otherwise
-% 	% reparse
-% 	if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
-% 		tmplogData = load(MatFilename);
-% 		DataStruct = tmplogData.report_struct;
-% 		clear tmplogData;
-% 	else
-% 		DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName '.log']));
-% 		%save(matFilename, 'logData'); % fnParseEventIDEReportSCPv06 saves by default
-% 	end
-% 	disp(['Processing: ', SessionLogFQN]);
+	% old mode
+	% 	%% check the current parser version
+	% 	%[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
+	% 	%MatFilename = fullfile(PathStr, [FileName CurrentEventIDEReportParserVersionString '.mat']);
+	% 	% load if a mat file of the current parsed version exists, otherwise
+	% 	% reparse
+	% 	if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
+	% 		tmplogData = load(MatFilename);
+	% 		DataStruct = tmplogData.report_struct;
+	% 		clear tmplogData;
+	% 	else
+	% 		DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName '.log']));
+	% 		%save(matFilename, 'logData'); % fnParseEventIDEReportSCPv06 saves by default
+	% 	end
+	% 	disp(['Processing: ', SessionLogFQN]);
 end
 
 if (SaveCoordinationSummary)
@@ -718,7 +740,7 @@ for iGroup = 1 : length(GroupNameList)
 	NonPreferableTargetSelected_B = zeros([NumTrials, 1]);
 	NonPreferableTargetSelected_B(TrialSets.ByChoice.SideB.ProtoTargetValueLow) = 1;
 	
-
+	
 	% get vectors for side/value choices
 	PreferableNoneNonpreferableSelected_A = zeros([NumTrials, 1]) + PreferableTargetSelected_A - NonPreferableTargetSelected_A;
 	PreferableNoneNonpreferableSelected_B = zeros([NumTrials, 1]) + PreferableTargetSelected_B - NonPreferableTargetSelected_B;
@@ -777,7 +799,7 @@ for iGroup = 1 : length(GroupNameList)
 	RightTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceScreenFromARight) = 1;
 	RightTargetSelected_B = zeros([NumTrials, 1]);
 	RightTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceScreenFromARight) = 1;
-
+	
 	
 	% get vectors for side/value choices
 	%PreferableNoneNonpreferableSelected_A = zeros([NumTrials, 1]) + PreferableTargetSelected_A - NonPreferableTargetSelected_A;
@@ -786,7 +808,7 @@ for iGroup = 1 : length(GroupNameList)
 	RightNoneLeftSelected_B = zeros([NumTrials, 1]) + RightTargetSelected_B - LeftTargetSelected_B;
 	SubjectiveRightNoneLeftSelected_A = zeros([NumTrials, 1]) + SubjectiveRightTargetSelected_A - SubjectiveLeftTargetSelected_A;
 	SubjectiveRightNoneLeftSelected_B = zeros([NumTrials, 1]) + SubjectiveRightTargetSelected_B - SubjectiveLeftTargetSelected_B;
-
+	
 	
 	
 	
@@ -866,6 +888,24 @@ for iGroup = 1 : length(GroupNameList)
 	AB_IniTargRel_05MT_RT_diff = A_IniTargRel_05MT_RT - B_IniTargRel_05MT_RT;
 	
 	AB_TrialStartTimeMS = DataStruct.data(:, DataStruct.cn.Timestamp);
+	
+	
+	% collect the GO signal times relative to the TargetOnsetTime_ms
+	if isfield(DataStruct.cn, 'A_GoSignalTime_ms')
+		A_GoSignalTime = DataStruct.data(:, DataStruct.cn.A_GoSignalTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
+	else
+		A_GoSignalTime = DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
+	end
+	
+	if isfield(DataStruct.cn, 'B_GoSignalTime_ms')
+		B_GoSignalTime = DataStruct.data(:, DataStruct.cn.B_GoSignalTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
+	else
+		B_GoSignalTime = DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
+	end
+	
+	AB_diffGoSignalTime = A_GoSignalTime - B_GoSignalTime;
+	
+	
 	
 	% collect the final performance of solo/single IC trails
 	if (IsSoloGroup) && (calc_solo_metrics)
@@ -989,6 +1029,10 @@ for iGroup = 1 : length(GroupNameList)
 		PerTrialStruct.B_IniTargRel_05MT_RT = B_IniTargRel_05MT_RT(TrialsInCurrentSetIdx);
 		PerTrialStruct.AB_IniTargRel_05MT_RT_diff = AB_IniTargRel_05MT_RT_diff(TrialsInCurrentSetIdx);
 		
+		PerTrialStruct.A_GoSignalTime = A_GoSignalTime(TrialsInCurrentSetIdx);
+		PerTrialStruct.B_GoSignalTime = B_GoSignalTime(TrialsInCurrentSetIdx);
+		PerTrialStruct.AB_diffGoSignalTime = AB_diffGoSignalTime(TrialsInCurrentSetIdx);
+		
 		PerTrialStruct.AB_TrialStartTimeMS = AB_TrialStartTimeMS(TrialsInCurrentSetIdx);
 		PerTrialStruct.RewardByTrial_A = RewardByTrial_A(TrialsInCurrentSetIdx);
 		PerTrialStruct.RewardByTrial_B = RewardByTrial_B(TrialsInCurrentSetIdx);
@@ -1006,6 +1050,7 @@ for iGroup = 1 : length(GroupNameList)
 		
 		
 		
+		
 		FullPerTrialStruct.isTrialInvisible_AB = Invisible_AB(:);
 		%InitialTargetReleaseRT
 		FullPerTrialStruct.A_InitialTargetReleaseRT = A_InitialTargetReleaseRT(:);
@@ -1019,6 +1064,11 @@ for iGroup = 1 : length(GroupNameList)
 		FullPerTrialStruct.A_IniTargRel_05MT_RT = A_IniTargRel_05MT_RT(:);
 		FullPerTrialStruct.B_IniTargRel_05MT_RT = B_IniTargRel_05MT_RT(:);
 		FullPerTrialStruct.AB_IniTargRel_05MT_RT_diff = AB_IniTargRel_05MT_RT_diff(:);
+		% the differential go signals
+		FullPerTrialStruct.A_GoSignalTime = A_GoSignalTime(:);
+		FullPerTrialStruct.B_GoSignalTime = B_GoSignalTime(:);
+		FullPerTrialStruct.AB_diffGoSignalTime = AB_diffGoSignalTime(:);
+		
 		
 		FullPerTrialStruct.AB_TrialStartTimeMS = AB_TrialStartTimeMS(:);
 		FullPerTrialStruct.RewardByTrial_A = RewardByTrial_A(:);
@@ -1049,7 +1099,7 @@ for iGroup = 1 : length(GroupNameList)
 		FullPerTrialStruct.SubjectiveLeftTargetSelected_B = SubjectiveLeftTargetSelected_B(:);
 		FullPerTrialStruct.SubjectiveRightTargetSelected_A = SubjectiveRightTargetSelected_A(:);
 		FullPerTrialStruct.SubjectiveRightTargetSelected_B = SubjectiveRightTargetSelected_B(:);
-
+		
 		
 		% get vectors for side/value choices
 		FullPerTrialStruct.PreferableNoneNonpreferableSelected_A = PreferableNoneNonpreferableSelected_A;
@@ -1058,7 +1108,7 @@ for iGroup = 1 : length(GroupNameList)
 		FullPerTrialStruct.RightNoneLeftSelected_B = RightNoneLeftSelected_B;
 		FullPerTrialStruct.SubjectiveRightNoneLeftSelected_A = SubjectiveRightNoneLeftSelected_A;
 		FullPerTrialStruct.SubjectiveRightNoneLeftSelected_B = SubjectiveRightNoneLeftSelected_B;
-
+		
 		
 		
 		FullPerTrialStruct.TrialIsJoint = TrialIsJoint(:);
@@ -1333,8 +1383,8 @@ for iGroup = 1 : length(GroupNameList)
 	if ~(IsSoloGroup)
 		StackedTargetSideXData = {[SameTargetA(GoodTrialsIdx(JointTrialX_Vector)) + (2 * SameTargetB(GoodTrialsIdx(JointTrialX_Vector))) + (3 * DiffOwnTarget(GoodTrialsIdx(JointTrialX_Vector))) + + (4 * DiffOtherTarget(GoodTrialsIdx(JointTrialX_Vector)))]; ...
 			[A_left_B_left(GoodTrialsIdx(JointTrialX_Vector)) + (2 * A_right_B_right(GoodTrialsIdx(JointTrialX_Vector))) + (3 * A_left_B_right(GoodTrialsIdx(JointTrialX_Vector))) + (4 * A_right_B_left(GoodTrialsIdx(JointTrialX_Vector)))]};
-% 		StackedTargetSideColor = {[SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor]; ...
-% 			[A_left_B_left_Color; A_right_B_right_Color; A_left_B_right_Color; A_right_B_left_Color]};
+		% 		StackedTargetSideColor = {[SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor]; ...
+		% 			[A_left_B_left_Color; A_right_B_right_Color; A_left_B_right_Color; A_right_B_left_Color]};
 	else
 		% solo
 		A_selected = A_selects_A + B_selects_A;
@@ -1343,8 +1393,8 @@ for iGroup = 1 : length(GroupNameList)
 		right_selected = SubjectiveRightTargetSelected_A + SubjectiveRightTargetSelected_B;
 		StackedTargetSideXData = {[A_selected(GoodTrialsIdx(JointTrialX_Vector)) + (2 * B_selected(GoodTrialsIdx(JointTrialX_Vector)))]; ...
 			[(3 * left_selected(GoodTrialsIdx(JointTrialX_Vector))) + (4 * right_selected(GoodTrialsIdx(JointTrialX_Vector)))]};
-% 		StackedTargetSideColor = {[SameOwnAColor; SameOwnBColor]; ...
-% 			[A_left_B_right_Color; A_right_B_left_Color]};
+		% 		StackedTargetSideColor = {[SameOwnAColor; SameOwnBColor]; ...
+		% 			[A_left_B_right_Color; A_right_B_left_Color]};
 	end
 	StackedTargetSideColor = {[SameOwnAColor; SameOwnBColor; DiffOwnColor; DiffOtherColor]; ...
 		[A_left_B_left_Color; A_right_B_right_Color; A_left_B_right_Color; A_right_B_left_Color]};
@@ -1795,13 +1845,13 @@ for iGroup = 1 : length(GroupNameList)
 			B_right_high = sum(SubjectiveRightTargetSelected_B(GoodTrialsIdx) & PreferableTargetSelected_B(GoodTrialsIdx));
 			B_right_low = sum(SubjectiveRightTargetSelected_B(GoodTrialsIdx) & NonPreferableTargetSelected_B(GoodTrialsIdx));
 			[~, p] = fishertest([B_left_high, B_left_low; B_right_high, B_right_low]);
-
+			
 			title_list{end+1} = ['B: LeftHigh: ', num2str(B_left_high), '; LeftLow: ', num2str(B_left_low), '; RightHigh: ', num2str(B_right_high), '; RightLow: ', num2str(B_right_low), '; FET(p): ', num2str(p)];
 		end
 		
 		title(title_list, 'FontSize', title_fontsize, 'Interpreter', 'none', 'FontWeight', title_fontweight);
 		
-	
+		
 		hold off
 		%
 		set(gca(), 'XLim', [1, length(GoodTrialsIdx)]);
@@ -1883,6 +1933,294 @@ for iGroup = 1 : length(GroupNameList)
 		write_out_figure(Cur_fh_ShareOfObjectiveLeftChoiceOverTrials, outfile_fqn);
 	end
 	
+	if (plot_joint_choices_by_diffGoSignal)
+		%GoSignalQuantum_ms = 50;
+		
+		cur_AB_diffGoSignalTime = AB_diffGoSignalTime(GoodTrialsIdx);
+		unique_cur_AB_diffGoSignalTime = unique(cur_AB_diffGoSignalTime);
+		
+		% only look at the sellected good trials
+		quantized_cur_AB_diffGoSignalTime = round(cur_AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
+		% but also calculate stuff for all trials
+		quantized_AB_diffGoSignalTime = round(AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
+		unique_quantized_cur_ABdiffGoSignalTimes = unique(quantized_cur_AB_diffGoSignalTime);
+
+		% split the equal GO signal cases by who was faster
+		if (split_diffGoSignal_eq_0_by_RT)
+			zero_diff_idx = find(quantized_AB_diffGoSignalTime == 0);
+			RT_diff_list = eval(['AB_', diffGoSignal_eq_0_by_RT_RT_type, '_diff']);
+			% find when A was faster 
+			A_faster_idx = find(RT_diff_list <= 0);
+			tmp_A_idx = intersect(zero_diff_idx, A_faster_idx);
+			%tmp_A_idx = intersect(GoodTrialsIdx, tmp_A_idx);
+			
+			quantized_AB_diffGoSignalTime(tmp_A_idx) = -0.1;
+					
+ 			B_faster_idx = find(RT_diff_list > 0);
+			tmp_B_idx = intersect(zero_diff_idx, B_faster_idx);
+			%tmp_B_idx = intersect(GoodTrialsIdx, tmp_B_idx);
+			quantized_AB_diffGoSignalTime(tmp_B_idx) = +0.1;
+			
+			%quantized_AB_diffGoSignalTime = round(AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
+			unique_quantized_cur_ABdiffGoSignalTimes = unique(quantized_AB_diffGoSignalTime(GoodTrialsIdx));
+			% insert the two new categories, even if one is empty
+			unique_quantized_cur_ABdiffGoSignalTimes = unique([unique_quantized_cur_ABdiffGoSignalTimes; -0.1; +0.1]);
+		end		
+		
+		
+		
+		% create ordinal vectors of joint choices to build contingency
+		% tables from
+		if ~(IsSoloGroup)
+			value_choices = [SameTargetA(:) + (2 * SameTargetB(:)) + ...
+				(3 * DiffOwnTarget(:)) + + (4 * DiffOtherTarget(:))];
+			value_names = {'A_own_B_other', 'A_other_B_own', 'A_own_B_own', 'A_other_B_other'};
+			side_choices = [A_left_B_left(:) + (2 * A_right_B_right(:)) + ...
+				(3 * A_left_B_right(:)) + (4 * A_right_B_left(:))];
+			side_names = {'A_left_B_left', 'A_right_B_right', 'A_left_B_right', 'A_right_B_left'};
+			
+			sameness_choices = [SameTargetA(:) + (1 * SameTargetB(:)) + ...
+				(2 * DiffOwnTarget(:)) + + (2 * DiffOtherTarget(:))];
+			sameness_names = {'Same', 'Different'};
+		else
+			% solo
+			A_selected = A_selects_A + B_selects_A;
+			B_selected = A_selects_B + B_selects_B;
+			left_selected = SubjectiveLeftTargetSelected_A + SubjectiveLeftTargetSelected_B;
+			right_selected = SubjectiveRightTargetSelected_A + SubjectiveRightTargetSelected_B;
+			value_choices = [A_selected(:) + (2 * B_selected(:))];
+			value_names = {'A', 'B'};
+			side_choices = [(1 * left_selected(:)) + (2 * right_selected(:))];
+			side_names = {'left', 'right'};
+			sameness_choices = [];
+			sameness_names = {};
+		end
+		
+		num_joint_choice_combinations = length(value_names);
+		num_sameness_combinations = length(sameness_names);
+		choice_contingency_table.joint_value = zeros([num_joint_choice_combinations, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+		choice_contingency_table.joint_side = zeros([num_joint_choice_combinations, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+		choice_contingency_table.sameness = zeros([num_sameness_combinations, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+		
+		column_names = cell([1, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+		
+		% collect the choice types, build contingency tables
+		for i_quantized_diffGoSignalTimes = 1 : length(unique_quantized_cur_ABdiffGoSignalTimes)
+			cur_quantized_diffGoSignalTimes = unique_quantized_cur_ABdiffGoSignalTimes(i_quantized_diffGoSignalTimes);
+			column_names{i_quantized_diffGoSignalTimes} = num2str(cur_quantized_diffGoSignalTimes/1000);
+			
+			% get the trials with the current diffGoSignalTime
+			cur_diffGoSIgnalTime_idx = find(quantized_AB_diffGoSignalTime == cur_quantized_diffGoSignalTimes);
+			% only look at the good trials in the current set
+			cur_diffGoSIgnalTime_idx = intersect(cur_diffGoSIgnalTime_idx, GoodTrialsIdx);		
+			
+			% collect the joint choices and build contingency table
+			for i_joint_choice = 1 : num_joint_choice_combinations
+				tmp_value_idx = find(value_choices(cur_diffGoSIgnalTime_idx) == i_joint_choice);
+				tmp_side_idx = find(side_choices(cur_diffGoSIgnalTime_idx) == i_joint_choice);
+				choice_contingency_table.joint_value(i_joint_choice, i_quantized_diffGoSignalTimes) = length(tmp_value_idx);
+				choice_contingency_table.joint_side(i_joint_choice, i_quantized_diffGoSignalTimes) = length(tmp_side_idx);
+			end
+			if ~isempty(sameness_choices)
+				for i_sameness = 1 : num_sameness_combinations
+					tmp_sameness_idx = find(sameness_choices(cur_diffGoSIgnalTime_idx) == i_sameness);
+					choice_contingency_table.sameness(i_sameness, i_quantized_diffGoSignalTimes) = length(tmp_sameness_idx);
+				end
+			end
+		end
+		
+		
+		if ~isempty(sameness_choices)
+			[pairwise_P_matrix, pairwise_P_matrix_with_chance, P_data_not_chance_list] = get_pairwise_p_4_fisher_exact(choice_contingency_table.sameness', []);
+			[sym_list, p_list, cols_idx_per_symbol] = construct_symbol_list(pairwise_P_matrix, sameness_names, column_names, 'col', []);
+
+			%figure_visibility_string = 'on';
+			fh_cur_sameness_contingency_table = figure('Name', 'SamenessContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
+			fnFormatDefaultAxes(DefaultAxesType);
+			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
+			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			%subplot(2, 1, 1)
+			% plot the tables
+			row_names = sameness_names;
+			title_string = 'sameness';
+			[ah_cur_value_contingency_table, cur_group_names] = fnPlotContingencyTable_stacked(choice_contingency_table.sameness, row_names, column_names, 'column', title_string, 'subplot', sym_list, cols_idx_per_symbol, []);
+			
+			CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SamenessContingencyTable.ByDiffGoTime.', OutPutType]);
+			write_out_figure(fh_cur_sameness_contingency_table, outfile_fqn);
+		end
+		
+		
+		%figure_visibility_string = 'on';
+		fh_cur_value_contingency_table = figure('Name', 'ValueContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
+		fnFormatDefaultAxes(DefaultAxesType);
+		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
+		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		%subplot(2, 1, 1)
+		% plot the tables
+		row_names = value_names;
+		title_string = 'value';
+		[ah_cur_value_contingency_table, cur_group_names] = fnPlotContingencyTable_stacked(choice_contingency_table.joint_value, row_names, column_names, 'column', title_string, 'subplot', [], [], []);
+		
+		CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.ValueContingencyTable.ByDiffGoTime.', OutPutType]);
+		write_out_figure(fh_cur_value_contingency_table, outfile_fqn);
+		
+		%figure_visibility_string = 'on';
+		fh_cur_side_contingency_table = figure('Name', 'SideContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
+		fnFormatDefaultAxes(DefaultAxesType);
+		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
+		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		%subplot(2, 1, 2)
+		% plot the tables
+		row_names = side_names;
+		title_string = 'side';
+		[ah_cur_side_contingency_table, cur_group_names] = fnPlotContingencyTable_stacked(choice_contingency_table.joint_side, row_names, column_names, 'column', title_string, 'subplot', [], [], []);
+		
+		CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SideContingencyTable.ByDiffGoTime.', OutPutType]);
+		write_out_figure(fh_cur_side_contingency_table, outfile_fqn);
+		
+	end
+	
+
+	if (0)
+		%GoSignalQuantum_ms = 50;
+		
+		cur_AB_diffGoSignalTime = AB_diffGoSignalTime(GoodTrialsIdx);
+		unique_cur_AB_diffGoSignalTime = unique(cur_AB_diffGoSignalTime);
+		% only look at the sellected good trials
+		quantized_cur_AB_diffGoSignalTime = round(cur_AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
+		% but also calculate stuff for all trials
+		quantized_AB_diffGoSignalTime = round(AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
+		unique_quantized_cur_ABdiffGoSignalTimes = unique(quantized_cur_AB_diffGoSignalTime);
+		
+		% split the equal GO signal cases by who was faster
+		if (split_diffGoSignal_eq_0_by_RT)
+			zero_diff_idx = find(quantized_cur_AB_diffGoSignalTime ==0);
+% 			A_faster_idx =
+% 			B_faster_idx = 
+% 			diffGoSignal_eq_0_by_RT_RT_type
+			
+			%quantized_AB_diffGoSignalTime = round(AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
+			unique_quantized_cur_ABdiffGoSignalTimes = unique(quantized_cur_AB_diffGoSignalTime);
+		end
+		
+		% create ordinal vectors of joint choices to build contingency
+		% tables from
+		if ~(IsSoloGroup)
+			value_choices = [SameTargetA(:) + (2 * SameTargetB(:)) + ...
+				(3 * DiffOwnTarget(:)) + + (4 * DiffOtherTarget(:))];
+			value_names = {'A_own_B_other', 'A_other_B_own', 'A_own_B_own', 'A_other_B_other'};
+			side_choices = [A_left_B_left(:) + (2 * A_right_B_right(:)) + ...
+				(3 * A_left_B_right(:)) + (4 * A_right_B_left(:))];
+			side_names = {'A_left_B_left', 'A_right_B_right', 'A_left_B_right', 'A_right_B_left'};
+			
+			sameness_choices = [SameTargetA(:) + (1 * SameTargetB(:)) + ...
+				(2 * DiffOwnTarget(:)) + + (2 * DiffOtherTarget(:))];
+			sameness_names = {'Same', 'Different'};
+		else
+			% solo
+			A_selected = A_selects_A + B_selects_A;
+			B_selected = A_selects_B + B_selects_B;
+			left_selected = SubjectiveLeftTargetSelected_A + SubjectiveLeftTargetSelected_B;
+			right_selected = SubjectiveRightTargetSelected_A + SubjectiveRightTargetSelected_B;
+			value_choices = [A_selected(:) + (2 * B_selected(:))];
+			value_names = {'A', 'B'};
+			side_choices = [(1 * left_selected(:)) + (2 * right_selected(:))];
+			side_names = {'left', 'right'};
+			sameness_choices = [];
+			sameness_names = {};
+		end
+		
+		num_joint_choice_combinations = length(value_names);
+		num_sameness_combinations = length(sameness_names);
+		choice_contingency_table.joint_value = zeros([num_joint_choice_combinations, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+		choice_contingency_table.joint_side = zeros([num_joint_choice_combinations, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+		choice_contingency_table.sameness = zeros([num_sameness_combinations, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+		
+		column_names = cell([1, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+		
+		% collect the choice types, build contingency tables
+		for i_quantized_diffGoSignalTimes = 1 : length(unique_quantized_cur_ABdiffGoSignalTimes)
+			cur_quantized_diffGoSignalTimes = unique_quantized_cur_ABdiffGoSignalTimes(i_quantized_diffGoSignalTimes);
+			column_names{i_quantized_diffGoSignalTimes} = num2str(cur_quantized_diffGoSignalTimes/1000);
+			
+			% get the trials with the current diffGoSignalTime
+			cur_diffGoSIgnalTime_idx = find(quantized_AB_diffGoSignalTime == cur_quantized_diffGoSignalTimes);
+			% only look at the good trials in the current set
+			cur_diffGoSIgnalTime_idx = intersect(cur_diffGoSIgnalTime_idx, GoodTrialsIdx);
+			
+			
+			% collect the joint choices and build contingency table
+			for i_joint_choice = 1 : num_joint_choice_combinations
+				tmp_value_idx = find(value_choices(cur_diffGoSIgnalTime_idx) == i_joint_choice);
+				tmp_side_idx = find(side_choices(cur_diffGoSIgnalTime_idx) == i_joint_choice);
+				choice_contingency_table.joint_value(i_joint_choice, i_quantized_diffGoSignalTimes) = length(tmp_value_idx);
+				choice_contingency_table.joint_side(i_joint_choice, i_quantized_diffGoSignalTimes) = length(tmp_side_idx);
+			end
+			if ~isempty(sameness_choices)
+				for i_sameness = 1 : num_sameness_combinations
+					tmp_sameness_idx = find(sameness_choices(cur_diffGoSIgnalTime_idx) == i_sameness);
+					choice_contingency_table.sameness(i_sameness, i_quantized_diffGoSignalTimes) = length(tmp_sameness_idx);
+				end
+			end
+		end
+		
+		
+		if ~isempty(sameness_choices)
+			[pairwise_P_matrix, pairwise_P_matrix_with_chance, P_data_not_chance_list] = get_pairwise_p_4_fisher_exact(choice_contingency_table.sameness', []);
+			[sym_list, p_list, cols_idx_per_symbol] = construct_symbol_list(pairwise_P_matrix, sameness_names, column_names, 'col', []);
+
+			%figure_visibility_string = 'on';
+			fh_cur_sameness_contingency_table = figure('Name', 'SamenessContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
+			fnFormatDefaultAxes(DefaultAxesType);
+			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
+			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			%subplot(2, 1, 1)
+			% plot the tables
+			row_names = sameness_names;
+			title_string = 'sameness';
+			[ah_cur_value_contingency_table, cur_group_names] = fnPlotContingencyTable_stacked(choice_contingency_table.sameness, row_names, column_names, 'column', title_string, 'subplot', sym_list, cols_idx_per_symbol, []);
+			
+			CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SamenessContingencyTable.ByDiffGoTime.', OutPutType]);
+			write_out_figure(fh_cur_sameness_contingency_table, outfile_fqn);
+		end
+		
+		
+		%figure_visibility_string = 'on';
+		fh_cur_value_contingency_table = figure('Name', 'ValueContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
+		fnFormatDefaultAxes(DefaultAxesType);
+		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
+		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		%subplot(2, 1, 1)
+		% plot the tables
+		row_names = value_names;
+		title_string = 'value';
+		[ah_cur_value_contingency_table, cur_group_names] = fnPlotContingencyTable_stacked(choice_contingency_table.joint_value, row_names, column_names, 'column', title_string, 'subplot', [], [], []);
+		
+		CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.ValueContingencyTable.ByDiffGoTime.', OutPutType]);
+		write_out_figure(fh_cur_value_contingency_table, outfile_fqn);
+		
+		%figure_visibility_string = 'on';
+		fh_cur_side_contingency_table = figure('Name', 'SideContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
+		fnFormatDefaultAxes(DefaultAxesType);
+		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
+		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		%subplot(2, 1, 2)
+		% plot the tables
+		row_names = side_names;
+		title_string = 'side';
+		[ah_cur_side_contingency_table, cur_group_names] = fnPlotContingencyTable_stacked(choice_contingency_table.joint_side, row_names, column_names, 'column', title_string, 'subplot', [], [], []);
+		
+		CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SideContingencyTable.ByDiffGoTime.', OutPutType]);
+		write_out_figure(fh_cur_side_contingency_table, outfile_fqn);
+		
+	end
+		
 	
 	
 	if (plot_psee_antipreferredchoice_correlation_per_trial) && ~(IsSoloGroup) && exist('cur_coordination_metrics_struct', 'var') && isfield(cur_coordination_metrics_struct, 'per_trial')
@@ -1905,7 +2243,7 @@ for iGroup = 1 : length(GroupNameList)
 			
 			Cur_fh_PseeSotherCCorOverTrials = figure('Name', 'PseeAntipreferredChoiceCorrelationOverTrials', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
-			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
 			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
 			legend_list = {};
 			
@@ -2166,7 +2504,7 @@ for iGroup = 1 : length(GroupNameList)
 		DiffOther_lidx = (PreferableTargetSelected_A == 0) & (PreferableTargetSelected_B == 0);
 		
 		
-		if (Plot_RT_differences) && (ProcessSideA) && (ProcessSideA)
+		if (Plot_RT_differences) && (ProcessSideA) && (ProcessSideB)
 			set(gca(), 'YLim', [-650.0, 650.0]);  % let's assume no greater difference than 500ms between acctors?
 		else
 			set(gca(), 'YLim', [0.0, 1500.0]);  % the timeout is 1500 so this should fit all possible RTs?
@@ -2194,7 +2532,7 @@ for iGroup = 1 : length(GroupNameList)
 		
 		
 		% what to do in solo sessions?
-		if (Plot_RT_differences) && (ProcessSideA) && (ProcessSideA)
+		if (Plot_RT_differences) && (ProcessSideA) && (ProcessSideB)
 			%plot(JointTrialX_Vector, AB_InitialHoldReleaseRT_diff(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor/3 + SideBColor/3), 'LineWidth', 2);
 			plot(JointTrialX_Vector, AB_InitialTargetReleaseRT_diff(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (2*SideAColor/3 + 2*SideBColor/3), 'LineWidth', project_line_width*0.66);
 			plot(JointTrialX_Vector, AB_TargetAcquisitionRT_diff(GoodTrialsIdx(JointTrialX_Vector)), 'Color', (SideAColor + SideBColor), 'LineWidth', 2);
@@ -2231,7 +2569,7 @@ for iGroup = 1 : length(GroupNameList)
 			end
 		end
 		
-		if (ProcessSideA) && (ProcessSideA) && ~(IsSoloGroup)
+		if (ProcessSideA) && (ProcessSideB) && ~(IsSoloGroup)
 			% TODO correlation on residuals after detrending?
 			% also show the pearson correlations between the matching curves of both agents
 			[ITRel_r, ITRel_p, ITRel_r_ci_lower, ITRel_r_ci_upper] = corrcoef(A_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)), B_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector)));
@@ -2244,8 +2582,8 @@ for iGroup = 1 : length(GroupNameList)
 				[ITRel_r_detrended, ITRel_p_detrended] = corrcoef(A_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector))-detrended_A_InitialTargetReleaseRT, B_InitialTargetReleaseRT(GoodTrialsIdx(JointTrialX_Vector))-detrended_B_InitialTargetReleaseRT);
 				[TAcq_r_detrended, TAcq_p_detrended] = corrcoef(A_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector))-detrended_A_TargetAcquisitionRT, B_TargetAcquisitionRT(GoodTrialsIdx(JointTrialX_Vector))-detrended_B_TargetAcquisitionRT);
 				titleText_A{end+1} = ['detrended (', num2str(RT_detrend_order),') InitialTargetRelease time correlation: r(', num2str(df_corr), '): ', num2str(ITRel_r_detrended(2, 1), '%.4f'),  ', p <= ', num2str(ITRel_p_detrended(2, 1)),];
-				titleText_A{end+1} = [['detrended (', num2str(RT_detrend_order),') TargetAcquisition time correlation: r(', num2str(df_corr), '): ', num2str(TAcq_r_detrended(2, 1), '%.4f'),  ', p <= ', num2str(TAcq_p_detrended(2, 1)),]];		
-			end			
+				titleText_A{end+1} = [['detrended (', num2str(RT_detrend_order),') TargetAcquisition time correlation: r(', num2str(df_corr), '): ', num2str(TAcq_r_detrended(2, 1), '%.4f'),  ', p <= ', num2str(TAcq_p_detrended(2, 1)),]];
+			end
 			title(titleText_A, 'FontSize', title_fontsize, 'Interpreter', 'None', 'FontWeight', title_fontweight);
 		end
 		
@@ -2259,7 +2597,7 @@ for iGroup = 1 : length(GroupNameList)
 		set(gca(), 'YTick', [0, 250, 500, 750, 1000, 1250 1500]);
 		xlabel( 'Number of trial');
 		
-		if (Plot_RT_differences) && (ProcessSideA) && (ProcessSideA)
+		if (Plot_RT_differences) && (ProcessSideA) && (ProcessSideB)
 			set(gca(), 'YTick', [-600, -300, 0, 300, 600]);
 			ylabel( 'Reaction time A-B [ms]');
 			CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdifferences'];
@@ -2271,7 +2609,7 @@ for iGroup = 1 : length(GroupNameList)
 		if (PlotLegend)
 			legend(legend_list, 'Interpreter', 'None');
 		end
-				
+		
 		
 		%write_out_figure(gcf, fullfile(OutputDir, [session.name '_rewards', OuputFormat]));
 		CurrentTitleSetDescriptorString = TitleSetDescriptorString;
@@ -2400,7 +2738,15 @@ for iGroup = 1 : length(GroupNameList)
 						current_histogram_edge_list =   histogram_diff_edges;
 				end
 				
-				fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
+				cur_plot_differences = plot_differences;
+				
+				if ~(ProcessSideA) || ~(ProcessSideB)
+					current_histogram_edge_list = histogram_edges;
+					cur_plot_differences = 0;
+				end
+				
+				
+				fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, cur_plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
 				
 				%TODO: do this for the invisible trials as well?
 				
@@ -2479,7 +2825,7 @@ for iGroup = 1 : length(GroupNameList)
 				fn_save_string_list_to_file(current_stats_to_text_fd, [], title_text_list, [' : ', histogram_RT_type_string], write_stats_to_text_file);
 				
 				
-				if (plot_differences) && (ProcessSideA) && (ProcessSideA)
+				if (plot_differences) && (ProcessSideA) && (ProcessSideB)
 					CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
 				end
 				
@@ -2534,7 +2880,7 @@ for iGroup = 1 : length(GroupNameList)
 					% the zero line
 					plot([x_lim], [0 0], 'Color', [0 0 0], 'LineWidth', project_line_width, 'LineStyle', '-');
 					hold on
-					fnPlotBoxWhisker(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, plot_differences, ProcessSideA, ProcessSideB, project_line_width);				
+					fnPlotBoxWhisker(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, plot_differences, ProcessSideA, ProcessSideB, project_line_width);
 					%set(gca(), 'YLim', [-800 800]);
 					y_lim = get(gca(), 'YLim');
 					set(gca(), 'YLim', [-(max(abs(y_lim))) max(abs(y_lim))]);
@@ -2548,7 +2894,7 @@ for iGroup = 1 : length(GroupNameList)
 					%legend(legend_list, 'Interpreter', 'None');
 					%outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.BoxWhiskerBySameness.legend.', histogram_RT_type_string, '.', OutPutType]);
 					%write_out_figure(Cur_fh_ReactionTimesBySameness, outfile_fqn);
-				end			
+				end
 			end
 			
 			
@@ -2638,8 +2984,14 @@ for iGroup = 1 : length(GroupNameList)
 					case 1
 						current_histogram_edge_list =   histogram_diff_edges;
 				end
+				cur_plot_differences = plot_differences;
 				
-				fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
+				if ~(ProcessSideA) || ~(ProcessSideB)
+					current_histogram_edge_list = histogram_edges;
+					cur_plot_differences = 0;
+				end
+				
+				fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, cur_plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
 				
 				%TODO: do this for the invisible trials as well?
 				
@@ -2720,7 +3072,7 @@ for iGroup = 1 : length(GroupNameList)
 				fn_save_string_list_to_file(current_stats_to_text_fd, [], title_text_list, [' : ', histogram_RT_type_string], write_stats_to_text_file);
 				
 				
-				if (plot_differences) && (ProcessSideA) && (ProcessSideA)
+				if (plot_differences) && (ProcessSideA) && (ProcessSideB)
 					CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
 				end
 				
@@ -2806,11 +3158,16 @@ for iGroup = 1 : length(GroupNameList)
 					case 1
 						current_histogram_edge_list =   histogram_diff_edges;
 				end
+				cur_plot_differences = plot_differences;
 				
+				if ~(ProcessSideA) || ~(ProcessSideB)
+					current_histogram_edge_list = histogram_edges;
+					cur_plot_differences = 0;
+				end
 				
-				fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
+				fnPlotRTHistogram(StackedCatData, CurrentGroupGoodTrialsIdx, A_RT_data, B_RT_data, current_histogram_edge_list, cur_plot_differences, ProcessSideA, ProcessSideB, histnorm_string, histdisplaystyle_string, histogram_use_histogram_func, histogram_show_median, project_line_width);
 				
-				if (plot_differences) && (ProcessSideA) && (ProcessSideA)
+				if (plot_differences) && (ProcessSideA) && (ProcessSideB)
 					CurrentTitleSetDescriptorString = [CurrentTitleSetDescriptorString, '.RTdiff'];
 				end
 				
@@ -3099,35 +3456,122 @@ if (plot_differences)
 end
 
 
-% these are only used for scaling
-if (plot_differences) && (ProcessSideA) && (ProcessSideA)
-	histcounts_per_bin = histcounts(AB_RT_data_diff(CurrentGroupGoodTrialsIdx), current_histogram_edge_list);
-else
-	histcounts_per_bin_A = histcounts(A_RT_data(CurrentGroupGoodTrialsIdx), current_histogram_edge_list);
-	histcounts_per_bin_B = histcounts(B_RT_data(CurrentGroupGoodTrialsIdx), current_histogram_edge_list);
-	histcounts_per_bin = max(histcounts_per_bin_A, histcounts_per_bin_B); % required for axis scaling
+neg_hist_histcounts_per_bin = 0;
+pos_hist_histcounts_per_bin = 0;
+
+% deal with secondary, "negative" histograms individually
+neg_hist_cat_idx = find(StackedCatSignFactorList == -1);
+pos_hist_cat_idx = find(StackedCatSignFactorList == 1);
+
+if ~isempty(neg_hist_cat_idx)
+	neg_hist_CurrentGroupGoodTrialsIdx = [];
+	for i_hist_cat = 1 : length(neg_hist_cat_idx)
+		neg_hist_CurrentGroupGoodTrialsIdx = union(neg_hist_CurrentGroupGoodTrialsIdx,  find(StackedCatData.TrialIdxList{neg_hist_cat_idx(i_hist_cat)}));
+	end
+	
+	if (plot_differences) && (ProcessSideA) && (ProcessSideB)
+		neg_hist_histcounts_per_bin = histcounts(AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, neg_hist_CurrentGroupGoodTrialsIdx)), current_histogram_edge_list);
+	else
+		neg_hist_histcounts_per_bin_A = histcounts(A_RT_data(intersect(CurrentGroupGoodTrialsIdx, neg_hist_CurrentGroupGoodTrialsIdx)), current_histogram_edge_list);
+		neg_hist_histcounts_per_bin_B = histcounts(B_RT_data(intersect(CurrentGroupGoodTrialsIdx, neg_hist_CurrentGroupGoodTrialsIdx)), current_histogram_edge_list);
+		neg_hist_histcounts_per_bin = max(neg_hist_histcounts_per_bin_A, neg_hist_histcounts_per_bin_B); % required for axis scaling
+	end
 end
+
+if ~isempty(pos_hist_cat_idx)
+	pos_hist_CurrentGroupGoodTrialsIdx = [];
+	for i_hist_cat = 1 : length(pos_hist_cat_idx)
+		pos_hist_CurrentGroupGoodTrialsIdx = union(pos_hist_CurrentGroupGoodTrialsIdx,  find(StackedCatData.TrialIdxList{pos_hist_cat_idx(i_hist_cat)}));
+	end
+	%pos_hist_histcounts_per_bin = histcounts(AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, pos_hist_CurrentGroupGoodTrialsIdx)), current_histogram_edge_list);
+	if (plot_differences) && (ProcessSideA) && (ProcessSideB)
+		pos_hist_histcounts_per_bin = histcounts(AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, pos_hist_CurrentGroupGoodTrialsIdx)), current_histogram_edge_list);
+	else
+		pos_hist_histcounts_per_bin_A = histcounts(A_RT_data(intersect(CurrentGroupGoodTrialsIdx, pos_hist_CurrentGroupGoodTrialsIdx)), current_histogram_edge_list);
+		pos_hist_histcounts_per_bin_B = histcounts(B_RT_data(intersect(CurrentGroupGoodTrialsIdx, pos_hist_CurrentGroupGoodTrialsIdx)), current_histogram_edge_list);
+		pos_hist_histcounts_per_bin = max(pos_hist_histcounts_per_bin_A, pos_hist_histcounts_per_bin_B); % required for axis scaling
+	end
+	
+end
+
+% % these are only used for scaling
+% if (plot_differences) && (ProcessSideA) && (ProcessSideB)
+% 	pos_histcounts_per_bin = histcounts(AB_RT_data_diff(CurrentGroupGoodTrialsIdx), current_histogram_edge_list);
+% else
+% 	histcounts_per_bin_A = histcounts(A_RT_data(CurrentGroupGoodTrialsIdx), current_histogram_edge_list);
+% 	histcounts_per_bin_B = histcounts(B_RT_data(CurrentGroupGoodTrialsIdx), current_histogram_edge_list);
+% 	histcounts_per_bin = max(histcounts_per_bin_A, histcounts_per_bin_B); % required for axis scaling
+% end
+
+
+
+axis_quantum = 5;
+
+% allow manual normalisation
+pos_man_normalisation_factor = 1;
+neg_man_normalisation_factor = 1;
+histnorm_method_string = histnorm_string;
+if strcmp(histnorm_string, 'normalized_count')
+	% force manual normalization to allow normalization across groups
+	histnorm_method_string = 'count';
+	histogram_use_histogram_func = 0;
+	axis_quantum = 0.05;
+	if (sum(pos_hist_histcounts_per_bin) ~= 0)
+		pos_man_normalisation_factor = 1 / sum(pos_hist_histcounts_per_bin);
+	end
+	if (sum(neg_hist_histcounts_per_bin) ~= 0)
+		neg_man_normalisation_factor = 1 / sum(neg_hist_histcounts_per_bin);
+	end
+	% 	axis_limit = 1;
+	% 	pos_axis_limit = axis_quantum * ceil(max(pos_hist_histcounts_per_bin) / axis_quantum) * pos_man_normalisation_factor;
+	% 	neg_axis_limit = axis_quantum * ceil(max(neg_hist_histcounts_per_bin) / axis_quantum) * neg_man_normalisation_factor;
+end
+
+
+if strcmp(histnorm_string, 'percentage_count')
+	% force manual normalization to allow normalization across groups
+	histnorm_method_string = 'count';
+	histogram_use_histogram_func = 0;
+	axis_quantum = 5;
+	if (sum(pos_hist_histcounts_per_bin) ~= 0)
+		pos_man_normalisation_factor = 100 / sum(pos_hist_histcounts_per_bin);
+	end
+	if (sum(neg_hist_histcounts_per_bin) ~= 0)
+		neg_man_normalisation_factor = 100 / sum(neg_hist_histcounts_per_bin);
+	end
+end
+
 
 
 % try to scale the axis
-axis_limit = 5 * ceil(max(histcounts_per_bin) / 5) * 5;
+pos_axis_limit = axis_quantum * ceil(max(pos_hist_histcounts_per_bin) / axis_quantum) * pos_man_normalisation_factor;
+neg_axis_limit = axis_quantum * ceil(max(neg_hist_histcounts_per_bin) / axis_quantum) * neg_man_normalisation_factor;
+axis_limit = max([pos_axis_limit, neg_axis_limit]);
+
 if ismember(histnorm_string, {'probability', 'cdf'})
 	axis_limit = 1;
+	pos_axis_limit = 1;
+	neg_axis_limit = 1;
 end
+
 
 lower_y = 0;
 if ~isempty(find(StackedCatSignFactorList == -1))
-	lower_y = -1 * axis_limit;
+	lower_y = -1 * neg_axis_limit;
 end
+
 upper_y = 0;
 if ~isempty(find(StackedCatSignFactorList == 1))
-	upper_y = 1 * axis_limit;
+	upper_y = 1 * pos_axis_limit;
 end
 
-if (axis_limit ~= 0)
-	set(gca, 'YLim', [lower_y, upper_y]);
+if (lower_y == 0) && (upper_y == 0)
+	set(gca, 'YLim', [0, 1]);
+else
+	if (axis_limit ~= 0)
+		set(gca, 'YLim', [lower_y, upper_y]);
+	end
 end
-
 
 max_bin_val = 0;
 min_bin_val = 0;
@@ -3163,17 +3607,18 @@ for i_cat = 1 : length(StackedCatTrialIdxList)
 	
 	if (plot_differences) && (ProcessSideA) && (ProcessSideB)
 		if (histogram_use_histogram_func)
-			hist_AB_struct.(['h', num2str(i_cat, '%03d')]) = histogram(AB_RT_data_diff(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
+			hist_AB_struct.(['h', num2str(i_cat, '%03d')]) = histogram(AB_RT_data_diff(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_method_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', current_CatLineStyle);
 			if (histogram_show_median)
 				line([median(AB_RT_data_diff(current_CatTrial_idx)), median(AB_RT_data_diff(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', current_CatLineStyle);
 			end
 		else
-			[N, edges, bin] = histcounts(AB_RT_data_diff(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
-			
+			[N, edges, bin] = histcounts(AB_RT_data_diff(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_method_string);
 			if (current_CatSignFactor > 0)
+				N = N * pos_man_normalisation_factor;
 				max_bin_val = max([max_bin_val, (N * current_CatSignFactor)]);
 			end
 			if (current_CatSignFactor < 0)
+				N = N * neg_man_normalisation_factor;
 				min_bin_val = min([min_bin_val, (N * current_CatSignFactor)]);
 			end
 			
@@ -3185,50 +3630,54 @@ for i_cat = 1 : length(StackedCatTrialIdxList)
 	else
 		if (ProcessSideA)
 			if (histogram_use_histogram_func)
-				hist_A_struct.(['h', num2str(i_cat, '%03d')]) = histogram(A_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', '-');
+				hist_A_struct.(['h', num2str(i_cat, '%03d')]) = histogram(A_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_method_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', '-');
 				if (histogram_show_median)
 					line([median(A_RT_data(current_CatTrial_idx)), median(A_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.5, 'LineStyle', '-');
 				end
 			else
-				[N, edges, bin] = histcounts(A_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
-				plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', '-');
-				if (histogram_show_median)
-					line([median(A_RT_data(current_CatTrial_idx)), median(A_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', '-');
-				end
+				[N, edges, bin] = histcounts(A_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_method_string);
 				if (current_CatSignFactor > 0)
+					N = N * pos_man_normalisation_factor;
 					max_bin_val_A = max([max_bin_val_A, (N * current_CatSignFactor)]);
 				end
 				if (current_CatSignFactor < 0)
+					N = N * neg_man_normalisation_factor;
 					min_bin_val_A = min([min_bin_val_A, (N * current_CatSignFactor)]);
+				end
+				
+				plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', '-');
+				if (histogram_show_median)
+					line([median(A_RT_data(current_CatTrial_idx)), median(A_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', '-');
 				end
 			end
 		end
 		if (ProcessSideB)
 			if (histogram_use_histogram_func)
-				hist_B_struct.(['h', num2str(i_cat, '%03d')]) = histogram(B_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', ':');
+				hist_B_struct.(['h', num2str(i_cat, '%03d')]) = histogram(B_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_method_string, 'FaceColor', current_CatFaceColor, 'EdgeColor', current_CatColor, 'DisplayStyle', histdisplaystyle_string, 'LineWidth', project_line_width, 'LineStyle', ':');
 				if (histogram_show_median)
 					line([median(B_RT_data(current_CatTrial_idx)), median(B_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.5, 'LineStyle', ':');
 				end
 			else
-				[N, edges, bin] = histcounts(B_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_string);
-				plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', ':');
-				if (histogram_show_median)
-					line([median(B_RT_data(current_CatTrial_idx)), median(B_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', ':');
-				end
+				[N, edges, bin] = histcounts(B_RT_data(current_CatTrial_idx), current_histogram_edge_list, 'Normalization', histnorm_method_string);
 				if (current_CatSignFactor > 0)
+					N = N * pos_man_normalisation_factor;
 					max_bin_val_B = max([max_bin_val_B, (N * current_CatSignFactor)]);
 				end
 				if (current_CatSignFactor < 0)
+					N = N * neg_man_normalisation_factor;
 					min_bin_val_B = min([min_bin_val_B, (N * current_CatSignFactor)]);
+				end
+				
+				plot(diff(edges)*0.5 + edges(1:end-1), N * current_CatSignFactor, 'Color', current_CatColor, 'LineWidth', project_line_width, 'LineStyle', ':');
+				if (histogram_show_median)
+					line([median(B_RT_data(current_CatTrial_idx)), median(B_RT_data(current_CatTrial_idx))], get(gca(), 'YLim'), 'Color', current_CatColor, 'LineWidth', project_line_width*0.6, 'LineStyle', ':');
 				end
 			end
 		end
 	end
 end
-if (plot_differences)
-	% this defines whether A was faster or B
-	line([0, 0], get(gca(), 'YLim'), 'Color', [0 0 0], 'LineWidth', project_line_width*0.5, 'LineStyle', '-');
-else
+
+if ~(plot_differences)
 	max_bin_val = max(max_bin_val_A, max_bin_val_B);
 	min_bin_val = min(min_bin_val_A, min_bin_val_B);
 end
@@ -3236,8 +3685,8 @@ end
 
 hold off
 if (axis_limit ~= 0) && (axis_limit ~= 1)
-	tmp_upper_y = ceil(max_bin_val / 5) * 5;
-	tmp_lower_y = floor(min_bin_val /5) * 5;
+	tmp_upper_y = ceil(max_bin_val / axis_quantum) * axis_quantum;
+	tmp_lower_y = floor(min_bin_val /axis_quantum) * axis_quantum;
 	if (tmp_lower_y < 0)
 		lower_y = min([tmp_lower_y, -1*tmp_upper_y]);
 	end
@@ -3246,7 +3695,14 @@ if (axis_limit ~= 0) && (axis_limit ~= 1)
 	end
 	
 	set(gca, 'YLim', [lower_y, upper_y]);
-end        %
+end
+
+if (plot_differences)
+	% this defines whether A was faster or B
+	line([0, 0], get(gca(), 'YLim'), 'Color', [0 0 0], 'LineWidth', project_line_width*0.5, 'LineStyle', '-');
+end
+
+
 %set(gca(), 'YLim', [0.0, 1.0]);
 set(gca(),'TickLabelInterpreter','none');
 
@@ -3257,9 +3713,14 @@ switch histnorm_string
 	case {'probability', 'cdf'}
 		ylabel( 'Probability');
 		set(gca(), 'YTick', [0, 1]);
+	case 'normalized_count'
+		ylabel( 'Fraction of trials');
+	case 'percentage_count'
+		ylabel( 'Percent of trials');
+		
 end
 
-if (plot_differences) && (ProcessSideA) && (ProcessSideA)
+if (plot_differences) && (ProcessSideA) && (ProcessSideB)
 	set(gca(), 'XLim', [-750, 750]);
 	set(gca(), 'XTick', [-700, -350, 0, 350, 700]);
 	xlabel( 'Reaction time A-B [ms]');
