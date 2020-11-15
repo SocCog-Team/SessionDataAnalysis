@@ -62,6 +62,8 @@ TitleSeparator = '_';
 
 OutPutType = 'pdf';
 output_rect_fraction = 1/2.54; % matlab's print will interpret values as INCH even for PaperUnit centimeter specified figures...
+output_rect_fraction = 1;
+paper_unit_string = 'inches'; % centimeters (broken) or inches
 
 
 if ~exist('project_name', 'var') || isempty(project_name)
@@ -160,8 +162,13 @@ Plot_histogram_as_boxwhisker_plot = 0;	% not too helpful
 
 % generate scatterplots for RT_A over RT_B and color points by choice/side
 % use joint choices, as well as choices of each individual
-Plot_RT_scatter_AB_by_choices = 1;
-Plot_RT_scatter_AB_by_sides = 1;
+plot_RT_scatter = 1;
+plot_RT_scatter_AB_by_choices = 1;
+plot_RT_scatter_AB_by_sides = 1;
+plot_RT_scatter_by_others_choices = 1;
+plot_RT_scatter_by_own_choices = 1;
+RT_scatter_showcorrelations = 1;
+RT_scatter_type_list = {'TargetAcquisitionRT', 'InitialTargetReleaseRT', 'InitialHoldReleaseRT', 'IniTargRel_05MT_RT'};
 
 
 histnorm_string = 'count'; % count, probability, pdf, cdf
@@ -173,6 +180,7 @@ histogram_edges = (0:histogram_bin_width_ms:1500);
 histogram_diff_edges = (-750:histogram_bin_width_ms:750);
 histogram_show_median = 1;
 histogram_use_histogram_func = 0;
+
 
 
 calc_solo_metrics = 0;
@@ -206,6 +214,24 @@ n_post_bins = 3;
 strict_pattern_extension = 1;
 pad_mismatch_with_nan = 1;
 aggregate_type_meta_list = {'nan_padded'}; %  {'nan_padded', 'raw'}, the raw looks like the 1st derivation
+
+
+
+PlotChoicebyOthersSwitches = 1;
+ChoicebyOthersSwitches.full_TC_choice_combinaton_pattern_list = {'RRRBBB', 'BBBRRR'};
+ChoicebyOthersSwitches.selected_TC_switch_pattern_list = {'RRRBBB', 'BBBRRR'};
+
+ChoicebyOthersSwitches.full_OS_choice_combinaton_pattern_list = {'RRRLLL', 'LLLRRR'};
+ChoicebyOthersSwitches.selected_OS_switch_pattern_list = {'RRRLLL', 'LLLRRR'};
+
+ChoicebyOthersSwitches.pattern_alignment_offset = 3;
+ChoicebyOthersSwitches.n_pre_bins = 3;
+ChoicebyOthersSwitches.n_post_bins = 3;
+ChoicebyOthersSwitches.strict_pattern_extension = 1;
+ChoicebyOthersSwitches.pad_mismatch_with_nan = 0;	% 1 replace non match trial data with NaNs, so eg. RXRBBXB is included, as well as RRRBBB
+ChoicebyOthersSwitches.aggregate_type_meta_list = {'nan_padded', 'raw'}; %  {'nan_padded', 'raw'}, the raw looks like the 1st derivation
+
+
 
 
 % 20190220: disable hack to use the same trial selection logic for all
@@ -256,6 +282,7 @@ switch project_name
 		ShowOnlyTargetChoiceCombinations = 0;
 		DefaultAxesType = 'SfN2018'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 		DefaultPaperSizeType = 'SfN2018.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
+		double_row_aspect_ratio = 1/3*2;
 		%make the who-was-faster-plots effectively invisible but still
 		%scale the plot to accomodate the required space
 		%SideARTColor = [1 1 1];
@@ -774,6 +801,18 @@ for iGroup = 1 : length(GroupNameList)
 	choice_combination_color_string = choice_combination_color_string';
 	
 	
+	% value and side choices per side/agent
+	A_target_color_choice_string = char(PreferableTargetSelected_A);
+	A_target_color_choice_string(logical(PreferableTargetSelected_A)) = 'R';	% A's preferred color is Red
+	A_target_color_choice_string(logical(NonPreferableTargetSelected_A)) = 'B';	% A's non-preferred color is Blue
+	A_target_color_choice_string = A_target_color_choice_string';
+	
+	B_target_color_choice_string = char(PreferableTargetSelected_A);
+	B_target_color_choice_string(logical(NonPreferableTargetSelected_B)) = 'R';	% B's non-preferred color is Red
+	B_target_color_choice_string(logical(PreferableTargetSelected_B)) = 'B';	% B's preferred color is Bue/Yellow
+	B_target_color_choice_string = B_target_color_choice_string';
+	
+	
 	% get the share of location choices (left/right, top/bottom)
 	% top/bottom
 	BottomTargetSelected_A = zeros([NumTrials, 1]);
@@ -799,6 +838,20 @@ for iGroup = 1 : length(GroupNameList)
 	RightTargetSelected_A(TrialSets.ByChoice.SideA.ChoiceScreenFromARight) = 1;
 	RightTargetSelected_B = zeros([NumTrials, 1]);
 	RightTargetSelected_B(TrialSets.ByChoice.SideB.ChoiceScreenFromARight) = 1;
+	
+	
+	A_objective_side_choice_string = char(PreferableTargetSelected_A);
+	A_objective_side_choice_string(logical(RightTargetSelected_A)) = 'R';	% A's preferred color is Red
+	A_objective_side_choice_string(logical(LeftTargetSelected_A)) = 'L';	% A's non-preferred color is Blue
+	A_objective_side_choice_string = A_objective_side_choice_string';
+	
+	B_objective_side_choice_string = char(PreferableTargetSelected_A);
+	B_objective_side_choice_string(logical(RightTargetSelected_B)) = 'R';	% B's non-preferred color is Red
+	B_objective_side_choice_string(logical(LeftTargetSelected_B)) = 'L';	% B's preferred color is Bue/Yellow
+	B_objective_side_choice_string = B_objective_side_choice_string';
+	
+	
+	
 	
 	
 	% get vectors for side/value choices
@@ -1451,7 +1504,7 @@ for iGroup = 1 : length(GroupNameList)
 	Cur_fh_RewardOverTrials = figure('Name', 'RewardOverTrials', 'visible', figure_visibility_string);
 	fnFormatDefaultAxes(DefaultAxesType);
 	[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-	set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+	set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 	legend_list = {};
 	hold on
 	
@@ -1577,7 +1630,7 @@ for iGroup = 1 : length(GroupNameList)
 	Cur_fh_ShareOfOwnChoiceOverTrials = figure('Name', 'ShareOfOwnChoiceOverTrials', 'visible', figure_visibility_string);
 	fnFormatDefaultAxes(DefaultAxesType);
 	[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-	set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+	set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 	legend_list = {};
 	hold on
 	
@@ -1693,7 +1746,7 @@ for iGroup = 1 : length(GroupNameList)
 		Cur_fh_ShareOfOwnChoiceOverTrials_AR = figure('Name', 'ShareOfOwnChoiceOverTrials.AR', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(Cur_fh_ShareOfOwnChoiceOverTrials_AR, 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(Cur_fh_ShareOfOwnChoiceOverTrials_AR, 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		
 		%hold on
 		% copy the SoC plot from its axes handle
@@ -1728,7 +1781,7 @@ for iGroup = 1 : length(GroupNameList)
 		Cur_fh_ShareOfBottomChoiceOverTrials = figure('Name', 'ShareOfBottomChoiceOverTrials', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		legend_list = {};
 		hold on
 		
@@ -1793,7 +1846,7 @@ for iGroup = 1 : length(GroupNameList)
 		Cur_fh_ShareOfSubjectiveLeftChoiceOverTrials = figure('Name', 'ShareOfSubjectiveLeftChoiceOverTrials', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		legend_list = {};
 		hold on
 		
@@ -1878,7 +1931,7 @@ for iGroup = 1 : length(GroupNameList)
 		Cur_fh_ShareOfObjectiveLeftChoiceOverTrials = figure('Name', 'ShareOfObjectiveLeftChoiceOverTrials', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
 		legend_list = {};
 		hold on
 		
@@ -1935,6 +1988,7 @@ for iGroup = 1 : length(GroupNameList)
 	
 	if (plot_joint_choices_by_diffGoSignal)
 		%GoSignalQuantum_ms = 50;
+		%TODO choices of A for each of B's (ans vice versa)
 		
 		cur_AB_diffGoSignalTime = AB_diffGoSignalTime(GoodTrialsIdx);
 		unique_cur_AB_diffGoSignalTime = unique(cur_AB_diffGoSignalTime);
@@ -1944,19 +1998,19 @@ for iGroup = 1 : length(GroupNameList)
 		% but also calculate stuff for all trials
 		quantized_AB_diffGoSignalTime = round(AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
 		unique_quantized_cur_ABdiffGoSignalTimes = unique(quantized_cur_AB_diffGoSignalTime);
-
+		
 		% split the equal GO signal cases by who was faster
 		if (split_diffGoSignal_eq_0_by_RT)
 			zero_diff_idx = find(quantized_AB_diffGoSignalTime == 0);
 			RT_diff_list = eval(['AB_', diffGoSignal_eq_0_by_RT_RT_type, '_diff']);
-			% find when A was faster 
+			% find when A was faster
 			A_faster_idx = find(RT_diff_list <= 0);
 			tmp_A_idx = intersect(zero_diff_idx, A_faster_idx);
 			%tmp_A_idx = intersect(GoodTrialsIdx, tmp_A_idx);
 			
 			quantized_AB_diffGoSignalTime(tmp_A_idx) = -0.1;
-					
- 			B_faster_idx = find(RT_diff_list > 0);
+			
+			B_faster_idx = find(RT_diff_list > 0);
 			tmp_B_idx = intersect(zero_diff_idx, B_faster_idx);
 			%tmp_B_idx = intersect(GoodTrialsIdx, tmp_B_idx);
 			quantized_AB_diffGoSignalTime(tmp_B_idx) = +0.1;
@@ -1965,13 +2019,16 @@ for iGroup = 1 : length(GroupNameList)
 			unique_quantized_cur_ABdiffGoSignalTimes = unique(quantized_AB_diffGoSignalTime(GoodTrialsIdx));
 			% insert the two new categories, even if one is empty
 			unique_quantized_cur_ABdiffGoSignalTimes = unique([unique_quantized_cur_ABdiffGoSignalTimes; -0.1; +0.1]);
-		end		
+		end
 		
 		
 		
 		% create ordinal vectors of joint choices to build contingency
 		% tables from
 		if ~(IsSoloGroup)
+			
+			input_data_collection.by_AB_value.name = '';
+			
 			value_choices = [SameTargetA(:) + (2 * SameTargetB(:)) + ...
 				(3 * DiffOwnTarget(:)) + + (4 * DiffOtherTarget(:))];
 			value_names = {'A_own_B_other', 'A_other_B_own', 'A_own_B_own', 'A_other_B_other'};
@@ -1982,6 +2039,9 @@ for iGroup = 1 : length(GroupNameList)
 			sameness_choices = [SameTargetA(:) + (1 * SameTargetB(:)) + ...
 				(2 * DiffOwnTarget(:)) + + (2 * DiffOtherTarget(:))];
 			sameness_names = {'Same', 'Different'};
+			
+			%AbyB_value_choices =
+			
 		else
 			% solo
 			A_selected = A_selects_A + B_selects_A;
@@ -2012,7 +2072,7 @@ for iGroup = 1 : length(GroupNameList)
 			% get the trials with the current diffGoSignalTime
 			cur_diffGoSIgnalTime_idx = find(quantized_AB_diffGoSignalTime == cur_quantized_diffGoSignalTimes);
 			% only look at the good trials in the current set
-			cur_diffGoSIgnalTime_idx = intersect(cur_diffGoSIgnalTime_idx, GoodTrialsIdx);		
+			cur_diffGoSIgnalTime_idx = intersect(cur_diffGoSIgnalTime_idx, GoodTrialsIdx);
 			
 			% collect the joint choices and build contingency table
 			for i_joint_choice = 1 : num_joint_choice_combinations
@@ -2033,12 +2093,12 @@ for iGroup = 1 : length(GroupNameList)
 		if ~isempty(sameness_choices)
 			[pairwise_P_matrix, pairwise_P_matrix_with_chance, P_data_not_chance_list] = get_pairwise_p_4_fisher_exact(choice_contingency_table.sameness', []);
 			[sym_list, p_list, cols_idx_per_symbol] = construct_symbol_list(pairwise_P_matrix, sameness_names, column_names, 'col', []);
-
+			
 			%figure_visibility_string = 'on';
 			fh_cur_sameness_contingency_table = figure('Name', 'SamenessContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
 			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
-			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			%subplot(2, 1, 1)
 			% plot the tables
 			row_names = sameness_names;
@@ -2055,7 +2115,7 @@ for iGroup = 1 : length(GroupNameList)
 		fh_cur_value_contingency_table = figure('Name', 'ValueContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		%subplot(2, 1, 1)
 		% plot the tables
 		row_names = value_names;
@@ -2070,7 +2130,7 @@ for iGroup = 1 : length(GroupNameList)
 		fh_cur_side_contingency_table = figure('Name', 'SideContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		%subplot(2, 1, 2)
 		% plot the tables
 		row_names = side_names;
@@ -2083,7 +2143,7 @@ for iGroup = 1 : length(GroupNameList)
 		
 	end
 	
-
+	
 	if (0)
 		%GoSignalQuantum_ms = 50;
 		
@@ -2098,9 +2158,9 @@ for iGroup = 1 : length(GroupNameList)
 		% split the equal GO signal cases by who was faster
 		if (split_diffGoSignal_eq_0_by_RT)
 			zero_diff_idx = find(quantized_cur_AB_diffGoSignalTime ==0);
-% 			A_faster_idx =
-% 			B_faster_idx = 
-% 			diffGoSignal_eq_0_by_RT_RT_type
+			% 			A_faster_idx =
+			% 			B_faster_idx =
+			% 			diffGoSignal_eq_0_by_RT_RT_type
 			
 			%quantized_AB_diffGoSignalTime = round(AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
 			unique_quantized_cur_ABdiffGoSignalTimes = unique(quantized_cur_AB_diffGoSignalTime);
@@ -2171,12 +2231,12 @@ for iGroup = 1 : length(GroupNameList)
 		if ~isempty(sameness_choices)
 			[pairwise_P_matrix, pairwise_P_matrix_with_chance, P_data_not_chance_list] = get_pairwise_p_4_fisher_exact(choice_contingency_table.sameness', []);
 			[sym_list, p_list, cols_idx_per_symbol] = construct_symbol_list(pairwise_P_matrix, sameness_names, column_names, 'col', []);
-
+			
 			%figure_visibility_string = 'on';
 			fh_cur_sameness_contingency_table = figure('Name', 'SamenessContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
 			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
-			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			%subplot(2, 1, 1)
 			% plot the tables
 			row_names = sameness_names;
@@ -2193,7 +2253,7 @@ for iGroup = 1 : length(GroupNameList)
 		fh_cur_value_contingency_table = figure('Name', 'ValueContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		%subplot(2, 1, 1)
 		% plot the tables
 		row_names = value_names;
@@ -2208,7 +2268,7 @@ for iGroup = 1 : length(GroupNameList)
 		fh_cur_side_contingency_table = figure('Name', 'SideContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		%subplot(2, 1, 2)
 		% plot the tables
 		row_names = side_names;
@@ -2220,7 +2280,7 @@ for iGroup = 1 : length(GroupNameList)
 		write_out_figure(fh_cur_side_contingency_table, outfile_fqn);
 		
 	end
-		
+	
 	
 	
 	if (plot_psee_antipreferredchoice_correlation_per_trial) && ~(IsSoloGroup) && exist('cur_coordination_metrics_struct', 'var') && isfield(cur_coordination_metrics_struct, 'per_trial')
@@ -2244,7 +2304,7 @@ for iGroup = 1 : length(GroupNameList)
 			Cur_fh_PseeSotherCCorOverTrials = figure('Name', 'PseeAntipreferredChoiceCorrelationOverTrials', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
 			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
-			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			legend_list = {};
 			
 			
@@ -2353,7 +2413,7 @@ for iGroup = 1 : length(GroupNameList)
 		Cur_fh_ShareOfOwnChoiceOverTrials = figure('Name', 'TransferEntropyOverTrials', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		legend_list = {};
 		hold on
 		
@@ -2421,7 +2481,7 @@ for iGroup = 1 : length(GroupNameList)
 		Cur_fh_ShareOfOwnChoiceOverTrials = figure('Name', 'MutualInformationOverTrials', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		legend_list = {};
 		hold on
 		
@@ -2493,7 +2553,7 @@ for iGroup = 1 : length(GroupNameList)
 		Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimesBySameness', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
 		legend_list = {};
 		hold on
 		
@@ -2726,7 +2786,7 @@ for iGroup = 1 : length(GroupNameList)
 				Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySameness', 'visible', figure_visibility_string);
 				fnFormatDefaultAxes(DefaultAxesType);
 				[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-				set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+				set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
 				%legend_list = {};
 				
 				CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
@@ -2844,7 +2904,7 @@ for iGroup = 1 : length(GroupNameList)
 					Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeBoxWhiskerBySameness', 'visible', figure_visibility_string);
 					fnFormatDefaultAxes(DefaultAxesType);
 					[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-					set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+					set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
 					%legend_list = {};
 					
 					CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
@@ -2956,7 +3016,7 @@ for iGroup = 1 : length(GroupNameList)
 				Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySamenessPostSwitchTrials', 'visible', figure_visibility_string);
 				fnFormatDefaultAxes(DefaultAxesType);
 				[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-				set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+				set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
 				%legend_list = {};
 				
 				
@@ -3146,7 +3206,7 @@ for iGroup = 1 : length(GroupNameList)
 				Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimeHistogramBySide', 'visible', figure_visibility_string);
 				fnFormatDefaultAxes(DefaultAxesType);
 				[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-				set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+				set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
 				%legend_list = {};
 				
 				CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
@@ -3199,7 +3259,7 @@ for iGroup = 1 : length(GroupNameList)
 						Cur_fh_RTbyChoiceCombinationSwitches = figure('Name', ['RT histogram over choice combination switches: ', current_aggregate_type], 'visible', figure_visibility_string);
 						fnFormatDefaultAxes(DefaultAxesType);
 						[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-						set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+						set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
 						
 						RT_by_switch_struct_list = {SideA_pattern_histogram_struct, SideB_pattern_histogram_struct};
 						RT_by_switch_title_prefix_list = {'A: ', 'B: '};
@@ -3234,6 +3294,147 @@ for iGroup = 1 : length(GroupNameList)
 						write_out_figure(Cur_fh_RTbyChoiceCombinationSwitches, outfile_fqn);
 					end
 				end
+			end
+		end
+		if (PlotChoicebyOthersSwitches) && ~(IsSoloGroup)
+			
+			% find the trial indices for the selected switch trials
+			% for each member in selected_choice_combinaton_pattern_list
+			% extract a histogram form a given data list
+			CurrentGroupGoodTrialsIdx = GoodTrialsIdx(JointTrialX_Vector);
+			% extract and aggregate the data per defined switch
+			byAs_TC_SideA_TC_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, A_target_color_choice_string, ChoicebyOthersSwitches.full_TC_choice_combinaton_pattern_list, PreferableTargetSelected_A, ChoicebyOthersSwitches.pattern_alignment_offset, ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_post_bins, ChoicebyOthersSwitches.strict_pattern_extension, ChoicebyOthersSwitches.pad_mismatch_with_nan);
+			byAs_TC_SideB_TC_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, A_target_color_choice_string, ChoicebyOthersSwitches.full_TC_choice_combinaton_pattern_list, PreferableTargetSelected_B, ChoicebyOthersSwitches.pattern_alignment_offset, ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_post_bins, ChoicebyOthersSwitches.strict_pattern_extension, ChoicebyOthersSwitches.pad_mismatch_with_nan);
+			byBs_TC_SideA_TC_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, B_target_color_choice_string, ChoicebyOthersSwitches.full_TC_choice_combinaton_pattern_list, PreferableTargetSelected_A, ChoicebyOthersSwitches.pattern_alignment_offset, ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_post_bins, ChoicebyOthersSwitches.strict_pattern_extension, ChoicebyOthersSwitches.pad_mismatch_with_nan);
+			byBs_TC_SideB_TC_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, B_target_color_choice_string, ChoicebyOthersSwitches.full_TC_choice_combinaton_pattern_list, PreferableTargetSelected_B, ChoicebyOthersSwitches.pattern_alignment_offset, ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_post_bins, ChoicebyOthersSwitches.strict_pattern_extension, ChoicebyOthersSwitches.pad_mismatch_with_nan);
+			
+			
+			byAs_OS_SideA_OS_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, A_objective_side_choice_string, ChoicebyOthersSwitches.full_OS_choice_combinaton_pattern_list, LeftTargetSelected_A, ChoicebyOthersSwitches.pattern_alignment_offset, ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_post_bins, ChoicebyOthersSwitches.strict_pattern_extension, ChoicebyOthersSwitches.pad_mismatch_with_nan);
+			byAs_OS_SideB_OS_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, A_objective_side_choice_string, ChoicebyOthersSwitches.full_OS_choice_combinaton_pattern_list, LeftTargetSelected_B, ChoicebyOthersSwitches.pattern_alignment_offset, ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_post_bins, ChoicebyOthersSwitches.strict_pattern_extension, ChoicebyOthersSwitches.pad_mismatch_with_nan);
+			byBs_OS_SideA_OS_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, B_objective_side_choice_string, ChoicebyOthersSwitches.full_OS_choice_combinaton_pattern_list, LeftTargetSelected_A, ChoicebyOthersSwitches.pattern_alignment_offset, ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_post_bins, ChoicebyOthersSwitches.strict_pattern_extension, ChoicebyOthersSwitches.pad_mismatch_with_nan);
+			byBs_OS_SideB_OS_pattern_histogram_struct = fn_build_PSTH_by_switch_trial_struct(CurrentGroupGoodTrialsIdx, B_objective_side_choice_string, ChoicebyOthersSwitches.full_OS_choice_combinaton_pattern_list, LeftTargetSelected_B, ChoicebyOthersSwitches.pattern_alignment_offset, ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_post_bins, ChoicebyOthersSwitches.strict_pattern_extension, ChoicebyOthersSwitches.pad_mismatch_with_nan);
+			
+			
+			for i_aggregate_meta_type = 1 : length(ChoicebyOthersSwitches.aggregate_type_meta_list)
+				current_aggregate_type = ChoicebyOthersSwitches.aggregate_type_meta_list{i_aggregate_meta_type};
+				%if ~isempty(byAs_TC_SideA_TC_pattern_histogram_struct) || ~isempty(byBs_TC_SideA_TC_pattern_histogram_struct)
+				% now create a plot showing these transitions for both
+				% agents
+				%figure_visibility_string = 'on'; % for debugging
+				
+				Cur_fh_SCbyEachAgentsSwitches = figure('Name', ['SOC over one agent''s switches: ', current_aggregate_type], 'visible', figure_visibility_string);
+				fnFormatDefaultAxes(DefaultAxesType);
+				[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
+				set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+				
+				if ~isempty(byAs_TC_SideA_TC_pattern_histogram_struct) || ~isempty(byAs_TC_SideB_TC_pattern_histogram_struct)
+					subplot(2,2,1);
+					SC_by_switch_struct_list = {byAs_TC_SideA_TC_pattern_histogram_struct, byAs_TC_SideB_TC_pattern_histogram_struct};
+					SC_by_switch_title_prefix_list = {'A: ', 'B: '};
+					SC_by_switch_switch_pre_bins_list = {ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_pre_bins};
+					SC_by_switch_switch_n_bins_list = {(ChoicebyOthersSwitches.n_pre_bins + 1 + ChoicebyOthersSwitches.n_post_bins), (ChoicebyOthersSwitches.n_pre_bins + 1 + ChoicebyOthersSwitches.n_post_bins)};
+					%SC_by_switch_color_list = {orange, green};
+					SC_by_switch_color_list = {SideAColor, SideBColor};
+					aggregate_type_list = {current_aggregate_type, current_aggregate_type};
+					x_label_string = 'A''s target switches';
+					y_label_string = 'Own choices';
+					
+					[Cur_fh_SCbyEachAgentsSwitches, merged_classifier_char_string] = fn_plot_SOC_histogram_by_switches(Cur_fh_SCbyEachAgentsSwitches, SC_by_switch_struct_list, ChoicebyOthersSwitches.selected_TC_switch_pattern_list, SC_by_switch_title_prefix_list, SC_by_switch_switch_pre_bins_list, SC_by_switch_switch_n_bins_list, SC_by_switch_color_list, aggregate_type_list, x_label_string, y_label_string);
+					if (ShowTargetSideChoiceCombinations)
+						trial_outcome_list = zeros(size(merged_classifier_char_string));
+						trial_outcome_list(merged_classifier_char_string == 'R') = 1;
+						trial_outcome_list(merged_classifier_char_string == 'B') = 2;
+						trial_outcome_colors = [SameOwnAColor; SameOwnBColor];
+						trial_outcome_BGTransparency = [1.0];
+						y_lim = get(gca(), 'YLim');
+						fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, {trial_outcome_list}, y_lim, {trial_outcome_colors}, {trial_outcome_BGTransparency});
+						y_lim = get(gca(), 'YLim');
+					end
+				end
+				
+				if ~isempty(byBs_TC_SideA_TC_pattern_histogram_struct) || ~isempty(byBs_TC_SideB_TC_pattern_histogram_struct)
+					subplot(2,2,3);
+					SC_by_switch_struct_list = {byBs_TC_SideA_TC_pattern_histogram_struct, byBs_TC_SideB_TC_pattern_histogram_struct};
+					SC_by_switch_title_prefix_list = {'A: ', 'B: '};
+					SC_by_switch_switch_pre_bins_list = {ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_pre_bins};
+					SC_by_switch_switch_n_bins_list = {(ChoicebyOthersSwitches.n_pre_bins + 1 + ChoicebyOthersSwitches.n_post_bins), (ChoicebyOthersSwitches.n_pre_bins + 1 + ChoicebyOthersSwitches.n_post_bins)};
+					%SC_by_switch_color_list = {orange, green};
+					SC_by_switch_color_list = {SideAColor, SideBColor};
+					aggregate_type_list = {current_aggregate_type, current_aggregate_type};
+					x_label_string = 'B''s target switches';
+					y_label_string = 'Own choices';
+					
+					[Cur_fh_SCbyEachAgentsSwitches, merged_classifier_char_string] = fn_plot_SOC_histogram_by_switches(Cur_fh_SCbyEachAgentsSwitches, SC_by_switch_struct_list, ChoicebyOthersSwitches.selected_TC_switch_pattern_list, SC_by_switch_title_prefix_list, SC_by_switch_switch_pre_bins_list, SC_by_switch_switch_n_bins_list, SC_by_switch_color_list, aggregate_type_list, x_label_string, y_label_string);
+					if (ShowTargetSideChoiceCombinations)
+						trial_outcome_list = zeros(size(merged_classifier_char_string));
+						trial_outcome_list(merged_classifier_char_string == 'R') = 1;
+						trial_outcome_list(merged_classifier_char_string == 'B') = 2;
+						trial_outcome_colors = [SameOwnAColor; SameOwnBColor];
+						trial_outcome_BGTransparency = [1.0];
+						y_lim = get(gca(), 'YLim');
+						fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, {trial_outcome_list}, y_lim, {trial_outcome_colors}, {trial_outcome_BGTransparency});
+						y_lim = get(gca(), 'YLim');
+					end
+				end
+				
+				if ~isempty(byAs_OS_SideA_OS_pattern_histogram_struct) || ~isempty(byAs_OS_SideB_OS_pattern_histogram_struct)
+					subplot(2,2,2);
+					SC_by_switch_struct_list = {byAs_OS_SideA_OS_pattern_histogram_struct, byAs_OS_SideB_OS_pattern_histogram_struct};
+					SC_by_switch_title_prefix_list = {'A: ', 'B: '};
+					SC_by_switch_switch_pre_bins_list = {ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_pre_bins};
+					SC_by_switch_switch_n_bins_list = {(ChoicebyOthersSwitches.n_pre_bins + 1 + ChoicebyOthersSwitches.n_post_bins), (ChoicebyOthersSwitches.n_pre_bins + 1 + ChoicebyOthersSwitches.n_post_bins)};
+					%SC_by_switch_color_list = {orange, green};
+					SC_by_switch_color_list = {SideAColor, SideBColor};
+					aggregate_type_list = {current_aggregate_type, current_aggregate_type};
+					x_label_string = 'A''s side switches';
+					y_label_string = 'Left choices';
+					
+					[Cur_fh_SCbyEachAgentsSwitches, merged_classifier_char_string] = fn_plot_SOC_histogram_by_switches(Cur_fh_SCbyEachAgentsSwitches, SC_by_switch_struct_list, ChoicebyOthersSwitches.selected_OS_switch_pattern_list, SC_by_switch_title_prefix_list, SC_by_switch_switch_pre_bins_list, SC_by_switch_switch_n_bins_list, SC_by_switch_color_list, aggregate_type_list, x_label_string, y_label_string);
+					if (ShowTargetSideChoiceCombinations)
+						trial_outcome_list = zeros(size(merged_classifier_char_string));
+						trial_outcome_list(merged_classifier_char_string == 'R') = 1;
+						trial_outcome_list(merged_classifier_char_string == 'L') = 2;
+						trial_outcome_colors = [A_right_B_left_Color; A_left_B_right_Color];
+						trial_outcome_BGTransparency = [1.0];
+						y_lim = get(gca(), 'YLim');
+						fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, {trial_outcome_list}, y_lim, {trial_outcome_colors}, {trial_outcome_BGTransparency});
+						y_lim = get(gca(), 'YLim');
+					end
+				end
+				
+				if ~isempty(byBs_OS_SideA_OS_pattern_histogram_struct) || ~isempty(byBs_OS_SideB_OS_pattern_histogram_struct)
+					subplot(2,2,4);
+					SC_by_switch_struct_list = {byBs_OS_SideA_OS_pattern_histogram_struct, byBs_OS_SideB_OS_pattern_histogram_struct};
+					SC_by_switch_title_prefix_list = {'A: ', 'B: '};
+					SC_by_switch_switch_pre_bins_list = {ChoicebyOthersSwitches.n_pre_bins, ChoicebyOthersSwitches.n_pre_bins};
+					SC_by_switch_switch_n_bins_list = {(ChoicebyOthersSwitches.n_pre_bins + 1 + ChoicebyOthersSwitches.n_post_bins), (ChoicebyOthersSwitches.n_pre_bins + 1 + ChoicebyOthersSwitches.n_post_bins)};
+					%SC_by_switch_color_list = {orange, green};
+					SC_by_switch_color_list = {SideAColor, SideBColor};
+					aggregate_type_list = {current_aggregate_type, current_aggregate_type};
+					x_label_string = 'B''s side switches';
+					y_label_string = 'Left choices';
+					
+					[Cur_fh_SCbyEachAgentsSwitches, merged_classifier_char_string] = fn_plot_SOC_histogram_by_switches(Cur_fh_SCbyEachAgentsSwitches, SC_by_switch_struct_list, ChoicebyOthersSwitches.selected_OS_switch_pattern_list, SC_by_switch_title_prefix_list, SC_by_switch_switch_pre_bins_list, SC_by_switch_switch_n_bins_list, SC_by_switch_color_list, aggregate_type_list, x_label_string, y_label_string);
+					if (ShowTargetSideChoiceCombinations)
+						trial_outcome_list = zeros(size(merged_classifier_char_string));
+						trial_outcome_list(merged_classifier_char_string == 'R') = 1;
+						trial_outcome_list(merged_classifier_char_string == 'L') = 2;
+						trial_outcome_colors = [A_right_B_left_Color; A_left_B_right_Color];
+						trial_outcome_BGTransparency = [1.0];
+						y_lim = get(gca(), 'YLim');
+						fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, {trial_outcome_list}, y_lim, {trial_outcome_colors}, {trial_outcome_BGTransparency});
+						y_lim = get(gca(), 'YLim');
+					end
+				end
+				
+				
+				outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SC.ChoicebyOthersSwitches.', current_aggregate_type, '.', OutPutType]);
+				write_out_figure(Cur_fh_SCbyEachAgentsSwitches, outfile_fqn);
+				
+				%legend(legend_list, 'Interpreter', 'None');
+				%outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SC.ChoicebyOthersSwitches.legend.', current_aggregate_type, '.', OutPutType]);
+				%write_out_figure(Cur_fh_SCbyEachAgentsSwitches, outfile_fqn);
+				%end
 			end
 		end
 	end
