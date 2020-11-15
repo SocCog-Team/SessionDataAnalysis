@@ -26,7 +26,7 @@ function [ first2second_time_conversion_struct, second2first_time_conversion_str
 
 
 first2second_time_conversion_struct = struct();
-v = struct();
+second2first_time_conversion_struct = struct();
 time_conversion_struct = struct();
 
 % input checking?
@@ -37,6 +37,10 @@ if length(first_timebase_event_list) ~= length(second_timebase_event_list)
     return
 end
 
+if length(first_timebase_event_list) < 2
+    disp('Less than two common events specified, conversion under-defined, skipping.');
+    return
+end
 
 % since we want to use these as matlab variables, make sure they are sane
 first_timebase_name = fn_sanitize_string_as_matlab_variable_name(first_timebase_name);
@@ -87,6 +91,11 @@ time_conversion_struct.(firstANDsecond).(second2first) = second2first_time_conve
 first2second_event_list = first_timebase_event_list * first2second_time_conversion_struct.scale_factor + first2second_time_conversion_struct.offset;
 second2first_event_list = second_timebase_event_list * second2first_time_conversion_struct.scale_factor + second2first_time_conversion_struct.offset;
 
+first_time_base_abs_error_sum =  sum(abs(first_timebase_event_list - second2first_event_list));
+second_time_base_abs_error_sum = sum(abs(second_timebase_event_list - first2second_event_list));
+disp(['Average absolute error over ', num2str(length(first_timebase_event_list)), ' events:']);
+disp([second_timebase_name, ' to ', first_timebase_name,' time: ', num2str(first_time_base_abs_error_sum / length(first_timebase_event_list))]);
+disp([first_timebase_name, ' to ', second_timebase_name,' time: ', num2str(second_time_base_abs_error_sum / length(second_timebase_event_list))]);
 
 
 
@@ -105,6 +114,10 @@ second2first_event_list = second_timebase_event_list * second2first_time_convers
 % 
 % first_timebase_event_list_diff = diff(first_timebase_event_list);
 % second_timebase_event_list_diff = diff(second_timebase_event_list);
+
+% now scale both to the same total range, that way offsets and scal
+
+
 % 
 % 
 % [R, P] = corrcoef(EvIDE_ParaState_ts_diff*EvIDE2TDT_time_scale, TDT_ParaState_ts_diff);
