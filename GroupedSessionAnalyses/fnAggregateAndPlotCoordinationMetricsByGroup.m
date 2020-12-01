@@ -39,6 +39,15 @@ if ~exist('session_metrics_datafile_fqn', 'var') || isempty(session_metrics_data
 	InputPath = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'taskcontroller', 'SCP_DATA', 'ANALYSES', 'hms-beagle2', '2019');
 	InputPath = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'taskcontroller', 'SCP_DATA', 'ANALYSES', 'hms-beagle2', '2019');
 	
+	[sys_status, host_name] = system('hostname');
+	host_name = host_name(1:end-1); % last char of host name result is ascii 10 (LF)
+	host_name = strtrim(host_name);
+	
+	if regexp(host_name, 'MAC38078')
+		%InputPath = fullfile('/', 'space', 'data_local', 'moeller', 'DPZ', 'taskcontroller', 'SCP_DATA', 'ANALYSES', 'MAC38078', '2019');
+		InputPath = fullfile('/Volumes', 'Seagate5TB02_Main2TB', 'space', 'data_local', 'moeller', 'DPZ', 'taskcontroller', 'SCP_DATA', 'ANALYSES', 'MAC38078', '2019');
+	end
+	
 	if ~isempty(project_name)
 		InputPath = fullfile(InputPath, project_name);
 	end
@@ -284,6 +293,15 @@ triple_row_aspect_ratio = 1/3*2;
 
 %output_rect_fraction = 0.5; % default 0.5
 output_rect_fraction = 1/2.54; % matlab's print will interpret values as INCH even for PaperUnit centimeter specified figures...
+
+
+OutPutType = 'pdf';
+%output_rect_fraction = 1/2.54; % matlab's print will interpret values as INCH even for PaperUnit centimeter specified figures...
+output_rect_fraction = 1;
+paper_unit_string = 'inches'; % centimeters (broken) or inches
+
+
+
 
 save_fig = 0;
 
@@ -548,7 +566,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 		Cur_fh_avg_reward_by_group = figure('Name', 'Average reward by group', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		legend_list = {};
 		%hold on
 		
@@ -684,7 +702,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			Cur_fh_avg_reward_by_group = figure('Name', ['mutual information space plot ', current_MI_space_type], 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
 			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			legend_list = {};
 			hold on
 			
@@ -969,7 +987,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 		Cur_fh_cAvgRewardScatter_for_naive_macaques = figure('Name', 'AverageReward early/ate scatter-plot', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		legend_list = {};
 		hold on
 		
@@ -1092,7 +1110,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			Cur_fh_coordination_metrics_for_each_group = figure('Name', 'Coordination Metrics plot', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
 			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			legend_list = {};
 			%hold on
 			
@@ -1299,7 +1317,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			Cur_fh_coordination_metrics_for_each_group = figure('Name', 'Coordination Metrics plot', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
 			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], triple_row_aspect_ratio);
-			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			legend_list = {};
 			%hold on
 			
@@ -1527,7 +1545,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			Cur_fh_coordination_metrics_for_each_group = figure('Name', 'Coordination Metrics plot SciAdv', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
 			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			legend_list = {};
 			%hold on
 			
@@ -1793,7 +1811,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			Cur_fh_rt_correlations_for_each_group = figure('Name', 'RT Correlations plot', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
 			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			legend_list = {};
 			%hold on
 			
@@ -1965,7 +1983,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 				Cur_fh_rt_correlations_for_each_group = figure('Name', ['RT Correlations by subset plot: ', cur_by_subset_figure_name], 'visible', figure_visibility_string);
 				fnFormatDefaultAxes(DefaultAxesType);
 				[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-				set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+				set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 				legend_list = {};
 				%hold on
 				
@@ -2128,7 +2146,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			Cur_fh_SC_correlations_2D_by_group = figure('Name', 'Signed choice correlations plot', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
 			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			legend_list = {};
 			%hold on
 			
@@ -2296,7 +2314,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			Cur_fh_avg_reward_by_group = figure('Name', 'Average reward by group', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
 			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-			set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			legend_list = {};
 			%hold on
 			
@@ -2438,7 +2456,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 				Cur_fh_avg_reward_by_meta_group = figure('Name', 'Average reward by meta group', 'visible', figure_visibility_string);
 				fnFormatDefaultAxes(DefaultAxesType);
 				[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-				set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+				set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 				legend_list = {};
 				%hold on
 				
@@ -2592,7 +2610,7 @@ if (plot_AR_scatter_by_session_state_early_late)
 		Cur_fh_cAvgRewardScatter_for_naive_macaques = figure('Name', 'AverageReward early/late scatter-plot', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-		set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 		legend_list = {};
 		hold on
 		
@@ -2758,7 +2776,7 @@ if (plot_RT_by_switch_type)
 				Cur_fh_RTbyChoiceCombinationSwitches = figure('Name', ['RT histogram over choice combination switches: ', current_aggregate_type], 'visible', figure_visibility_string);
 				fnFormatDefaultAxes(DefaultAxesType);
 				[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
-				set(gcf(), 'Units', 'centimeters', 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
+				set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect, 'PaperPosition', output_rect );
 				
 				RT_by_switch_struct_list = {SideA_pattern_histogram_struct, SideB_pattern_histogram_struct};
 				RT_by_switch_title_prefix_list = {'A: ', 'B: '};
@@ -2823,7 +2841,7 @@ function [ output_rect ] = fnFormatPaperSizelocal( type, gcf_h, fraction, do_cen
 %     Cur_fh = figure('Name', 'Test');
 %     fnFormatDefaultAxes('16to9slides');
 %     [output_rect] = fnFormatPaperSize('16to9landscape', gcf);
-%     set(gcf(), 'Units', 'centimeters', 'Position', output_rect);
+%     set(gcf(), 'Units', paper_unit_string, 'Position', output_rect);
 
 
 if nargin < 3

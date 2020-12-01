@@ -26,14 +26,23 @@ project_name = [];
 project_name = 'BoS_manuscript';
 
 
+set_name = '';
+%project_name = 'SfN2008'; % this loops back to 2019
+%%project_name = 'SfN2018'; % this loops back to 2019
 
-project_name = 'SfN2008'; % this loops back to 2019
-%project_name = 'SfN2018'; % this loops back to 2019
 
+use_named_set = 0;
+set_name = 'ConfederateElmoDiffGO';
+
+if strcmp(set_name, 'ConfederateElmoDiffGO')
+	use_named_set = 1;
+	ProcessNewestFirst = 1;
+	ProcessFreshSessionsOnly = 0;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
+end
 
 % special case for the paper set
 if strcmp(project_name, 'BoS_manuscript')
-	ProcessFreshSessionsOnly = 1;
+	ProcessFreshSessionsOnly = 0;
 	use_named_set = 1;
 	set_name = 'BoS_manuscript';
 	%fresh_definition_string = 'no_statistics_txt';
@@ -89,9 +98,15 @@ switch CurrentAnalysisSetName
 		LogFileWildCardString = '*.triallog.txt';
 		
 	case {'SCP_DATA', 'SCP_DATA_SFN2018'}
-		experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
-		experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01'); % avoid the analysis folder with its looped sym links
-		%experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA');
+		[tmp_dir, tmp_name] = fileparts(SCPDirs.SCP_DATA_BaseDir);
+		if strcmp(tmp_name, 'SCP_DATA')
+			experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP-CTRL-01'); % avoid the analysis folder with its looped sym links
+		else
+			experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS');
+			experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA', 'SCP-CTRL-01'); % avoid the analysis folder with its looped sym links
+			%experimentFolder = fullfile(SCPDirs.SCP_DATA_BaseDir, 'SCP_DATA');
+		end
+		
 		LogFileWildCardString = '*.triallog.txt';
 		
 		LogFileWildCardString = '*.triallog*';	%

@@ -3320,7 +3320,7 @@ for iGroup = 1 : length(GroupNameList)
 				%if ~isempty(byAs_TC_SideA_TC_pattern_histogram_struct) || ~isempty(byBs_TC_SideA_TC_pattern_histogram_struct)
 				% now create a plot showing these transitions for both
 				% agents
-				%figure_visibility_string = 'on'; % for debugging
+% 				figure_visibility_string = 'on'; % for debugging
 				
 				Cur_fh_SCbyEachAgentsSwitches = figure('Name', ['SOC over one agent''s switches: ', current_aggregate_type], 'visible', figure_visibility_string);
 				fnFormatDefaultAxes(DefaultAxesType);
