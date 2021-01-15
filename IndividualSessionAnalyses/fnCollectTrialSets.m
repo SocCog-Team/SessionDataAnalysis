@@ -65,7 +65,7 @@ TrialSets.ByActivity.AllTrials = union(TrialSets.ByActivity.SideA.AllTrials, Tri
 
 
 % these are real joint trials when both subject work together
-% test for touching the initial target:
+% test for touching the initial target: (initiated trials)
 TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_InitialFixationTouchTime_ms) > 0);
 TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_InitialFixationTouchTime_ms) > 0);
 
@@ -81,7 +81,7 @@ TrialSets.ByJointness.DualSubjectJointTrials = intersect(TmpJointTrialsA, TmpJoi
 TrialSets.ByJointness.SideA.SoloSubjectTrials = setdiff(TmpJointTrialsA, TmpJointTrialsB);
 TrialSets.ByJointness.SideB.SoloSubjectTrials = setdiff(TmpJointTrialsB, TmpJointTrialsA);
 
-% test for touching the touch target
+% test for touching the touch target (choice trials)
 TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_TargetTouchTime_ms) > 0);
 TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsA);
 TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_TargetTouchTime_ms) > 0);
@@ -92,27 +92,30 @@ TmpSoloTrialsB = setdiff(TmpJointTrialsB, TmpJointTrialsA);
 TrialSets.ByJointness.SideA.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideA.SoloSubjectTrials, TmpSoloTrialsA);
 TrialSets.ByJointness.SideB.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideB.SoloSubjectTrials, TmpSoloTrialsB);
 
-% test for reward
-TmpRewardAOutcomeIdx = find(strcmp('REWARD', LogStruct.unique_lists.A_OutcomeString));
-if ~isempty(TmpRewardAOutcomeIdx)
-	TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_OutcomeString_idx) == TmpRewardAOutcomeIdx);
-	TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsA);
-else
-	TmpJointTrialsA = [];
+% test for reward, ATTENTION this weeds out SoloARewardAB or SoloBRewardAB
+% trials
+if (false)
+    TmpRewardAOutcomeIdx = find(strcmp('REWARD', LogStruct.unique_lists.A_OutcomeString));
+    if ~isempty(TmpRewardAOutcomeIdx)
+        TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_OutcomeString_idx) == TmpRewardAOutcomeIdx);
+        TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsA);
+    else
+        TmpJointTrialsA = [];
+    end
+    TmpRewardBOutcomeIdx = find(strcmp('REWARD', LogStruct.unique_lists.B_OutcomeString));
+    if ~isempty(TmpRewardBOutcomeIdx)
+        TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_OutcomeString_idx) == TmpRewardBOutcomeIdx);
+        TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsB);
+    else
+        TmpJointTrialsB = [];
+    end
+    
+    TmpSoloTrialsA = setdiff(TmpJointTrialsA, TmpJointTrialsB);
+    TmpSoloTrialsB = setdiff(TmpJointTrialsB, TmpJointTrialsA);
+    TrialSets.ByJointness.SideA.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideA.SoloSubjectTrials, TmpSoloTrialsA);
+    TrialSets.ByJointness.SideB.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideB.SoloSubjectTrials, TmpSoloTrialsB);
 end
-TmpRewardBOutcomeIdx = find(strcmp('REWARD', LogStruct.unique_lists.B_OutcomeString));
-if ~isempty(TmpRewardBOutcomeIdx)
-	TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_OutcomeString_idx) == TmpRewardBOutcomeIdx);
-	TrialSets.ByJointness.DualSubjectJointTrials = intersect(TrialSets.ByJointness.DualSubjectJointTrials, TmpJointTrialsB);
-else
-	TmpJointTrialsB = [];
-end
-
-TmpSoloTrialsA = setdiff(TmpJointTrialsA, TmpJointTrialsB);
-TmpSoloTrialsB = setdiff(TmpJointTrialsB, TmpJointTrialsA);
-TrialSets.ByJointness.SideA.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideA.SoloSubjectTrials, TmpSoloTrialsA);
-TrialSets.ByJointness.SideB.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideB.SoloSubjectTrials, TmpSoloTrialsB);
-% solo trials: two subjects present, single troials only one subject
+% solo trials: two subjects present, single trials only one subject
 % active/present
 TrialSets.ByJointness.SideA.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideA.SoloSubjectTrials, TrialSets.ByActivity.SideA.DualSubjectTrials);
 TrialSets.ByJointness.SideB.SoloSubjectTrials = intersect(TrialSets.ByJointness.SideB.SoloSubjectTrials, TrialSets.ByActivity.SideB.DualSubjectTrials);
@@ -140,9 +143,10 @@ for iTrialType = 1 : length(TrialTypesList)
 	else
 		B_TrialsOfCurrentTypeIdx = [];
 	end
-	TrialSets.ByTrialType.SideA.(CurrentTrialTypeName) = A_TrialsOfCurrentTypeIdx;
-	TrialSets.ByTrialType.SideB.(CurrentTrialTypeName) = B_TrialsOfCurrentTypeIdx;
-	TrialSets.ByTrialType.(CurrentTrialTypeName) = union(A_TrialsOfCurrentTypeIdx, B_TrialsOfCurrentTypeIdx);
+	TrialSets.ByTrialType.SideA.(CurrentTrialTypeName) = intersect(TrialSets.ByActivity.SideA.AllTrials, A_TrialsOfCurrentTypeIdx);
+	TrialSets.ByTrialType.SideB.(CurrentTrialTypeName) = intersect(TrialSets.ByActivity.SideB.AllTrials, B_TrialsOfCurrentTypeIdx);
+	%TrialSets.ByTrialType.(CurrentTrialTypeName) = union(A_TrialsOfCurrentTypeIdx, B_TrialsOfCurrentTypeIdx);
+	TrialSets.ByTrialType.(CurrentTrialTypeName) = union(TrialSets.ByTrialType.SideA.(CurrentTrialTypeName), TrialSets.ByTrialType.SideB.(CurrentTrialTypeName));
 end
 
 % older log files do not contain the informed choice fields
@@ -153,7 +157,49 @@ if ~isfield(TrialSets.ByTrialType, 'InformedChoice')
 	TrialSets.ByTrialType.InformedChoice = [];
 end
 
-TrialSets.ByTrialType.InformedTrials = union(TrialSets.ByTrialType.InformedChoice, TrialSets.ByTrialType.InformedDirectedReach);
+
+%TrialSets.ByTrialSubType.InformedTrials = union(TrialSets.ByTrialType.InformedChoice, TrialSets.ByTrialType.InformedDirectedReach);
+if isfield(LogStruct.unique_lists, 'A_TrialSubTypeENUM') || isfield(LogStruct.unique_lists, 'B_TrialSubTypeENUM')
+    % ATTENTION the C# ENUM strarts at 0, but the A_TrialSubTypeENUM_idx
+    % column already corrected for that by adding 1 to each value to
+    % translate into valid matlab indices into 
+    
+    TrialSubTypesList = fnUnsortedUnique([LogStruct.unique_lists.A_TrialSubTypeENUM; LogStruct.unique_lists.B_TrialSubTypeENUM]);
+    for iTrialSubType = 1 : length(TrialSubTypesList)
+        CurrentTrialSubTypeName = TrialSubTypesList{iTrialSubType};
+        CurrentTrialSubTypeIdx = iTrialSubType;
+        if ~isempty(CurrentTrialSubTypeIdx)
+            A_TrialsOfCurrentSubTypeIdx = find(LogStruct.data(:, LogStruct.cn.A_TrialSubTypeENUM_idx) == CurrentTrialSubTypeIdx);
+        else
+            A_TrialsOfCurrentSubTypeIdx = [];
+        end
+        if ~isempty(CurrentTrialSubTypeIdx)
+            B_TrialsOfCurrentSubTypeIdx = find(LogStruct.data(:, LogStruct.cn.B_TrialSubTypeENUM_idx) == CurrentTrialSubTypeIdx);
+        else
+            B_TrialsOfCurrentSubTypeIdx = [];
+        end
+        
+        %TrialSets.ByTrialSubType.SideA.(CurrentTrialSubTypeName) = A_TrialsOfCurrentTypeIdx;
+        %TrialSets.ByTrialSubType.SideB.(CurrentTrialSubTypeName) = B_TrialsOfCurrentTypeIdx;
+        %TrialSets.ByTrialSubType.(CurrentTrialSubTypeName) = union(A_TrialsOfCurrentTypeIdx, B_TrialsOfCurrentTypeIdx);
+        TrialSets.ByTrialSubType.SideA.(CurrentTrialSubTypeName) = intersect(TrialSets.ByActivity.SideA.AllTrials, A_TrialsOfCurrentSubTypeIdx);
+        TrialSets.ByTrialSubType.SideB.(CurrentTrialSubTypeName) = intersect(TrialSets.ByActivity.SideB.AllTrials, B_TrialsOfCurrentSubTypeIdx);
+        TrialSets.ByTrialSubType.(CurrentTrialSubTypeName) = union(TrialSets.ByTrialSubType.SideA.(CurrentTrialSubTypeName), TrialSets.ByTrialSubType.SideB.(CurrentTrialSubTypeName));
+    end
+    
+else
+    % old style triallog without TrialSubType information, fill in the obvious
+    %TmpChoiceTrials = union(TrialSets.ByTrialType.DirectFreeGazeFreeChoice, TrialSets.ByTrialType.InformedChoice);
+    TrialSets.ByTrialSubType.None = []; % leave empty
+    %Up unitl now all we only used SoloA, SoloB, and Dyadic
+    TrialSets.ByTrialSubType.SoloA = setdiff(TrialSets.ByActivity.SideA.AllTrials, TrialSets.ByActivity.SideB.AllTrials);
+    TrialSets.ByTrialSubType.SoloB = setdiff(TrialSets.ByActivity.SideB.AllTrials, TrialSets.ByActivity.SideA.AllTrials);
+    TrialSets.ByTrialSubType.SemiSolo = []; % leave empty
+    TrialSets.ByTrialSubType.Dyadic = intersect(TrialSets.ByActivity.SideB.AllTrials, TrialSets.ByActivity.SideA.AllTrials);
+end
+
+
+
 
 
 % create the list of choice trials
