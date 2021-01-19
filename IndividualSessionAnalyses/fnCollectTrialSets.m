@@ -127,8 +127,7 @@ TrialSets.ByJointness.SideB.DualSubjectJointTrials = TrialSets.ByJointness.DualS
 % what to do about the dual subject non-joint trials, with two subjects present and active, but only one working?
 TrialSets.ByJointness.DualSubjectSoloTrials = union(TrialSets.ByJointness.SideA.SoloSubjectTrials, TrialSets.ByJointness.SideB.SoloSubjectTrials);
 
-
-
+% TrialTypes
 TrialTypesList = fnUnsortedUnique([LogStruct.unique_lists.A_TrialTypeENUM; LogStruct.unique_lists.B_TrialTypeENUM]);
 for iTrialType = 1 : length(TrialTypesList)
 	CurrentTrialTypeName = TrialTypesList{iTrialType};
@@ -156,8 +155,9 @@ end
 if ~isfield(TrialSets.ByTrialType, 'InformedChoice')
 	TrialSets.ByTrialType.InformedChoice = [];
 end
+TrialSets.ByTrialType.InformedTrials = union(TrialSets.ByTrialType.InformedChoice, TrialSets.ByTrialType.InformedDirectedReach);
 
-
+% TrialSubTypes
 %TrialSets.ByTrialSubType.InformedTrials = union(TrialSets.ByTrialType.InformedChoice, TrialSets.ByTrialType.InformedDirectedReach);
 if isfield(LogStruct.unique_lists, 'A_TrialSubTypeENUM') || isfield(LogStruct.unique_lists, 'B_TrialSubTypeENUM')
     % ATTENTION the C# ENUM strarts at 0, but the A_TrialSubTypeENUM_idx
@@ -194,15 +194,13 @@ else
     %Up unitl now all we only used SoloA, SoloB, and Dyadic
     TrialSets.ByTrialSubType.SoloA = setdiff(TrialSets.ByActivity.SideA.AllTrials, TrialSets.ByActivity.SideB.AllTrials);
     TrialSets.ByTrialSubType.SoloB = setdiff(TrialSets.ByActivity.SideB.AllTrials, TrialSets.ByActivity.SideA.AllTrials);
-    TrialSets.ByTrialSubType.SemiSolo = []; % leave empty
+    TrialSets.ByTrialSubType.SemiSolo = []; % leave empty, does not exist in old pre-TrialSubType data
     TrialSets.ByTrialSubType.Dyadic = intersect(TrialSets.ByActivity.SideB.AllTrials, TrialSets.ByActivity.SideA.AllTrials);
 end
 
-
-
-
-
 % create the list of choice trials
+% TODO use the information about the stimulus renderer instead to be
+% agnostic of TrialType?
 TrialSets.ByChoices.NumChoices01 = union(TrialSets.ByTrialType.DirectFreeGazeReaches, TrialSets.ByTrialType.InformedDirectedReach);
 TrialSets.ByChoices.NumChoices02 = union(TrialSets.ByTrialType.DirectFreeGazeFreeChoice, TrialSets.ByTrialType.InformedChoice);
 
