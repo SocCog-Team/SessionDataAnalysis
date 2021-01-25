@@ -22,17 +22,19 @@ ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.m
 use_named_set = 0;
 fresh_definition_string = 'no_statistics_txt';
 override_directive = 'local';
+override_directive = 'local_code';
+
 project_name = [];
 project_name = 'BoS_manuscript';
 
 
 set_name = '';
-%project_name = 'SfN2008'; % this loops back to 2019
+project_name = 'SfN2008'; % this loops back to 2019
 %%project_name = 'SfN2018'; % this loops back to 2019
 
 
 use_named_set = 0;
-set_name = 'ConfederateElmoDiffGO';
+%set_name = 'ConfederateElmoDiffGO';
 
 if strcmp(set_name, 'ConfederateElmoDiffGO')
 	use_named_set = 1;
