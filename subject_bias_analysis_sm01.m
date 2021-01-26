@@ -18,11 +18,13 @@ end
 copy_triallogs_to_outputdir = 0;
 ProcessNewestFirst = 1;
 RunSingleSessionAnalysis = 1;
-ProcessFreshSessionsOnly = 1;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
+ProcessFreshSessionsOnly = 0;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
 use_named_set = 0;
 fresh_definition_string = 'no_statistics_txt';
 override_directive = 'local';
 override_directive = 'local_code';
+save_plots_to_sessiondir = 0;	% either collect plots in a big output directory or inside each sessiondirectory
+
 
 project_name = [];
 project_name = 'BoS_manuscript';
@@ -54,6 +56,9 @@ end
 
 % from the linux VM
 if (fnIsMatlabRunningInTextMode)
+	use_named_set = 0;
+	set_name = '';
+	save_plots_to_sessiondir = 1;
 	override_directive = 'local_code';
 	project_name = 'SfN2008';
 	project_name = [];
@@ -407,7 +412,14 @@ if (RunSingleSessionAnalysis)
 			% only of either session is fresh or ProcessFreshSessionsOnly
 			% was set to zero, otherwise we jump over this for existing
 			% sessions
-			out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, TmpOutBaseDir, project_name);
+			
+			if (save_plots_to_sessiondir)
+				cur_TmpOutBaseDir = fullfile(CurentSessionLogFQN, 'ANALYSIS');
+			else
+				cur_TmpOutBaseDir = TmpOutBaseDir;
+			end
+			
+			out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, cur_TmpOutBaseDir, project_name);
 			if ~isempty(out)
 				out_list{end+1} = out;
 			end
