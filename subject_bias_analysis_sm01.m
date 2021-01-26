@@ -61,7 +61,7 @@ if (fnIsMatlabRunningInTextMode)
 	save_plots_to_sessiondir = 1;
 	override_directive = 'local_code';
 	project_name = 'SfN2008';
-	project_name = [];
+	%project_name = [];
 	fresh_definition_string = 'no_statistics_txt';
 	ProcessFirstOnly = 0;
 	ProcessFreshSessionsOnly = 1;
@@ -365,8 +365,14 @@ if (RunSingleSessionAnalysis)
 		CurentSessionLogFQN = experimentFile{iSession};
 		[current_triallog_path, current_triallog_name, current_triallog_ext] = fileparts(CurentSessionLogFQN);
 		
+		if (save_plots_to_sessiondir)
+			cur_TmpOutBaseDir = fullfile(CurentSessionLogFQN, '..', 'ANALYSIS');
+		else
+			cur_TmpOutBaseDir = TmpOutBaseDir;
+		end
+		
 		if (copy_triallogs_to_outputdir)
-			tmp_out_path = fullfile(TmpOutBaseDir, 'triallogs');
+			tmp_out_path = fullfile(cur_TmpOutBaseDir, 'triallogs');
 			if isempty(dir(tmp_out_path)),
 				mkdir(tmp_out_path);
 			end
@@ -386,7 +392,7 @@ if (RunSingleSessionAnalysis)
 					end
 				case 'no_coordination_check_mat'
 					% does not work for single/solo only sessions
-					check_dir = fullfile(TmpOutBaseDir, 'CoordinationCheck');
+					check_dir = fullfile(cur_TmpOutBaseDir, 'CoordinationCheck');
 					check_prefix = 'DATA_';
 					check_suffix = 'isOwnChoice_sideChoice.mat';
 					check_dir_stat = dir(fullfile(check_dir, [check_prefix, current_triallog_name, '*', check_suffix]));
@@ -397,7 +403,7 @@ if (RunSingleSessionAnalysis)
 						disp([mfilename, ': No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
 					end
 				case 'no_statistics_txt'
-					check_dir = fullfile(TmpOutBaseDir);
+					check_dir = fullfile(cur_TmpOutBaseDir);
 					check_prefix = '';
 					check_suffix = '.statistics.txt';
 					check_dir_stat = dir(fullfile(check_dir, [check_prefix, current_triallog_name, '*', check_suffix]));
@@ -413,11 +419,6 @@ if (RunSingleSessionAnalysis)
 			% was set to zero, otherwise we jump over this for existing
 			% sessions
 			
-			if (save_plots_to_sessiondir)
-				cur_TmpOutBaseDir = fullfile(CurentSessionLogFQN, '..', 'ANALYSIS');
-			else
-				cur_TmpOutBaseDir = TmpOutBaseDir;
-			end
 			
 			out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, cur_TmpOutBaseDir, project_name);
 			if ~isempty(out)
