@@ -275,7 +275,7 @@ end
 %to selective exclusion of individual days instead of whole months...
 
 ExcludeWildCardList = {'isOwnChoice_sideChoice.mat', 'DATA_', '.broken.', 'A_None.B_None', 'Exclude.', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', ...
-	'B_Test', '_PARKING', '_TESTVERSIONS', '.statistics.txt'};
+	'B_Test', '_PARKING', '_TESTVERSIONS', '.statistics.txt', '.pdf', '.png', '.fig'};
 
 if ~isempty(ExcludeWildCardList)
 	IncludedFilesIdx = [];
