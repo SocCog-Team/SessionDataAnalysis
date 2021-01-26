@@ -10,7 +10,7 @@ mfilepath = fileparts(fq_mfilename);
 
 if ~exist('ProcessFirstOnly', 'var')
 	% manual override
-	ProcessFirstOnly = 0;
+	ProcessFirstOnly = 1;
 else
 	disp([mfilename, ': ProcessFirstOnly from caller: ', num2str(ProcessFirstOnly)]);
 end
@@ -274,7 +274,8 @@ end
 %TODO fix up the parser to deal with older well-formed report files, switch
 %to selective exclusion of individual days instead of whole months...
 
-ExcludeWildCardList = {'isOwnChoice_sideChoice.mat', 'DATA_', '.broken.', 'A_None.B_None', 'Exclude.', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', 'B_Test', '_PARKING', '_TESTVERSIONS'};
+ExcludeWildCardList = {'isOwnChoice_sideChoice.mat', 'DATA_', '.broken.', 'A_None.B_None', 'Exclude.', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', ...
+	'B_Test', '_PARKING', '_TESTVERSIONS', '.statistics.txt'};
 
 if ~isempty(ExcludeWildCardList)
 	IncludedFilesIdx = [];
