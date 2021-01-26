@@ -414,7 +414,7 @@ if (RunSingleSessionAnalysis)
 			% sessions
 			
 			if (save_plots_to_sessiondir)
-				cur_TmpOutBaseDir = fullfile(CurentSessionLogFQN, 'ANALYSIS');
+				cur_TmpOutBaseDir = fullfile(CurentSessionLogFQN, '..', 'ANALYSIS');
 			else
 				cur_TmpOutBaseDir = TmpOutBaseDir;
 			end
