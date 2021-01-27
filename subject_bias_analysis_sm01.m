@@ -367,14 +367,14 @@ if (RunSingleSessionAnalysis)
 		[current_triallog_path, current_triallog_name, current_triallog_ext] = fileparts(CurentSessionLogFQN);
 		
 		if (save_plots_to_sessiondir)
-			cur_TmpOutBaseDir = fullfile(CurentSessionLogFQN, '..', 'ANALYSIS');
+			cur_TmpOutBaseDir = fullfile(current_triallog_path, 'ANALYSIS');
 		else
 			cur_TmpOutBaseDir = TmpOutBaseDir;
 		end
 		
 		if (copy_triallogs_to_outputdir)
 			tmp_out_path = fullfile(cur_TmpOutBaseDir, 'triallogs');
-			if isempty(dir(tmp_out_path)),
+			if isempty(dir(tmp_out_path))
 				mkdir(tmp_out_path);
 			end
 			copyfile(CurentSessionLogFQN, fullfile(tmp_out_path, [current_triallog_name, current_triallog_ext]));
