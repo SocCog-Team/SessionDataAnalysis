@@ -61,8 +61,8 @@ TitleSeparator = '_';
 
 
 OutPutType = 'pdf';
-output_rect_fraction = 1/2.54; % matlab's print will interpret values as INCH even for PaperUnit centimeter specified figures...
-output_rect_fraction = 1;
+%output_rect_fraction = 1/2.54; % matlab's print will interpret values as INCH even for PaperUnit centimeter specified figures...
+output_rect_fraction = 1;	%
 paper_unit_string = 'inches'; % centimeters (broken) or inches
 
 
