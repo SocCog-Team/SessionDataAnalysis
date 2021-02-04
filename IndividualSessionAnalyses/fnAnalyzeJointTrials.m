@@ -128,8 +128,8 @@ LeftTransparencyB = 0.5;
 
 % combinations of objective side choices
 A_right_B_left_Color = [0 0.6 0]; % green "starboard", both sujective right
-A_right_B_right_Color = [0.3 0.3 0];  % dark yellow both right
-A_left_B_left_Color = [0.9 0.9 0];    % light yellow both left
+A_right_B_right_Color = [0.3 0.6 0];  % dark yellow both right
+A_left_B_left_Color = [0.6 0.3 0];    % light yellow both left
 A_left_B_right_Color = [0.6 0 0]; % red "port side"/larboard, both subjectve left
 
 
@@ -1842,7 +1842,7 @@ for iGroup = 1 : length(GroupNameList)
 	end
 	
 	%%
-	if (sum(ismember(DataStruct.SessionByTrial.unique_lists.TouchTargetPositioningMethod, {'DAG_SQUARE'})))
+	if (sum(ismember(DataStruct.SessionByTrial.unique_lists.TouchTargetPositioningMethod, {'DAG_SQUARE', 'CIRCULARCHOICE_VERTICALLY_MIRRORED_NUM_BASEANGLE_EXCENTRICY_ANGLE'})))
 		% select the relvant trials:
 		FilteredJointTrials_SubjectiveLeftTargetSelected_A = fnFilterByNamedKernel( SubjectiveLeftTargetSelected_A(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
 		FilteredJointTrials_SubjectiveLeftTargetSelected_B = fnFilterByNamedKernel( SubjectiveLeftTargetSelected_B(GoodTrialsIdx), FilterKernelName, FilterHalfWidth, FilterShape );
