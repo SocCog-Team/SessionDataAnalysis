@@ -10,7 +10,7 @@ mfilepath = fileparts(fq_mfilename);
 
 if ~exist('ProcessFirstOnly', 'var')
 	% manual override
-	ProcessFirstOnly = 1;
+	ProcessFirstOnly = 0;
 else
 	disp([mfilename, ': ProcessFirstOnly from caller: ', num2str(ProcessFirstOnly)]);
 end
@@ -22,7 +22,7 @@ ProcessFreshSessionsOnly = 0;	% only process sessions without a *.triallog.vNN.m
 use_named_set = 0;
 fresh_definition_string = 'no_statistics_txt';
 override_directive = 'local';
-override_directive = 'local_code';
+%override_directive = 'local_code';
 save_plots_to_sessiondir = 0;	% either collect plots in a big output directory or inside each sessiondirectory
 
 
@@ -274,8 +274,12 @@ end
 %TODO fix up the parser to deal with older well-formed report files, switch
 %to selective exclusion of individual days instead of whole months...
 
-ExcludeWildCardList = {'isOwnChoice_sideChoice.mat', 'DATA_', '.broken.', 'A_None.B_None', 'Exclude.', '201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', 'A_Test', 'TestA', 'TestB', ...
-	'B_Test', '_PARKING', '_TESTVERSIONS', '.statistics.txt', '.pdf', '.png', '.fig'};
+ExcludeWildCardList = {...
+	'A_None.B_None', 'A_Test', 'B_Test', 'TestA', 'TestB', ...
+	'Exclude.', 'exclude', '_PARKING', '_TESTVERSIONS', '.broken.', ...
+	'isOwnChoice_sideChoice.mat', 'DATA_', '.statistics.txt', '.pdf', '.png', '.fig', ...
+	'201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', ...
+	};
 
 if ~isempty(ExcludeWildCardList)
 	IncludedFilesIdx = [];
