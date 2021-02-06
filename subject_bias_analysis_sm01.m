@@ -252,10 +252,10 @@ if isempty(ExperimentFileFQN_list)
 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.Fixed.txt$', '.triallog');
 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.orig$', '.triallog');
 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt$', '.triallog');
-			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.v[0-9][0-9][0-9].mat$', '.triallog');			
-			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.v[0-9][0-9][0-9].mat$', '.triallog');	
-			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.fixed.v[0-9][0-9][0-9].mat$', '.triallog');	
-			%experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.broken.v013.mat$', '.triallog');	
+			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.v[0-9][0-9][0-9].mat$', '.triallog');
+			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.v[0-9][0-9][0-9].mat$', '.triallog');
+			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.fixed.v[0-9][0-9][0-9].mat$', '.triallog');
+			%experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.broken.v013.mat$', '.triallog');
 		end
 		experimentFile = fnUnsortedUnique(experimentFile);	% to keep temporal ordering intact...
 	end
@@ -420,17 +420,22 @@ if (RunSingleSessionAnalysis)
 					end
 			end
 		end
-			% only of either session is fresh or ProcessFreshSessionsOnly
-			% was set to zero, otherwise we jump over this for existing
-			% sessions
-			
-			
-			out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, cur_TmpOutBaseDir, project_name);
-			if ~isempty(out)
-				out_list{end+1} = out;
-			end
+		% only of either session is fresh or ProcessFreshSessionsOnly
+		% was set to zero, otherwise we jump over this for existing
+		% sessions
+		
+		
+		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, cur_TmpOutBaseDir, project_name);
+		if ~isempty(out)
+			out_list{end+1} = out;
+		end
+		
+		% close all figue handles, as they are invisible anyway
+		if (fnIsMatlabRunningInTextMode)
+			close all
 		end
 	end
+end
 
 
 % collect the output from
@@ -480,7 +485,7 @@ function [ running_in_text_mode ] = fnIsMatlabRunningInTextMode( input_args )
 running_in_text_mode = 0;
 
 if (~usejava('awt'))
-    running_in_text_mode = 1;
+	running_in_text_mode = 1;
 end
 
 return
