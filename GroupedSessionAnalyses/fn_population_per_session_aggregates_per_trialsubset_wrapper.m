@@ -66,7 +66,7 @@ if isempty(coordination_metrics_table) || (recalc_coordination_metrics)
     
     
     % now store the tmp_coordination_metrics_table into the coordination_metrics_table
-    if isempty(coordination_metrics_table)
+    if isempty(coordination_metrics_table) && isfield(tmp_coordination_metrics_table, 'row')
         coordination_metrics_table.key = {current_file_group_id_string};
         coordination_metrics_table.info_struct = info;
         coordination_metrics_table.data = tmp_coordination_metrics_table.row;
