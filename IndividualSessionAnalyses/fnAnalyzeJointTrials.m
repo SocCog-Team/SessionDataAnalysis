@@ -127,10 +127,10 @@ LeftTransparencyB = 0.5;
 
 
 % combinations of objective side choices
-A_right_B_left_Color = [0 0.6 0]; % green "starboard", both sujective right
+A_right_B_left_Color = [0 1.0 0]; % green "starboard", both sujective right
 A_right_B_right_Color = [0.3 0.6 0];  % dark yellow both right
 A_left_B_left_Color = [0.6 0.3 0];    % light yellow both left
-A_left_B_right_Color = [0.6 0 0]; % red "port side"/larboard, both subjectve left
+A_left_B_right_Color = [1.0 0 0]; % red "port side"/larboard, both subjectve left
 
 
 % 20180815 new colors..., for joint report the joint color (well blue
@@ -420,7 +420,7 @@ current_stats_to_text_ext = '.statistics.txt';
 
 
 % load the data if it does not exist yet
-if ~exist('DataStruct', 'var')
+if ~exist('DataStruct', 'var') || isempty(DataStruct)
 	[PathStr, FileName, SessionLogExt] = fileparts(SessionLogFQN);
 	if strcmp(SessionLogExt, '.triallog')
 		% use magic .triallog extension to load the freshest version cheaply,
@@ -496,7 +496,7 @@ if strcmp(SessionLogExtension, '.triallog')
 end
 
 
-if ~exist('TrialSets', 'var')
+if ~exist('TrialSets', 'var') || isempty('SfN2008')
 	TrialSets = fnCollectTrialSets(logData);
 end
 if isempty(TrialSets)
