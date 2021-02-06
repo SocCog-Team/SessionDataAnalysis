@@ -444,22 +444,6 @@ if ~exist('DataStruct', 'var') || isempty(DataStruct)
 		end
 		disp(['Processing: ', SessionLogFQN]);
 	end
-	
-	% old mode
-	% 	%% check the current parser version
-	% 	%[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
-	% 	%MatFilename = fullfile(PathStr, [FileName CurrentEventIDEReportParserVersionString '.mat']);
-	% 	% load if a mat file of the current parsed version exists, otherwise
-	% 	% reparse
-	% 	if exist(MatFilename, 'file') && ~(ForceParsingOfExperimentLog)
-	% 		tmplogData = load(MatFilename);
-	% 		DataStruct = tmplogData.report_struct;
-	% 		clear tmplogData;
-	% 	else
-	% 		DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName '.log']));
-	% 		%save(matFilename, 'logData'); % fnParseEventIDEReportSCPv06 saves by default
-	% 	end
-	% 	disp(['Processing: ', SessionLogFQN]);
 end
 
 if (SaveCoordinationSummary)
