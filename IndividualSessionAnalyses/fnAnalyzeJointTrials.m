@@ -263,7 +263,8 @@ double_row_aspect_ratio = [];
 
 % show the joint choices for all sufficiently different GoSignalTimes
 plot_joint_choices_by_diffGoSignal = 1;
-GoSignalQuantum_ms = 100; % how many milliseconds jitter we allow and still consider GoSignalTimes equal, this needs to match the randomizer somewhat
+GoSignalQuantum_ms = 100;			% how many milliseconds jitter we allow and still consider GoSignalTimes equal, this needs to match the randomizer somewhat
+GoSignal_saturation_ms = 200;		% merge groups with a diff GoSignal larger than this
 split_diffGoSignal_eq_0_by_RT = 1;	% instead of reporting the 0 difference case as one class, split it into two, depending on the faster actor
 diffGoSignal_eq_0_by_RT_RT_type = 'IniTargRel_05MT_RT';
 
@@ -1981,13 +1982,26 @@ for iGroup = 1 : length(GroupNameList)
 		%GoSignalQuantum_ms = 50;
 		%TODO choices of A for each of B's (ans vice versa)
 		
+		
 		cur_AB_diffGoSignalTime = AB_diffGoSignalTime(GoodTrialsIdx);
+		cur_AB_diffGoSignalTime(find(cur_AB_diffGoSignalTime > GoSignal_saturation_ms)) = GoSignal_saturation_ms;
+		cur_AB_diffGoSignalTime(find(cur_AB_diffGoSignalTime < -GoSignal_saturation_ms)) = -GoSignal_saturation_ms;
+
+		
 		unique_cur_AB_diffGoSignalTime = unique(cur_AB_diffGoSignalTime);
 		
 		% only look at the selected good trials
 		quantized_cur_AB_diffGoSignalTime = round(cur_AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
+		quantized_cur_AB_diffGoSignalTime(find(quantized_cur_AB_diffGoSignalTime > GoSignal_saturation_ms)) = GoSignal_saturation_ms;
+		quantized_cur_AB_diffGoSignalTime(find(quantized_cur_AB_diffGoSignalTime < -GoSignal_saturation_ms)) = -GoSignal_saturation_ms;
+		
+		
+		
 		% but also calculate stuff for all trials
 		quantized_AB_diffGoSignalTime = round(AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
+		quantized_AB_diffGoSignalTime(find(quantized_AB_diffGoSignalTime > GoSignal_saturation_ms)) = GoSignal_saturation_ms;
+		quantized_AB_diffGoSignalTime(find(quantized_AB_diffGoSignalTime < -GoSignal_saturation_ms)) = -GoSignal_saturation_ms;
+		
 		unique_quantized_cur_ABdiffGoSignalTimes = unique(quantized_cur_AB_diffGoSignalTime);
 		
 		% split the equal GO signal cases by who was faster
