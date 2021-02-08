@@ -907,6 +907,23 @@ for iGroup = 1 : length(GroupNameList)
 	EqualTargetAcquisition_AB(TrialSets.ByFirstReaction.SideA.TargetAcquisitionEqual) = 1;
 	
 	
+	
+	% reaction times shouuld be based on the GoSignal
+	% collect the GO signal times relative to the TargetOnsetTime_ms
+	if isfield(DataStruct.cn, 'A_GoSignalTime_ms')
+		A_GoSignalTime = DataStruct.data(:, DataStruct.cn.A_GoSignalTime_ms);
+	else
+		A_GoSignalTime = DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
+	end
+	
+	if isfield(DataStruct.cn, 'B_GoSignalTime_ms')
+		B_GoSignalTime = DataStruct.data(:, DataStruct.cn.B_GoSignalTime_ms);
+	else
+		B_GoSignalTime = DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
+	end
+	
+	AB_diffGoSignalTime = A_GoSignalTime - B_GoSignalTime;
+	
 	% reaction times
 	A_InitialHoldReleaseRT = DataStruct.data(:, DataStruct.cn.A_HoldReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_InitialFixationOnsetTime_ms);
 	B_InitialHoldReleaseRT = DataStruct.data(:, DataStruct.cn.B_HoldReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_InitialFixationOnsetTime_ms);
@@ -915,12 +932,12 @@ for iGroup = 1 : length(GroupNameList)
 	%A_InitialTargetNonAdjReleaseRT = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
 	%B_InitialTargetNonAdjReleaseRT = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
 	
-	A_InitialTargetReleaseRT = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
-	B_InitialTargetReleaseRT = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
+	A_InitialTargetReleaseRT = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) - A_GoSignalTime;
+	B_InitialTargetReleaseRT = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) - B_GoSignalTime;
 	AB_InitialTargetReleaseRT_diff = A_InitialTargetReleaseRT - B_InitialTargetReleaseRT;
 	
-	A_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
-	B_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
+	A_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms) - A_GoSignalTime;
+	B_TargetAcquisitionRT = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - B_GoSignalTime;
 	AB_TargetAcquisitionRT_diff = A_TargetAcquisitionRT - B_TargetAcquisitionRT;
 	
 	% InitialTargetRelease reaction time plus half of the movement time
@@ -931,20 +948,6 @@ for iGroup = 1 : length(GroupNameList)
 	AB_TrialStartTimeMS = DataStruct.data(:, DataStruct.cn.Timestamp);
 	
 	
-	% collect the GO signal times relative to the TargetOnsetTime_ms
-	if isfield(DataStruct.cn, 'A_GoSignalTime_ms')
-		A_GoSignalTime = DataStruct.data(:, DataStruct.cn.A_GoSignalTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
-	else
-		A_GoSignalTime = DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
-	end
-	
-	if isfield(DataStruct.cn, 'B_GoSignalTime_ms')
-		B_GoSignalTime = DataStruct.data(:, DataStruct.cn.B_GoSignalTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
-	else
-		B_GoSignalTime = DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
-	end
-	
-	AB_diffGoSignalTime = A_GoSignalTime - B_GoSignalTime;
 	
 	
 	
@@ -1981,7 +1984,7 @@ for iGroup = 1 : length(GroupNameList)
 		cur_AB_diffGoSignalTime = AB_diffGoSignalTime(GoodTrialsIdx);
 		unique_cur_AB_diffGoSignalTime = unique(cur_AB_diffGoSignalTime);
 		
-		% only look at the sellected good trials
+		% only look at the selected good trials
 		quantized_cur_AB_diffGoSignalTime = round(cur_AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
 		% but also calculate stuff for all trials
 		quantized_AB_diffGoSignalTime = round(AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
@@ -2538,6 +2541,7 @@ for iGroup = 1 : length(GroupNameList)
 		%TargetAcquisitionRT_A = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.A_TargetOnsetTime_ms);
 		%TargetAcquisitionRT_B = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms) - DataStruct.data(:, DataStruct.cn.B_TargetOnsetTime_ms);
 		
+		 %figure_visibility_string = 'on';
 		Cur_fh_ReactionTimesBySameness = figure('Name', 'ReactionTimesBySameness', 'visible', figure_visibility_string);
 		fnFormatDefaultAxes(DefaultAxesType);
 		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
