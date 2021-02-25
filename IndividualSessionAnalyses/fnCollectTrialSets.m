@@ -192,11 +192,79 @@ else
     %TmpChoiceTrials = union(TrialSets.ByTrialType.DirectFreeGazeFreeChoice, TrialSets.ByTrialType.InformedChoice);
     TrialSets.ByTrialSubType.None = []; % leave empty
     %Up unitl now all we only used SoloA, SoloB, and Dyadic
-    TrialSets.ByTrialSubType.SoloA = setdiff(TrialSets.ByActivity.SideA.AllTrials, TrialSets.ByActivity.SideB.AllTrials);
+    TrialSets.ByTrialSubType.SoloA = setdiff(TrialSets.ByActivity.SideA.AllTrials, TrialSets.ByActivity.SideB.AllTrials);	
+    TrialSets.ByTrialSubType.SideA.SoloA = TrialSets.ByTrialSubType.SoloA;	
+    TrialSets.ByTrialSubType.SideB.SoloA = [];		
+	
     TrialSets.ByTrialSubType.SoloB = setdiff(TrialSets.ByActivity.SideB.AllTrials, TrialSets.ByActivity.SideA.AllTrials);
-    TrialSets.ByTrialSubType.SemiSolo = []; % leave empty, does not exist in old pre-TrialSubType data
+    TrialSets.ByTrialSubType.SideA.SoloB = [];	
+    TrialSets.ByTrialSubType.SideB.SoloB = TrialSets.ByTrialSubType.SoloB;	
+	
+	TrialSets.ByTrialSubType.SemiSolo = []; % leave empty, does not exist in old pre-TrialSubType data
     TrialSets.ByTrialSubType.Dyadic = intersect(TrialSets.ByActivity.SideB.AllTrials, TrialSets.ByActivity.SideA.AllTrials);
+	TrialSets.ByTrialSubType.SideA.Dyadic = TrialSets.ByTrialSubType.Dyadic;
+	TrialSets.ByTrialSubType.SideB.Dyadic = TrialSets.ByTrialSubType.Dyadic;
 end
+
+
+% was there a separator between the players
+% since the separation might by direction (if using the OLED) A_invisible
+% does not require B_invisible at the same time.
+% this assumes that without [A|B]_invisible being set, everything was
+% visible through the transparent screen.
+if (isfield(LogStruct.cn, 'A_invisible'))
+	TrialSets.ByVisibility.SideA.A_invisible = find(LogStruct.data(:, LogStruct.cn.A_invisible) == 1);
+else
+	TrialSets.ByVisibility.SideA.A_invisible = [];
+end
+if (isfield(LogStruct.cn, 'B_invisible'))
+	TrialSets.ByVisibility.SideB.B_invisible = find(LogStruct.data(:, LogStruct.cn.B_invisible) == 1);
+else
+	TrialSets.ByVisibility.SideB.B_invisible = [];
+end
+% since A_invisible is not necessarily equal to B_invisible
+TrialSets.ByVisibility.AB_invisible = intersect(TrialSets.ByVisibility.SideA.A_invisible, TrialSets.ByVisibility.SideB.B_invisible);
+
+% create BlockedView trialSubTypes
+if ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.Dyadic)) ...
+	|| ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloA)) ...
+	|| ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloB))
+	% missing BlockedView tTrialSubType
+	
+	invisible_Dyadic_idx = intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.Dyadic);
+	if ~isempty(invisible_Dyadic_idx)
+		TrialSets.ByTrialSubType.Dyadic = setdiff(TrialSets.ByTrialSubType.Dyadic, invisible_Dyadic_idx);
+		TrialSets.ByTrialSubType.DyadicBlockedView = invisible_Dyadic_idx;
+		TrialSets.ByTrialSubType.SideA.Dyadic	= TrialSets.ByTrialSubType.Dyadic;
+		TrialSets.ByTrialSubType.SideA.DyadicBlockedView	= TrialSets.ByTrialSubType.DyadicBlockedView;
+		TrialSets.ByTrialSubType.SideB.Dyadic	= TrialSets.ByTrialSubType.Dyadic;		
+		TrialSets.ByTrialSubType.SideB.DyadicBlockedView	= TrialSets.ByTrialSubType.DyadicBlockedView;			
+	end
+	
+	invisible_SoloA_idx = intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloA);
+	if ~isempty(invisible_SoloA_idx)
+		TrialSets.ByTrialSubType.SoloA = setdiff(TrialSets.ByTrialSubType.SoloA, invisible_SoloA_idx);
+		TrialSets.ByTrialSubType.SoloABlockedView = invisible_SoloA_idx;	
+		TrialSets.ByTrialSubType.SideA.SoloA	= TrialSets.ByTrialSubType.SoloA;
+		TrialSets.ByTrialSubType.SideA.SoloABlockedView	= TrialSets.ByTrialSubType.SoloABlockedView;
+		TrialSets.ByTrialSubType.SideB.SoloA = [];		
+		TrialSets.ByTrialSubType.SideB.SoloABlockedView	= [];			
+	end	
+
+	invisible_SoloB_idx = intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloB);
+	if ~isempty(invisible_SoloA_idx)
+		TrialSets.ByTrialSubType.SoloB = setdiff(TrialSets.ByTrialSubType.SoloA, invisible_SoloB_idx);
+		TrialSets.ByTrialSubType.SoloBBlockedView = invisible_SoloB_idx;	
+		TrialSets.ByTrialSubType.SideA.SoloB = [];		
+		TrialSets.ByTrialSubType.SideA.SoloBBlockedView	= [];			
+		TrialSets.ByTrialSubType.SideB.SoloB	= TrialSets.ByTrialSubType.SoloA;
+		TrialSets.ByTrialSubType.SideB.SoloBBlockedView	= TrialSets.ByTrialSubType.SoloBBlockedView;
+	end	
+end
+
+% create 
+
+
 
 % create the list of choice trials
 % TODO use the information about the stimulus renderer instead to be
@@ -654,23 +722,6 @@ TrialSets.ByFirstReaction.SideB.TargetAcquisitionEqual = TmpJointTrials(TmpBothS
 
 
 
-% was there a separator between the players
-% since the separation might by direction (if using the OLED) A_invisible
-% does not require B_invisible at the same time.
-% this assumes that without [A|B]_invisible being set, everything was
-% visible through the transparent screen.
-if (isfield(LogStruct.cn, 'A_invisible'))
-	TrialSets.ByVisibility.SideA.A_invisible = find(LogStruct.data(:, LogStruct.cn.A_invisible) == 1);
-else
-	TrialSets.ByVisibility.SideA.A_invisible = [];
-end
-if (isfield(LogStruct.cn, 'B_invisible'))
-	TrialSets.ByVisibility.SideB.B_invisible = find(LogStruct.data(:, LogStruct.cn.B_invisible) == 1);
-else
-	TrialSets.ByVisibility.SideB.B_invisible = [];
-end
-% since A_invisible is not necessarily equal to B_invisible
-TrialSets.ByVisibility.AB_invisible = intersect(TrialSets.ByVisibility.SideA.A_invisible, TrialSets.ByVisibility.SideB.B_invisible);
 
 
 
