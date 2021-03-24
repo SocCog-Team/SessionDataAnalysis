@@ -245,7 +245,7 @@ if ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubT
 	if ~isempty(invisible_SoloA_idx)
 		TrialSets.ByTrialSubType.SoloA = setdiff(TrialSets.ByTrialSubType.SoloA, invisible_SoloA_idx);
 		TrialSets.ByTrialSubType.SoloABlockedView = invisible_SoloA_idx;	
-		TrialSets.ByTrialSubType.SideA.SoloA	= TrialSets.ByTrialSubType.SoloA;
+		TrialSets.ByTrialSubType.SideA.SoloA = TrialSets.ByTrialSubType.SoloA;
 		TrialSets.ByTrialSubType.SideA.SoloABlockedView	= TrialSets.ByTrialSubType.SoloABlockedView;
 		TrialSets.ByTrialSubType.SideB.SoloA = [];		
 		TrialSets.ByTrialSubType.SideB.SoloABlockedView	= [];			
@@ -257,7 +257,7 @@ if ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubT
 		TrialSets.ByTrialSubType.SoloBBlockedView = invisible_SoloB_idx;	
 		TrialSets.ByTrialSubType.SideA.SoloB = [];		
 		TrialSets.ByTrialSubType.SideA.SoloBBlockedView	= [];			
-		TrialSets.ByTrialSubType.SideB.SoloB	= TrialSets.ByTrialSubType.SoloA;
+		TrialSets.ByTrialSubType.SideB.SoloB = TrialSets.ByTrialSubType.SoloA;
 		TrialSets.ByTrialSubType.SideB.SoloBBlockedView	= TrialSets.ByTrialSubType.SoloBBlockedView;
 	end	
 end
@@ -531,8 +531,8 @@ A_SelectedTargetEqualsRandomizedTargetTrialIdx = intersect(A_SelectedTargetEqual
 B_SelectedTargetEqualsRandomizedTargetTrialIdx = intersect(B_SelectedTargetEqualsRandomizedTargetTrialIdx, TrialSets.ByActivity.SideB.AllTrials);
 
 
-% keep the randomisation information, to allow fake by value analysus for
-% freecgoice trials to compare agains left right and against informed
+% keep the randomisation information, to allow fake by value analysis for
+% freechoice trials to compare against left right and against informed
 % trials
 TrialSets.ByChoice.SideA.ProtoTargetValueHigh = A_SelectedTargetEqualsRandomizedTargetTrialIdx; % here the randomized position equals higher payoff
 TrialSets.ByChoice.SideA.ProtoTargetValueLow = intersect(setdiff(TrialSets.All, A_SelectedTargetEqualsRandomizedTargetTrialIdx), TrialSets.ByActivity.SideA.AllTrials);

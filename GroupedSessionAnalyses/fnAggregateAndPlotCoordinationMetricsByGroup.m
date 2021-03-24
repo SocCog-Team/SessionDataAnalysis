@@ -554,13 +554,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			AvgRewardByGroup.group_names{i_AR_set} = group_struct_list{i_group}.setName;
 			AvgRewardByGroup.group_labels{i_AR_set} = group_struct_list{i_group}.label;
 			current_group_data = metrics_by_group_list{i_group};
-			AvgRewardByGroup_list{i_AR_set} = current_group_data(:, coordination_metrics_table.cn.averReward); % the actual reward values
-			AvgRewardByGroup.mean(i_AR_set) = mean(current_group_data(:, coordination_metrics_table.cn.averReward));
-			AvgRewardByGroup.stddev(i_AR_set) = std(current_group_data(:, coordination_metrics_table.cn.averReward));
-			AvgRewardByGroup.n(i_AR_set) = size(current_group_data, 1);
-			AvgRewardByGroup.sem(i_AR_set) = AvgRewardByGroup.stddev(i_AR_set)/sqrt(AvgRewardByGroup.n(i_AR_set));
-		end
-		AvgRewardByGroup.ci_halfwidth = calc_cihw(AvgRewardByGroup.stddev, AvgRewardByGroup.n, confidence_interval_alpha);
+	
 		
 		FileName = CollectionName;
 		Cur_fh_avg_reward_by_group = figure('Name', 'Average reward by group', 'visible', figure_visibility_string);

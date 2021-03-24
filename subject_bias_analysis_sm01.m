@@ -8,7 +8,7 @@ fq_mfilename = mfilename('fullpath');
 mfilepath = fileparts(fq_mfilename);
 
 
-if ~exist('ProcessFirstOnly', 'var')
+if  ~exist('ProcessFirstOnly', 'var')
 	% manual override
 	ProcessFirstOnly = 0;
 else
