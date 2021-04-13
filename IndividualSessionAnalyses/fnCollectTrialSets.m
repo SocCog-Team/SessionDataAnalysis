@@ -384,7 +384,7 @@ else
 end
 
 if isfield(LogStruct, 'SessionByTrial')
-	if isfield(LogStruct.SessionByTrial.unique_lists, 'TouchTargetPositioningMethod')
+	if isfield(LogStruct.SessionByTrial, 'unique_lists') && isfield(LogStruct.SessionByTrial.unique_lists, 'TouchTargetPositioningMethod')
 		ByTouchTargetPositioningMethodList = LogStruct.SessionByTrial.unique_lists.TouchTargetPositioningMethod;
 		for iTouchTargetPositioningMethod = 1 : length(ByTouchTargetPositioningMethodList)
 			CurrentTouchTargetPositioningMethod = ByTouchTargetPositioningMethodList{iTouchTargetPositioningMethod};
