@@ -174,6 +174,11 @@ switch CurrentAnalysisSetName
 		SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES', SCPDirs.CurrentShortHostName);
 end
 
+if ~isfolder(SCPDirs.OutputDir)
+	mkdir(SCPDirs.OutputDir);
+end
+
+
 % no time information
 TmpOutBaseDir = [];
 % full time resolution
