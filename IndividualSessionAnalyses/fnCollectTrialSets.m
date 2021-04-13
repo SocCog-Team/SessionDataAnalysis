@@ -128,24 +128,46 @@ TrialSets.ByJointness.SideB.DualSubjectJointTrials = TrialSets.ByJointness.DualS
 TrialSets.ByJointness.DualSubjectSoloTrials = union(TrialSets.ByJointness.SideA.SoloSubjectTrials, TrialSets.ByJointness.SideB.SoloSubjectTrials);
 
 % TrialTypes
-TrialTypesList = fnUnsortedUnique([LogStruct.unique_lists.A_TrialTypeENUM; LogStruct.unique_lists.B_TrialTypeENUM]);
-for iTrialType = 1 : length(TrialTypesList)
-	CurrentTrialTypeName = TrialTypesList{iTrialType};
-	CurrentTrialTypeIdx = iTrialType;
-	if ~isempty(CurrentTrialTypeIdx)
-		A_TrialsOfCurrentTypeIdx = find(LogStruct.data(:, LogStruct.cn.A_TrialTypeENUM_idx) == CurrentTrialTypeIdx);
-	else
-		A_TrialsOfCurrentTypeIdx = [];
+if isfield(LogStruct.unique_lists, 'A_TrialTypeENUM') && isfield(LogStruct.unique_lists, 'B_TrialTypeENUM')
+	TrialTypesList = fnUnsortedUnique([LogStruct.unique_lists.A_TrialTypeENUM; LogStruct.unique_lists.B_TrialTypeENUM]);
+	for iTrialType = 1 : length(TrialTypesList)
+		CurrentTrialTypeName = TrialTypesList{iTrialType};
+		CurrentTrialTypeIdx = iTrialType;
+		if ~isempty(CurrentTrialTypeIdx)
+			A_TrialsOfCurrentTypeIdx = find(LogStruct.data(:, LogStruct.cn.A_TrialTypeENUM_idx) == CurrentTrialTypeIdx);
+		else
+			A_TrialsOfCurrentTypeIdx = [];
+		end
+		if ~isempty(CurrentTrialTypeIdx)
+			B_TrialsOfCurrentTypeIdx = find(LogStruct.data(:, LogStruct.cn.B_TrialTypeENUM_idx) == CurrentTrialTypeIdx);
+		else
+			B_TrialsOfCurrentTypeIdx = [];
+		end
+		TrialSets.ByTrialType.SideA.(CurrentTrialTypeName) = intersect(TrialSets.ByActivity.SideA.AllTrials, A_TrialsOfCurrentTypeIdx);
+		TrialSets.ByTrialType.SideB.(CurrentTrialTypeName) = intersect(TrialSets.ByActivity.SideB.AllTrials, B_TrialsOfCurrentTypeIdx);
+		%TrialSets.ByTrialType.(CurrentTrialTypeName) = union(A_TrialsOfCurrentTypeIdx, B_TrialsOfCurrentTypeIdx);
+		TrialSets.ByTrialType.(CurrentTrialTypeName) = union(TrialSets.ByTrialType.SideA.(CurrentTrialTypeName), TrialSets.ByTrialType.SideB.(CurrentTrialTypeName));
 	end
-	if ~isempty(CurrentTrialTypeIdx)
-		B_TrialsOfCurrentTypeIdx = find(LogStruct.data(:, LogStruct.cn.B_TrialTypeENUM_idx) == CurrentTrialTypeIdx);
-	else
-		B_TrialsOfCurrentTypeIdx = [];
+else
+	% early data without TrialType records was all DirectFreeGazeReaches
+	TrialSets.ByTrialType = [];
+	TrialSets.ByTrialType.SideA = [];
+	TrialSets.ByTrialType.SideB = [];
+	
+	% TrialType was introduced on datenum([2017, 3, 15, 0, 0 ,0]
+	if (datenum(LogStruct.EventIDEinfo.DateVector) < datenum([2017, 3, 15, 0, 0 ,0]))
+		TrialSets.ByTrialType.SideA.DirectFreeGazeReaches = TrialSets.ByActivity.SideA.AllTrials;
+		TrialSets.ByTrialType.SideB.DirectFreeGazeReaches = TrialSets.ByActivity.SideB.AllTrials;
+		TrialSets.ByTrialType.DirectFreeGazeReaches = union(TrialSets.ByTrialType.SideA.DirectFreeGazeReaches, TrialSets.ByTrialType.SideB.DirectFreeGazeReaches);
 	end
-	TrialSets.ByTrialType.SideA.(CurrentTrialTypeName) = intersect(TrialSets.ByActivity.SideA.AllTrials, A_TrialsOfCurrentTypeIdx);
-	TrialSets.ByTrialType.SideB.(CurrentTrialTypeName) = intersect(TrialSets.ByActivity.SideB.AllTrials, B_TrialsOfCurrentTypeIdx);
-	%TrialSets.ByTrialType.(CurrentTrialTypeName) = union(A_TrialsOfCurrentTypeIdx, B_TrialsOfCurrentTypeIdx);
-	TrialSets.ByTrialType.(CurrentTrialTypeName) = union(TrialSets.ByTrialType.SideA.(CurrentTrialTypeName), TrialSets.ByTrialType.SideB.(CurrentTrialTypeName));
+end
+	
+% older log files do not contain the informed choice fields
+if ~isfield(TrialSets.ByTrialType, 'DirectFreeGazeReaches')
+	TrialSets.ByTrialType.DirectFreeGazeReaches = [];
+end
+if ~isfield(TrialSets.ByTrialType, 'DirectFreeGazeFreeChoice')
+	TrialSets.ByTrialType.DirectFreeGazeFreeChoice = [];
 end
 
 % older log files do not contain the informed choice fields
