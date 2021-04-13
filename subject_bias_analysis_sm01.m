@@ -174,7 +174,7 @@ switch CurrentAnalysisSetName
 		SCPDirs.OutputDir = fullfile(experimentFolder, 'ANALYSES', SCPDirs.CurrentShortHostName);
 end
 
-if ~isempty(dir(SCPDirs.OutputDir))
+if isempty(dir(SCPDirs.OutputDir))
 	mkdir(SCPDirs.OutputDir);
 end
 
