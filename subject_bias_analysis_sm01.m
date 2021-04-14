@@ -96,7 +96,7 @@ CurrentAnalysisSetName = 'SCP_DATA';
 SCPDirs = GetDirectoriesByHostName(override_directive);
 LogFileWildCardString2018 = '*.triallog.txt';   % new file extension to allow better wildcarding and better typing
 
-use_triallog_witout_extension = 0;
+use_triallog_without_extension = 0;
 switch CurrentAnalysisSetName
 	
 	case {'PrimateNeurobiology2018DPZ'}
@@ -118,7 +118,7 @@ switch CurrentAnalysisSetName
 		LogFileWildCardString = '*.triallog.txt';
 		
 		LogFileWildCardString = '*.triallog*';	%
-		use_triallog_witout_extension = 1;
+		use_triallog_without_extension = 1;
 		
 		
 	case {'SCP01'}
@@ -250,9 +250,10 @@ if isempty(ExperimentFileFQN_list)
 	disp([mfilename, ': Trying to find all logfiles in ', experimentFolder]);
 	experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
 	
-	if (use_triallog_witout_extension) && regexp(LogFileWildCardString, 'triallog\*$')
+	if (use_triallog_without_extension) && regexp(LogFileWildCardString, 'triallog\*$')
 		% now get all files matching
 		for i_exp_file = 1 : length(experimentFile)
+			%cur_experimentFile = experimentFile{i_exp_file};
 			% canonize the extension to .triallog (handle all variations)
 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.gz$', '.triallog');
 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.Fixed.txt$', '.triallog');
@@ -279,19 +280,11 @@ end
 % allow to ignore some sessions
 %TODO fix up the parser to deal with older well-formed report files, switch
 %to selective exclusion of individual days instead of whole months...
-
 ExcludeWildCardList = {...
 	'A_None.B_None', 'A_Test', 'B_Test', 'TestA', 'TestB', ...
 	'Exclude.', 'exclude', '_PARKING', '_TESTVERSIONS', '.broken.', ...
 	'isOwnChoice_sideChoice.mat', 'DATA_', '.statistics.txt', '.pdf', '.png', '.fig', '.ProximitySensorChanges.log', ...
-	'201701', '201702', '2017030', '2017031', '20170404T163523', 'A_SM-InactiveVirusScanner', ...
-	};
-
-ExcludeWildCardList = {...
-	'A_None.B_None', 'A_Test', 'B_Test', 'TestA', 'TestB', ...
-	'Exclude.', 'exclude', '_PARKING', '_TESTVERSIONS', '.broken.', ...
-	'isOwnChoice_sideChoice.mat', 'DATA_', '.statistics.txt', '.pdf', '.png', '.fig', '.ProximitySensorChanges.log', ...
-	'201701', 'A_SM-InactiveVirusScanner', ...
+	'201701', '20170201', 'A_SM-InactiveVirusScanner', ...
 	};
 
 
