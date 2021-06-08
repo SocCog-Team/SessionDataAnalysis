@@ -269,6 +269,9 @@ split_diffGoSignal_eq_0_by_RT = 1;	% instead of reporting the 0 difference case 
 diffGoSignal_eq_0_by_RT_RT_type = 'IniTargRel_05MT_RT';
 
 calc_extra_aggregate_measures = 0;
+project_line_width = 0.5;
+
+
 switch project_name
 	case 'PrimateNeurobiology2018DPZ'
 		ShowSelectedSidePerSubjectInRewardPlotBG = 1;
@@ -277,7 +280,7 @@ switch project_name
 		show_coordination_results_in_fig_title = 0;
 		DefaultAxesType = 'PrimateNeurobiology2018DPZ'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
 		DefaultPaperSizeType = 'PrimateNeurobiology2018DPZ0.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
-	case {'SfN2008'}
+	case {'SfN2008', 'ephys'}
 		ShowSelectedSidePerSubjectInRewardPlotBG = 1;
 		ShowEffectorHandInBackground = 0;
 		project_line_width = 0.5;
