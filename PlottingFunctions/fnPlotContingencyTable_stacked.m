@@ -265,6 +265,14 @@ end
 if ~isempty(custom_bar_color_scheme)
 	% create a better color scheme?
 	colormap(custom_bar_color_scheme);
+    
+    switch bar_type
+	case  'stacked_bars'
+        for i_stack = 1 : size(plot_data, 2)
+            %bar_handle(i_stack).CData = custom_bar_color_scheme(i_stack, :);
+            bar_handle(i_stack).FaceColor = custom_bar_color_scheme(i_stack, :);
+        end
+    end
 end
 
 set(gca(), 'XTick', (1:1:size(pct_table, 1)));

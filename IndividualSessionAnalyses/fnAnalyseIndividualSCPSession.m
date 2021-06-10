@@ -41,6 +41,13 @@ TitleSeparator = '_';
 ProcessJointTrialsOnly = 0;
 ProcessBarPlots = 0;
 
+% accept .sessiondir inputs
+[tmp_PathStr, tmp_FileName, tmp_SessionLogExt] = fileparts(SessionLogFQN);
+if strcmp(tmp_SessionLogExt, '.sessiondir')
+    SessionLogFQN = fullfile(SessionLogFQN, [tmp_FileName, '.triallog']);
+    disp(['Submitted .sessiondir, expanded to: ', SessionLogFQN]);
+end    
+
 [PathStr, FileName, SessionLogExt] = fileparts(SessionLogFQN);
 if isempty(OutputBasePath)
 	OutputPath = fullfile(PathStr, 'Analysis');
@@ -52,7 +59,10 @@ if isdir(OutputPath) && CleanOutputDir
 	disp([mfilename, ': Deleting ', OutputPath]);
 	rmdir(OutputPath, 's');
 end
-
+if ~isdir(OutputPath)
+    mkdir(OutputPath)
+end
+    
 if strcmp(SessionLogExt, '.triallog')
 	% use magic .triallog extension to load the freshest version cheaply,
 	% the logic moved into fnParseEventIDEReportSCPv06
