@@ -127,13 +127,44 @@ TrialSets.ByJointness.SideB.DualSubjectJointTrials = TrialSets.ByJointness.DualS
 % what to do about the dual subject non-joint trials, with two subjects present and active, but only one working?
 TrialSets.ByJointness.DualSubjectSoloTrials = union(TrialSets.ByJointness.SideA.SoloSubjectTrials, TrialSets.ByJointness.SideB.SoloSubjectTrials);
 
+if isfield(LogStruct.Enums, 'RandomizationMethodCodes') && isfield(LogStruct.Enums.RandomizationMethodCodes.unique_lists, 'RandomizationMethodCodes')
+    
+    % Conf Cue randomisation
+    % create % confederate's predictability
+    RandomizationMethodCodes_list = LogStruct.Enums.RandomizationMethodCodes.unique_lists.RandomizationMethodCodes;
+    
+    if isfield(LogStruct.SessionByTrial.cn, 'ConfederateChoiceCueRandomizer_method_A') && isfield(LogStruct.SessionByTrial.cn, 'ConfederateChoiceCueRandomizer_method_B')
+        
+        ConfChoiceCueRnd_method_A_RandomizationMethodCodes_idx = LogStruct.SessionByTrial.data(:, LogStruct.SessionByTrial.cn.ConfederateChoiceCueRandomizer_method_A) + 1;
+        ConfChoiceCue_A_rnd_method_by_trial_list = RandomizationMethodCodes_list(ConfChoiceCueRnd_method_A_RandomizationMethodCodes_idx);
+        ConfChoiceCue_A_invisible_idx = find(LogStruct.data(:, LogStruct.cn.A_ShowChoiceHint) == 0);
+        ConfChoiceCue_A_rnd_method_by_trial_list(ConfChoiceCue_A_invisible_idx) = RandomizationMethodCodes_list(1);
+        ConfChoiceCueRnd_method_B_RandomizationMethodCodes_idx = LogStruct.SessionByTrial.data(:, LogStruct.SessionByTrial.cn.ConfederateChoiceCueRandomizer_method_B) + 1;
+        ConfChoiceCue_B_rnd_method_by_trial_list = RandomizationMethodCodes_list(ConfChoiceCueRnd_method_B_RandomizationMethodCodes_idx);
+        ConfChoiceCue_B_invisible_idx = find(LogStruct.data(:, LogStruct.cn.B_ShowChoiceHint) == 0);
+        ConfChoiceCue_B_rnd_method_by_trial_list(ConfChoiceCue_B_invisible_idx) = RandomizationMethodCodes_list(1);
+        
+        for i_RandomizationMethodCode = 1 : length(RandomizationMethodCodes_list)
+            cur_rnd_method = RandomizationMethodCodes_list{i_RandomizationMethodCode};
+            
+            TrialSets.ByConfChoiceCue_RndMethod.SideA.(cur_rnd_method) = find(ismember(ConfChoiceCue_A_rnd_method_by_trial_list, {cur_rnd_method}));
+            TrialSets.ByConfChoiceCue_RndMethod.SideB.(cur_rnd_method) = find(ismember(ConfChoiceCue_B_rnd_method_by_trial_list, {cur_rnd_method}));
+        end
+    else
+        TrialSets.ByConfChoiceCue_RndMethod = [];
+    end
+else
+    TrialSets.ByConfChoiceCue_RndMethod = [];
+end
+
+
 % TrialTypes
 if isfield(LogStruct.unique_lists, 'A_TrialTypeENUM') && isfield(LogStruct.unique_lists, 'B_TrialTypeENUM')
-	TrialTypesList = fnUnsortedUnique([LogStruct.unique_lists.A_TrialTypeENUM; LogStruct.unique_lists.B_TrialTypeENUM]);
-	for iTrialType = 1 : length(TrialTypesList)
-		CurrentTrialTypeName = TrialTypesList{iTrialType};
-		CurrentTrialTypeIdx = iTrialType;
-		if ~isempty(CurrentTrialTypeIdx)
+    TrialTypesList = fnUnsortedUnique([LogStruct.unique_lists.A_TrialTypeENUM; LogStruct.unique_lists.B_TrialTypeENUM]);
+    for iTrialType = 1 : length(TrialTypesList)
+        CurrentTrialTypeName = TrialTypesList{iTrialType};
+        CurrentTrialTypeIdx = iTrialType;
+        if ~isempty(CurrentTrialTypeIdx)
 			A_TrialsOfCurrentTypeIdx = find(LogStruct.data(:, LogStruct.cn.A_TrialTypeENUM_idx) == CurrentTrialTypeIdx);
 		else
 			A_TrialsOfCurrentTypeIdx = [];
@@ -284,7 +315,8 @@ if ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubT
 	end	
 end
 
-% create 
+% 
+
 
 
 
