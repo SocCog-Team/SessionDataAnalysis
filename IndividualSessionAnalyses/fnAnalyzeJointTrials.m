@@ -231,6 +231,13 @@ ChoicebyOthersSwitches.selected_OS_switch_pattern_list = {'RRRLLL', 'LLLRRR'};
 ChoicebyOthersSwitches.pattern_alignment_offset = 3;
 ChoicebyOthersSwitches.n_pre_bins = 3;
 ChoicebyOthersSwitches.n_post_bins = 3;
+
+
+ChoicebyOthersSwitches.pattern_alignment_offset = 3;
+ChoicebyOthersSwitches.n_pre_bins = 5;
+ChoicebyOthersSwitches.n_post_bins = 5;
+
+
 ChoicebyOthersSwitches.strict_pattern_extension = 1;
 ChoicebyOthersSwitches.pad_mismatch_with_nan = 0;	% 1 replace non match trial data with NaNs, so eg. RXRBBXB is included, as well as RRRBBB
 ChoicebyOthersSwitches.aggregate_type_meta_list = {'nan_padded', 'raw'}; %  {'nan_padded', 'raw'}, the raw looks like the 1st derivation
