@@ -1283,7 +1283,7 @@ for iGroup = 1 : length(GroupNameList)
                     case 2
                         % 3 blocks
                         CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0));
-                        if (FullPerTrialStruct.isTrialInvisible_AB(1) == 0)
+                        if (FullPerTrialStruct.isTrialInvisible_AB(1) == 0) && ~isempty(CurTrialsInCurrentSetIdx)
                             % vis pre block
                             vis_pre_trials_idx = find(CurTrialsInCurrentSetIdx < visibility_changes_idx(1));
                             CurCurTrialsInCurrentSetIdx = CurTrialsInCurrentSetIdx(1:vis_pre_trials_idx(end));
@@ -1300,8 +1300,10 @@ for iGroup = 1 : length(GroupNameList)
                             [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
                                 OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
                                 isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
-                        else
-                            error([mfilename, ': found 3 visibility block swith the first invisible, not handled yet.']);
+						else
+							if ~isempty(CurTrialsInCurrentSetIdx)
+								error([mfilename, ': found 3 visibility block swith the first invisible, not handled yet.']);
+							end
                         end
                     otherwise
                         % assume interleaved
