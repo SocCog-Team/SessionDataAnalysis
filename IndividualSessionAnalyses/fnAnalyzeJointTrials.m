@@ -546,7 +546,7 @@ if (process_IC)
         GroupNameList{end+1} = ['IC_', cur_TrialSubType];
     end
     
-    if isfield(TrialSets, 'ByConfChoiceCue_RndMethod')
+    if isfield(TrialSets, 'ByConfChoiceCue_RndMethod') && ~isempty(TrialSets.ByConfChoiceCue_RndMethod)
         % be confederate's predictability
         selected_TrialSubType_list = TrialSubType_list(ismember(TrialSubType_list, {'SemiSolo', 'Dyadic', 'DyadicBlockedView'}));
         for i_selected_TrialSubType = 1 : length(selected_TrialSubType_list)
@@ -1248,8 +1248,14 @@ for iGroup = 1 : length(GroupNameList)
             current_file_group_id_string = ['DATA_', FileName, '.', TitleSetDescriptorString, '.isOwnChoice_sideChoice'];
             if ~exist(fullfile(OutputPath, 'CoordinationCheck'), 'dir')
                 mkdir(fullfile(OutputPath, 'CoordinationCheck'));
-            end
+			end
             
+			switch (CurrentGroup)
+				case 'IC_JointTrials'
+					ALL_SESSSION_METRICS_group_string = '';
+				otherwise
+					ALL_SESSSION_METRICS_group_string = ['.', CurrentGroup];
+			end
             
             %TODO add this specifically for the visibility trials (do not calculate per_trial values?)
             invisible_other_trial_idx = find(FullPerTrialStruct.isTrialInvisible_AB);
@@ -1259,7 +1265,7 @@ for iGroup = 1 : length(GroupNameList)
                 % trials woth visibility of the other's action blocked
                 CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, invisible_other_trial_idx);
                 [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
-                    OutputPath, 'ALL_SESSSION_METRICS.invisible.mat', current_file_group_id_string, info, ...
+                    OutputPath, ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.invisible.mat'], current_file_group_id_string, info, ...
                     isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, '_invisible');
                 % if they exist, get visible_pre, visibile_blocked, visible_post
                 visibility_changes_lidx = diff(FullPerTrialStruct.isTrialInvisible_AB);
@@ -1276,7 +1282,7 @@ for iGroup = 1 : length(GroupNameList)
                         else
                             suffix_string = 'visible_post';
                         end
-                        PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
+                        PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.', suffix_string, '.mat'];
                         [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
                             OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
                             isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
@@ -1288,7 +1294,7 @@ for iGroup = 1 : length(GroupNameList)
                             vis_pre_trials_idx = find(CurTrialsInCurrentSetIdx < visibility_changes_idx(1));
                             CurCurTrialsInCurrentSetIdx = CurTrialsInCurrentSetIdx(1:vis_pre_trials_idx(end));
                             suffix_string = 'visible_pre';
-                            PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
+                            PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.', suffix_string, '.mat'];
                             [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
                                 OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
                                 isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
@@ -1296,7 +1302,7 @@ for iGroup = 1 : length(GroupNameList)
                             vis_post_trials_idx = find(CurTrialsInCurrentSetIdx >= visibility_changes_idx(2));
                             CurCurTrialsInCurrentSetIdx = CurTrialsInCurrentSetIdx(vis_post_trials_idx(1):end);
                             suffix_string = 'visible_post';
-                            PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
+                            PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.', suffix_string, '.mat'];
                             [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
                                 OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
                                 isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
@@ -1309,7 +1315,7 @@ for iGroup = 1 : length(GroupNameList)
                         % assume interleaved
                         suffix_string = 'visible';
                         CurTrialsInCurrentSetIdx = intersect(TrialsInCurrentSetIdx, find(FullPerTrialStruct.isTrialInvisible_AB == 0));
-                        PopulationAggregateName = ['ALL_SESSSION_METRICS.', suffix_string, '.mat'];
+                        PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.', suffix_string, '.mat'];
                         [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
                             OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
                             isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
@@ -1320,7 +1326,7 @@ for iGroup = 1 : length(GroupNameList)
             end
             
             % add first100 trials as well (exploratory phase)
-            PopulationAggregateName = ['ALL_SESSSION_METRICS.first100.mat'];
+            PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.first100.mat'];
             use_all_trials = 1;
             prefix_string = '';
             suffix_string = '';
@@ -1343,7 +1349,7 @@ for iGroup = 1 : length(GroupNameList)
                 % 				isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
                 
                 % add last250 trials as well (exploratory phase)
-                PopulationAggregateName = ['ALL_SESSSION_METRICS.last250.mat'];
+                PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.last250.mat'];
                 use_all_trials = 0;
                 prefix_string = '';
                 suffix_string = '';
@@ -1355,7 +1361,7 @@ for iGroup = 1 : length(GroupNameList)
                     isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
                 
                 % add last250 trials as well (exploratory phase)
-                PopulationAggregateName = ['ALL_SESSSION_METRICS.last150.mat'];
+                PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.last150.mat'];
                 use_all_trials = 0;
                 prefix_string = '';
                 suffix_string = '';
@@ -1367,7 +1373,7 @@ for iGroup = 1 : length(GroupNameList)
                     isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, tmp_coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
                 
                 % add last250 trials as well (exploratory phase)
-                PopulationAggregateName = ['ALL_SESSSION_METRICS.last100.mat'];
+                PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.last100.mat'];
                 use_all_trials = 0;
                 prefix_string = '';
                 suffix_string = '';
@@ -1380,7 +1386,7 @@ for iGroup = 1 : length(GroupNameList)
             end
             
             % the final hopefully steady-state exploitation phase
-            PopulationAggregateName = ['ALL_SESSSION_METRICS.last200.mat'];
+            PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.last200.mat'];
             use_all_trials = 0;
             prefix_string = '';
             suffix_string = '';
@@ -1390,7 +1396,7 @@ for iGroup = 1 : length(GroupNameList)
                 isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurTrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string);
             
             % the whole enchilada
-            PopulationAggregateName = ['ALL_SESSSION_METRICS.all_joint_choice_trials.mat'];
+            PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.all_joint_choice_trials.mat'];
             use_all_trials = 1;
             prefix_string = '';
             suffix_string = '';
