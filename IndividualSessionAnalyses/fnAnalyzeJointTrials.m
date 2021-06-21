@@ -1515,10 +1515,10 @@ for iGroup = 1 : length(GroupNameList)
         % 			[A_left_B_left_Color; A_right_B_right_Color; A_left_B_right_Color; A_right_B_left_Color]};
     else
         % solo
-        A_selected = A_selects_A + B_selects_A;
-        B_selected = A_selects_B + B_selects_B;
-        left_selected = SubjectiveLeftTargetSelected_A + SubjectiveLeftTargetSelected_B;
-        right_selected = SubjectiveRightTargetSelected_A + SubjectiveRightTargetSelected_B;
+        A_selected = (A_selects_A + B_selects_A) >= 1;
+        B_selected = (A_selects_B + B_selects_B) >= 1;
+        left_selected = (SubjectiveLeftTargetSelected_A + SubjectiveLeftTargetSelected_B) >= 1;
+        right_selected = (SubjectiveRightTargetSelected_A + SubjectiveRightTargetSelected_B) >= 1;
         StackedTargetSideXData = {[A_selected(GoodTrialsIdx(JointTrialX_Vector)) + (2 * B_selected(GoodTrialsIdx(JointTrialX_Vector)))]; ...
             [(3 * left_selected(GoodTrialsIdx(JointTrialX_Vector))) + (4 * right_selected(GoodTrialsIdx(JointTrialX_Vector)))]};
         % 		StackedTargetSideColor = {[SameOwnAColor; SameOwnBColor]; ...
