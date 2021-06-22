@@ -652,6 +652,7 @@ end
 for iGroup = 1 : length(GroupNameList)
     % get a prefix for the output
     CurrentGroup = GroupNameList{iGroup};
+	disp(['Processing group: ', CurrentGroup]);
     %TitleSetDescriptorString = CurrentGroup;% [];
     TitleSetDescriptorString = [];
     if ~isempty(strfind(CurrentGroup, 'Solo'))
