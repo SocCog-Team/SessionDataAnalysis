@@ -259,6 +259,44 @@ else
 	TrialSets.ByTrialSubType.SideB.Dyadic = TrialSets.ByTrialSubType.Dyadic;
 end
 
+% ByName
+% get the lists of names per trial
+SideA_agent_list = LogStruct.unique_lists.A_Name(LogStruct.data(:, LogStruct.cn.A_Name_idx));
+if size(SideA_agent_list, 1) < size(SideA_agent_list, 2)
+	SideA_agent_list = SideA_agent_list';
+end
+SideB_agent_list = LogStruct.unique_lists.B_Name(LogStruct.data(:, LogStruct.cn.B_Name_idx));
+if size(SideB_agent_list, 1) < size(SideB_agent_list, 2)
+	SideB_agent_list = SideB_agent_list';
+end
+% remove the agent for single/solo trials (but keep)
+proto_solo_trialsubtype_list = fieldnames(TrialSets.ByTrialSubType);
+solo_trialsubtype_list = proto_solo_trialsubtype_list(ismember(proto_solo_trialsubtype_list, {'SoloA', 'SoloB', 'SoloAHighReward', 'SoloBHighReward', 'SoloABlockedView', 'SoloBBlockedView'}));
+for i_solo_sst = 1 : length(solo_trialsubtype_list)
+	cur_solo_trialsubtype = solo_trialsubtype_list{i_solo_sst};
+	if ~isempty(strfind(cur_solo_trialsubtype, 'SoloB'))
+		SideA_agent_list(TrialSets.ByTrialSubType.(cur_solo_trialsubtype)) = {'None'};
+	end
+	if ~isempty(strfind(cur_solo_trialsubtype, 'SoloA'))
+		SideB_agent_list(TrialSets.ByTrialSubType.(cur_solo_trialsubtype)) = {'None'};
+	end
+end
+SubjectCombination_list = strcat(SideA_agent_list, '_', SideB_agent_list);
+[unique_subject_combinations, ~, subject_combination_trial_idx] = unique(SubjectCombination_list);
+for i_subject_combination = 1 : length(unique_subject_combinations)
+	TrialSets.ByName.Combinations.(unique_subject_combinations{i_subject_combination}) = find(subject_combination_trial_idx == i_subject_combination);
+end
+[unique_SideA_list, ~, SideA_trial_idx] = unique(SideA_agent_list);
+for i_SideA = 1 : length(unique_SideA_list)
+	TrialSets.ByName.SideA.(unique_SideA_list{i_SideA}) = find(SideA_trial_idx == i_SideA);
+end
+[unique_SideB_list, ~, SideB_trial_idx] = unique(SideB_agent_list);
+for i_SideB = 1 : length(unique_SideB_list)
+	TrialSets.ByName.SideB.(unique_SideB_list{i_SideB}) = find(SideB_trial_idx == i_SideB);
+end
+
+
+
 
 % was there a separator between the players
 % since the separation might by direction (if using the OLED) A_invisible
