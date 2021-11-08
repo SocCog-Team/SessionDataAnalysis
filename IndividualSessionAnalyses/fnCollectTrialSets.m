@@ -260,15 +260,19 @@ else
 end
 
 % ByName
-% get the lists of names per trial
-SideA_agent_list = LogStruct.unique_lists.A_Name(LogStruct.data(:, LogStruct.cn.A_Name_idx));
+% get the lists of names per trial, ATTENTION, this requires names to by
+% valid matlab parameters, so they can not start with a number, but human
+% IDs are numberbased, so prefix by "id"
+SideA_agent_list = strcat({'id'}, LogStruct.unique_lists.A_Name(LogStruct.data(:, LogStruct.cn.A_Name_idx)));
 if size(SideA_agent_list, 1) < size(SideA_agent_list, 2)
 	SideA_agent_list = SideA_agent_list';
 end
-SideB_agent_list = LogStruct.unique_lists.B_Name(LogStruct.data(:, LogStruct.cn.B_Name_idx));
+SideB_agent_list = strcat({'id'}, LogStruct.unique_lists.B_Name(LogStruct.data(:, LogStruct.cn.B_Name_idx)));
 if size(SideB_agent_list, 1) < size(SideB_agent_list, 2)
 	SideB_agent_list = SideB_agent_list';
 end
+
+
 % remove the agent for single/solo trials (but keep)
 proto_solo_trialsubtype_list = fieldnames(TrialSets.ByTrialSubType);
 solo_trialsubtype_list = proto_solo_trialsubtype_list(ismember(proto_solo_trialsubtype_list, {'SoloA', 'SoloB', 'SoloAHighReward', 'SoloBHighReward', 'SoloABlockedView', 'SoloBBlockedView'}));
