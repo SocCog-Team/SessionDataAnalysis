@@ -8,7 +8,6 @@ if isempty(quantum) || (quantum == 0)
 	return
 end
 
-
 if ~exist('quantization_method_string', 'var') || isempty(quantization_method_string)
    quantization_method_string = 'round'; 
 end    
