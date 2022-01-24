@@ -18,6 +18,8 @@ if ~exist('project_name', 'var') || isempty(project_name)
 	% which essentially defines the subset of sessions to include
 	project_name = [];
 	project_set = 'BoS_human_monkey_2019';
+	%project_set = 'BoS_human_monkey_Toan';
+
 	project_name = 'BoS_manuscript';
 else
 	project_set = project_name;
@@ -108,27 +110,36 @@ fontsizes.axis = 10;
 
 copy_plots_to_outdir_by_group = 1;
 copy_plots_to_outdir_by_group_only = 0;
-copy_is_move = 0;
+copy_is_move = 0; % avoid as this will fail with multiple sets containing the same session(s)
+delete_copied_files = 1; % this works better...
+
+
 
 if strcmp(project_name, 'BoS_manuscript')
 	copy_is_move = 1;
+	copy_is_move = 0;
 end
 
 generate_session_reports = 1;
 
 % control variables
 plot_avererage_reward_by_group = 1;
-AR_by_group_setlabel_list = {'HumansTransparent', 'Macaques_early', 'Macaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'};
+AR_by_group_setlabel_list = {'HumansTransparentToan', 'HumansTransparent', 'Macaques_early', 'Macaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'};
 
 confidence_interval_alpha = 0.05;
 wilcoxon_signed_rank_alpha = 0.05;
 fisher_alpha = 0.05;
+fisher_bonferroni = 1;
 plot_MI_space_scatterplot = 1;
 MI_space_set_list = {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'HumansOpaque'}; % the set names to display
 MI_space_set_list = {'Humans', 'Macaques_late', 'HumansOpaque', 'Humans50_50'}; % the set names to display
 MI_space_set_list = {'GoodHumans', 'Macaques_late', 'BadHumans'}; % the set names to display HumansEC:= without the session without solo training
 % paper
 MI_space_set_list = {'HumansTransparent', 'Macaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'}; % the set names to display
+MI_space_set_list = {'HumansTransparentToan', 'HumansTransparent', 'Macaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'}; % the set names to display
+
+MI_space_set_list = {'HumansTransparentToan', 'Macaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'}; % the set names to display
+
 
 
 MI_space_type_list = {'MIS_by_MIT', 'Strength_by_Type'};
@@ -159,9 +170,11 @@ RT_group_col_base_list = {'InitialTargetReleaseRT', 'IniTargRel_05MT_RT', 'Targe
 AR_SCATTER_mark_all = 1;
 
 AR_scatter_show_FET = 1;
+signed_rank_method_string = 'exact'; % 'approximate' or 'exact'
 
 if strcmp(project_name, 'BoS_manuscript')
-	AR_scatter_show_FET = 0;
+	AR_scatter_show_FET = 1;
+	signed_rank_method_string = 'exact'; % 'approximate' or 'exact'
 end
 
 plot_coordination_metrics_for_each_group = 1;
@@ -169,6 +182,9 @@ plot_coordination_metrics_for_each_group = 1;
 plot_coordination_metrics_for_each_group_SciAdv = 1;	% new reduced style for SciAdv submission
 max_SOC_by_min_SOC = 1; % plot max versus min SOC per pair other wise plot SOC_A versus SOC_B
 coordination_metrics_for_each_group_plot_labels = 1;
+
+plot_avgSLC_scatter_by_training_state = 1;
+
 
 
 
@@ -220,7 +236,7 @@ rt_correlations_by_subset_subset_colors_per_figure_list = {...
 plot_session_aggregate_RT_correlations = 1;
 session_aggregate_RT_correlations_measure_list = {'intialTargetRelease', 'IniTargRel_05MT_', 'targetAcquisition'};
 %session_aggregate_RT_correlations_setlabel_list = {'HumansTransparent', 'Macaques_early', 'Macaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'};
-session_aggregate_RT_correlations_setlabel_list = {'HumansTransparent', ...%'Macaques_early', 'Macaques_late', ...
+session_aggregate_RT_correlations_setlabel_list = {'HumansTransparentToan', 'HumansTransparent', ...%'Macaques_early', 'Macaques_late', ...
 	'TeslaElmoNaive', 'TeslaFlaffusNaive', 'TeslaCuriusNaive', 'MagnusCuriusNaive', 'MagnusFlaffusNaive', ...
 	'FlaffusCuriusNaive', 'ConfederateTrainedFlaffusCurius', ... % 'ConfederateTrainedMacaquesFlaffusCurius', ... %
 	'LinusElmoNaive', 'ConfederateTrainedElmoLinus', ...
@@ -325,6 +341,7 @@ end
 % just copy the individual figures for all sessions of a group into a named
 % subdirectory, to allow easier selection
 if (copy_plots_to_outdir_by_group)
+	copied_files = {};
 	for i_group = 1 : length(group_struct_list)
 		current_group = group_struct_list{i_group};
 		current_setname = current_group.setLabel;
@@ -337,14 +354,26 @@ if (copy_plots_to_outdir_by_group)
 		for i_stem = 1 : length(current_session_id_list)
 			current_proto_stem = current_session_id_list{i_stem};
 			current_proto_stem = regexprep(current_proto_stem, '_IC_JointTrials.isOwnChoice_sideChoice$', '');
+			current_proto_stem = regexprep(current_proto_stem, '.txt$', '');
 			current_stem = regexprep(current_proto_stem, '^DATA_', '');
 			disp(['Processing: ', current_stem]);
 			
+			
+			files_to_copy = dir(fullfile(InputPath, [current_stem, '*']));
+			
 			if (copy_is_move)
+				% this is problematic if a single session belongs to
+				% multiple sets...
 				[status, message] = movefile(fullfile(InputPath, [current_stem, '*']), [outdir, filesep]);
 			else
 				[status, message] = copyfile(fullfile(InputPath, [current_stem, '*']), [outdir, filesep]);
 			end
+
+			for i_files_to_copy = 1 : length(files_to_copy)
+				copied_files{end+1} = fullfile(files_to_copy(i_files_to_copy).folder, files_to_copy(i_files_to_copy).name);
+			end
+			
+			
 			
 			% also copy the isOwnChoice_sideChoice files
 			disp(['Processing: ', [current_session_id_list{i_stem}, '.mat']]);
@@ -354,6 +383,14 @@ if (copy_plots_to_outdir_by_group)
 			%[status, message] = copyfile(fullfile(outdir, [current_session_id_list{i_stem}, '.mat']), fullfile(InputPath, 'CoordinationCheck', filesep));
 		end
 	end
+	
+	% delete copied files? (reduce to  unique files first... or check for existence)
+	if (delete_copied_files)
+		for i_copied_file = 1 : length(copied_files)
+			delete(copied_files{i_copied_file});
+		end
+	end
+	
 	disp('Copied all plots...');
 	if (copy_plots_to_outdir_by_group_only)
 		return
@@ -367,6 +404,10 @@ bygroup = [];
 if (generate_session_reports)
 	data_struct_list = cell([length(group_struct_list) 1]);
 	for i_group = 1 : length(group_struct_list)
+		
+		if (i_group == 29)
+			disp('Doh...');
+		end	
 		group_concatenated_pertrial_data = []; % we need this fresh for every group
 		current_group = group_struct_list{i_group};
 		current_setname = current_group.setLabel;
@@ -394,7 +435,13 @@ if (generate_session_reports)
 		for i_jointtrialfile = 1 : length(current_session_id_list)
 			%value
 			tmp_struct = [];
-			tmp_struct = load(fullfile(indir, [current_session_id_list{i_jointtrialfile}, '.mat']));
+			
+			cur_mat_FQN = fullfile(indir, [current_session_id_list{i_jointtrialfile}, '.mat']);
+			if ~exist(cur_mat_FQN, 'file')
+				disp(['Could not find/load: ', cur_mat_FQN]);
+				continue
+			end
+			tmp_struct = load(cur_mat_FQN);
 			
 			% add the movement time.
 			tmp_struct.FullPerTrialStruct.A_MovementTime = tmp_struct.FullPerTrialStruct.A_TargetAcquisitionRT - tmp_struct.FullPerTrialStruct.A_InitialTargetReleaseRT;
@@ -937,6 +984,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			
 		end
 	end
+
 	
 	if (plot_AR_scatter_by_training_state)
 		% for early and late macaques plot AR_late versus AR_early
@@ -968,12 +1016,14 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 				%early_cont_table_struct  = data_struct_list{i_group};
 				early_nCoordinations = nCoordinations;
 				early_nNoncoordinations = nNoncoordinations;
+				early_group_label = current_group_label;
 			end
 			if strcmp(current_group_label, 'Macaques_late')
 				late_AVG_rewardAB = AVG_rewardAB;
 				%late_cont_table_struct  = data_struct_list{i_group};
 				late_nCoordinations = nCoordinations;
 				late_nNoncoordinations = nNoncoordinations;
+				late_group_label = current_group_label;
 			end
 		end
 		
@@ -982,8 +1032,16 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 		%TODO move the count of the trials into the ALLSESSIONS METRICS
 		%calculation
 		p_coordination_change_early_late_list = zeros([1 size(late_nCoordinations, 1)]);
+		
+		
+		if (fisher_bonferroni)
+			cur_fisher_alpha = fisher_alpha / size(late_nCoordinations, 1);
+		else
+			cur_fisher_alpha = fisher_alpha;
+		end
+		
 		for i_session = 1 : size(late_nCoordinations, 1)
-			cur_cont_table = [early_nCoordinations(i_session), early_nCoordinations(i_session); early_nNoncoordinations(i_session), late_nNoncoordinations(i_session)];
+			cur_cont_table = [early_nCoordinations(i_session), late_nCoordinations(i_session); early_nNoncoordinations(i_session), late_nNoncoordinations(i_session)];
 			[h, p_coordination_change_early_late_list(i_session), stats] = fishertest(cur_cont_table, 'Alpha', fisher_alpha, 'Tail', 'both');
 		end
 		
@@ -1004,12 +1062,23 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 		x_list = early_AVG_rewardAB;
 		y_list = late_AVG_rewardAB;
 		
+		% to allow further testing save these out		
+		early_late_struct.early_AVG_rewardAB = early_AVG_rewardAB;
+		early_late_struct.early_nCoordinations = early_nCoordinations;
+		early_late_struct.early_nNoncoordinations = early_nNoncoordinations;
+		early_late_struct.early_group_label = early_group_label;	
+		early_late_struct.late_AVG_rewardAB = late_AVG_rewardAB;
+		early_late_struct.late_nCoordinations = late_nCoordinations;
+		early_late_struct.late_nNoncoordinations = late_nNoncoordinations;
+		early_late_struct.late_group_label = late_group_label;
+		early_late_struct.delta_AVG_reward_list = late_AVG_rewardAB - early_AVG_rewardAB;	
+		
 		
 		plot([0.9 3.6], [0.9 3.6], 'Color', [0.5 0.5 0.5], 'LineStyle', '--');
 		scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, ScatterMaker, 'LineWidth', ScatterLineWidth);
 		
 		% plot significant data points as filled symbols
-		significant_data_idx = find(p_coordination_change_early_late_list <= fisher_alpha);
+		significant_data_idx = find(p_coordination_change_early_late_list <= cur_fisher_alpha);
 		scatter(x_list(significant_data_idx), y_list(significant_data_idx), ScatterSymbolSize, current_scatter_color, 'filled', ScatterMaker, 'LineWidth', ScatterLineWidth);
 		
 		axis equal
@@ -1030,7 +1099,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 				text(x_list(i_session)+dx, y_list(i_session)+dy, {cur_ID_string},'Color', current_scatter_color, 'Fontsize', 8);
 			end
 		end
-		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', 'exact', 'tail', 'both');
+		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', signed_rank_method_string, 'tail', 'both');
 		% (Mdn = 0.85) than in male faces (Mdn = 0.65), Z = 4.21, p < .001, r = .76.
 		% A measure of effect size, r, can be calculated by dividing Z by the square root of N(r = Z / ?N).
 		if isfield(signrank_stats, 'zval')
@@ -1056,6 +1125,136 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 		write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
 		if (save_fig)
 			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'fig']);
+			write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+		end
+		
+		% save out the group data for statistical comparison
+		save(fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.EarlyLateAVGreward.mat']), 'early_late_struct')
+	end	
+	
+	
+	
+	if (plot_avgSLC_scatter_by_training_state)
+		% for early and late macaques plot AR_late versus AR_early
+		
+		early_AVG_SLC_AB = [];
+		late_AVG_SLC_AB = [];
+		
+		for i_group = 1 : n_groups
+			current_group_label = group_struct_list{i_group}.setLabel;
+			if ~ismember(current_group_label, {'Macaques_early', 'Macaques_late'})
+				% nothing to do here
+				continue
+			end
+			
+			mac_group_idx = i_group;
+			
+			% collect the data lines for the current group
+			current_group_data = metrics_by_group_list{i_group};
+			% now collect the actual data of interest
+			% averaged reward
+			AVG_SLC_A = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_A);
+			AVG_SLC_B = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_B);
+			AVG_SLC_AB = mean([AVG_SLC_A, AVG_SLC_B], 2, 'omitnan');
+			nCoordinations = current_group_data(:, coordination_metrics_table.cn.nCoordinated);
+			nNoncoordinations = current_group_data(:, coordination_metrics_table.cn.nNoncoordinated);
+			
+			if strcmp(current_group_label, 'Macaques_early')
+				early_AVG_SLC_AB = AVG_SLC_AB;
+				%early_cont_table_struct  = data_struct_list{i_group};
+				early_nCoordinations = nCoordinations;
+				early_nNoncoordinations = nNoncoordinations;
+			end
+			if strcmp(current_group_label, 'Macaques_late')
+				late_AVG_SLC_AB = AVG_SLC_AB;
+				%late_cont_table_struct  = data_struct_list{i_group};
+				late_nCoordinations = nCoordinations;
+				late_nNoncoordinations = nNoncoordinations;
+			end
+		end
+		
+		%TODO test for each pair whether the ratio of coordination to
+		%non-coordination trials increased between early and late
+		%TODO move the count of the trials into the ALLSESSIONS METRICS
+		%calculation
+		p_coordination_change_early_late_list = zeros([1 size(late_nCoordinations, 1)]);
+		for i_session = 1 : size(late_nCoordinations, 1)
+			cur_cont_table = [early_nCoordinations(i_session), late_nCoordinations(i_session); early_nNoncoordinations(i_session), late_nNoncoordinations(i_session)];
+			[h, p_coordination_change_early_late_list(i_session), stats] = fishertest(cur_cont_table, 'Alpha', fisher_alpha, 'Tail', 'both');
+		end
+		
+		% create the plot
+		FileName = CollectionName;
+		Cur_fh_cAvgRewardScatter_for_naive_macaques = figure('Name', 'AverageSLC early/late scatter-plot', 'visible', figure_visibility_string);
+		fnFormatDefaultAxes(DefaultAxesType);
+		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
+		legend_list = {};
+		hold on
+		
+		ScatterSymbolSize = 25;
+		ScatterLineWidth = 0.75;
+		ScatterMaker = 'o';
+		current_scatter_color = group_struct_list{i_group}.color;
+		current_scatter_color = [170 0 0] / 255;
+		x_list = early_AVG_SLC_AB;
+		y_list = late_AVG_SLC_AB;
+		
+		
+		plot([-0.05 1.05], [-0.05 1.05], 'Color', [0.5 0.5 0.5], 'LineStyle', '--');
+		scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, ScatterMaker, 'LineWidth', ScatterLineWidth);
+		
+		% plot significant data points as filled symbols
+		significant_data_idx = find(p_coordination_change_early_late_list <= fisher_alpha);
+		scatter(x_list(significant_data_idx), y_list(significant_data_idx), ScatterSymbolSize, current_scatter_color, 'filled', ScatterMaker, 'LineWidth', ScatterLineWidth);
+		
+		axis equal
+		xlabel('Average SLC early session', 'Interpreter', 'none');
+		ylabel('Average SLC late session', 'Interpreter', 'none');
+		%set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
+		set(gca, 'Ylim', [-0.05 1.05]);
+		set(gca, 'XLim', [-0.05 1.05]);
+		set(gca, 'XTick', [0 0.5 1]);
+		set(gca, 'YTick', [0 0.5 1]);
+		
+		
+		if (AR_SCATTER_mark_all)
+			for i_session = 1 : length(group_struct_list{mac_group_idx}.filenames)
+				dx = 0.03; dy = 0.03; % displacement so the text does not overlay the data points
+				if (XX_marker_ID_use_captions)
+					cur_ID_string = group_struct_list{mac_group_idx}.Captions{i_session};
+				else
+					cur_ID_string = num2str(i_session);
+				end
+				text(x_list(i_session)+dx, y_list(i_session)+dy, {cur_ID_string},'Color', current_scatter_color, 'Fontsize', 8);
+			end
+		end
+		[p, h, signrank_stats] = signrank(early_AVG_SLC_AB, late_AVG_SLC_AB, 'alpha', wilcoxon_signed_rank_alpha, 'method', signed_rank_method_string, 'tail', 'both');
+		% (Mdn = 0.85) than in male faces (Mdn = 0.65), Z = 4.21, p < .001, r = .76.
+		% A measure of effect size, r, can be calculated by dividing Z by the square root of N(r = Z / ?N).
+		if isfield(signrank_stats, 'zval')
+			title_text = ['N: ',num2str(length(late_AVG_SLC_AB)) , '; Early (Mdn: ', num2str(median(early_AVG_SLC_AB)), '), Late (Mdn: ', num2str(median(late_AVG_SLC_AB)),...
+				'), Z: ', num2str(signrank_stats.zval), ', p < ', num2str(p), ', r: ', num2str(signrank_stats.zval/sqrt(length(late_AVG_SLC_AB)))];
+		else
+			title_text = ['N: ',num2str(length(late_AVG_SLC_AB)) , '; Early (Mdn: ', num2str(median(early_AVG_SLC_AB)), '), Late (Mdn: ', num2str(median(late_AVG_SLC_AB)),...
+				'), SignedRank: ', num2str(signrank_stats.signedrank), ', p < ', num2str(p)];
+		end
+		if (AR_scatter_show_FET)
+			title(title_text, 'FontSize', 6);
+		end
+		
+		hold off
+		% save out the results
+		current_group_label = 'naive_macaques';
+		CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label];
+		if ~strcmp(OutPutType, 'pdf')
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgSLCScatter.', OutPutType]);
+			write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+		end
+		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgSLCScatter.', 'pdf']);
+		write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
+		if (save_fig)
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgSLCScatter.', 'fig']);
 			write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
 		end
 	end
@@ -1091,7 +1290,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			error('Not implemented yet');
 			
 			
-			% Share of Own Choices
+			% Fraction Own Choices
 			SOC_targetA = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_A);
 			SOC_targetB = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_B);
 			SOC_sideA = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_A);
@@ -1129,7 +1328,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
-			ylabel('Share of own choices', 'Interpreter', 'none');
+			ylabel('Fraction own choices', 'Interpreter', 'none');
 			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
@@ -1145,7 +1344,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
-			ylabel('Share of obj. left choices', 'Interpreter', 'none');
+			ylabel('Fraction obj. left choices', 'Interpreter', 'none');
 			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions, 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
@@ -1254,9 +1453,14 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 				continue
 			end
 			
+			
+			if ismember(current_group_label, {'HumansTransparentToan'})
+				disp('Doh...');
+			end
+			
 			%if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'})
 			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', ...
-					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', })
+					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', 'HumansTransparentToan'})
 				cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
 				cur_plot_coord_metrics_4_each_group_graph_type_override = [];
 				x_label_string = 'Pair ID';
@@ -1270,7 +1474,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			% collect the data lines for the current group
 			current_group_data = metrics_by_group_list{i_group};
 			% now collect the actual data of interest
-			% Share of Own Choices
+			% Fraction Own Choices
 			SOC_targetA = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_A);
 			SOC_targetB = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_B);
 			SOC_sideA = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_A);
@@ -1337,7 +1541,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
-			ylabel('Share of own choices', 'Interpreter', 'none');
+			ylabel('Fraction own choices', 'Interpreter', 'none');
 			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
@@ -1356,7 +1560,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% label the axes
-			ylabel('Share of obj. left choices', 'Interpreter', 'none');
+			ylabel('Fraction obj. left choices', 'Interpreter', 'none');
 			xlabel(x_label_string, 'Interpreter', 'none');
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
@@ -1484,7 +1688,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			
 			%if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'})
 			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', ...
-					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', })
+					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', 'HumansTransparentToan'})
 				cur_plot_coordination_metrics_for_each_group_graph_type = 'bar';
 				cur_plot_coord_metrics_4_each_group_graph_type_override = [];
 				x_label_string = 'Pair ID';
@@ -1498,7 +1702,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			% collect the data lines for the current group
 			current_group_data = metrics_by_group_list{i_group};
 			% now collect the actual data of interest
-			% Share of Own Choices
+			% Fraction Own Choices
 			SOC_targetA = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_A);
 			SOC_targetB = current_group_data(:, coordination_metrics_table.cn.shareOwnChoices_B);
 			SOC_sideA = current_group_data(:, coordination_metrics_table.cn.shareLeftChoices_A);
@@ -1549,7 +1753,9 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			FileName = CollectionName;
 			Cur_fh_coordination_metrics_for_each_group = figure('Name', 'Coordination Metrics plot SciAdv', 'visible', figure_visibility_string);
 			fnFormatDefaultAxes(DefaultAxesType);
-			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction);
+			cur_output_rect_fraction = output_rect_fraction * 6/3;
+			%cur_output_rect_fraction = output_rect_fraction;
+			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, cur_output_rect_fraction);
 			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
 			legend_list = {};
 			%hold on
@@ -1567,7 +1773,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			% 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
 			% 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% 			% label the axes
-			% 			ylabel('Share of own choices', 'Interpreter', 'none');
+			% 			ylabel('Fraction own choices', 'Interpreter', 'none');
 			% 			xlabel(x_label_string, 'Interpreter', 'none');
 			% 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			% 			set(gca, 'Ylim', [0 1.1]);
@@ -1583,20 +1789,20 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			y_vec_arr = [SOC_targetB(cur_sort_idx)];
 			
 			% label the axes
-			ylabel('Share own choices B', 'Interpreter', 'none');
-			xlabel('Share own choices A', 'Interpreter', 'none');	
+			ylabel('Fraction own choices B', 'Interpreter', 'none');
+			xlabel('Fraction own choices A', 'Interpreter', 'none');	
 			
 			if (max_SOC_by_min_SOC)
 				x_vec_arr = min(SOC_targetA(cur_sort_idx), SOC_targetB(cur_sort_idx));
 				y_vec_arr = max(SOC_targetB(cur_sort_idx), SOC_targetA(cur_sort_idx));
 				
-				ylabel('max. Share own choices', 'Interpreter', 'none');
-				xlabel('min. Share own choices', 'Interpreter', 'none');
+				ylabel('Larger fraction own choices', 'Interpreter', 'none');
+				xlabel('Smaller fraction own choices', 'Interpreter', 'none');
 			end
 			instance_list = {'SOC_AvsB'};
 			color_list = {[0.5,0,0.5]};
 			symbol_list = {'o'};
-			plot([0 1], [0 1], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
+			plot([-0.05 1.05], [-0.05 1.05], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
 			tmp_cur_plot_coordination_metrics_for_each_group_graph_type = cur_plot_coordination_metrics_for_each_group_graph_type;
 			tmp_cur_plot_coordination_metrics_for_each_group_graph_type = 'marker'; % 'XY'
 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, tmp_cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
@@ -1613,13 +1819,13 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			if (coordination_metrics_for_each_group_plot_labels)
 				current_scatter_color = color_list{1};
 				for i_session = 1 : length(group_struct_list{i_group}.filenames)
-					dx = 0.02; dy = 0.02; % displacement so the text does not overlay the data points
+					dx = 0.03; dy = 0.03; % displacement so the text does not overlay the data points
 					if (XX_marker_ID_use_captions)
 						cur_ID_string = group_struct_list{i_group}.Captions{cur_sort_idx(i_session)};
 					else
 						cur_ID_string = num2str(cur_sort_idx(i_session));
 					end
-					text(x_vec_arr(cur_sort_idx(i_session))+dx, y_vec_arr(cur_sort_idx(i_session))+dy, {cur_ID_string},'Color', current_scatter_color, 'Fontsize', 8);
+					text(x_vec_arr(i_session)+dx, y_vec_arr(i_session)+dy, {cur_ID_string},'Color', current_scatter_color, 'Fontsize', 8);
 				end
 			end
 			
@@ -1637,7 +1843,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			% 			plot([(0.2) (size(x_vec_arr, 1)+0.9)], [0.5 0.5], 'Color', [0 0 0], 'Marker', 'none', 'LineStyle', '--');
 			% 			[current_axis_h] = fn_plot_type_to_axis(current_axis_h, cur_plot_coordination_metrics_for_each_group_graph_type, x_vec_arr, y_vec_arr, color_list, symbol_list, bar_edge_color);
 			% 			% label the axes
-			% 			ylabel('Share of obj. left choices', 'Interpreter', 'none');
+			% 			ylabel('Fraction obj. left choices', 'Interpreter', 'none');
 			% 			xlabel(x_label_string, 'Interpreter', 'none');
 			% 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			% 			set(gca, 'Ylim', [0 1.1]);
@@ -1713,6 +1919,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+			axis square;
 			box(gca(), 'off');
 			
 			% MI side
@@ -1730,6 +1937,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			set(gca, 'XTick', (1:1:size(x_vec_arr, 1)), 'xTickLabel', group_struct_list{i_group}.Captions(cur_sort_idx), 'XTickLabelRotation', XLabelRotation_degree, 'TickLabelInterpreter', 'none');
 			set(gca, 'Ylim', [0 1.1]);
 			set(gca, 'XLim', [(0.2) (size(x_vec_arr, 1)+0.9)]);
+			axis square;
 			box(gca(), 'off');
 			
 			
@@ -1776,7 +1984,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			
 			%if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'})
 			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', ...
-					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', })
+					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', 'HumansTransparentToan'})
 				cur_plot_rt_correlations_for_each_group_graph_type = 'marker';
 				cur_plot_rt_correlations_for_each_group_graph_type_override = [];
 				x_label_string = 'Pair ID';
@@ -1940,7 +2148,7 @@ for i_session_metric_file = 1 : length(session_metrics_datafile_fqn_list)
 			
 			%if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', 'ConfederateTrainedMacaquesFlaffusCurius'})
 			if ismember(current_group_label, {'Humans', 'Macaques_early', 'Macaques_late', 'ConfederatesMacaques_early', 'ConfederatesMacaques_late', ...
-					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', 'HumansTransparentv6'})
+					'HumansTransparent', 'HumansOpaque', 'Humans50_50', 'Humans50_55__80_20', 'GoodHumans', 'BadHumans', 'HumansTransparentv6', 'HumansTransparentToan'})
 				cur_plot_rt_correlations_for_each_group_graph_type = 'marker';
 				cur_plot_rt_correlations_for_each_group_graph_type_override = [];
 				x_label_string = 'Pair ID';
@@ -2615,9 +2823,21 @@ if (plot_AR_scatter_by_session_state_early_late)
 		late_nCoordinations = late_metrics_by_group_list{i_group}(:, late_coordination_metrics_table.cn.nCoordinated);
 		late_nNoncoordinations = late_metrics_by_group_list{i_group}(:, late_coordination_metrics_table.cn.nNoncoordinated);
 		
+		early_group_label = current_group_label;
+		late_group_label = current_group_label;
+		
+		
 		p_coordination_change_early_late_list = zeros([1 size(late_nCoordinations, 1)]);
+		
+		
+		if (fisher_bonferroni)
+			cur_fisher_alpha = fisher_alpha / size(late_nCoordinations, 1);
+		else
+			cur_fisher_alpha = fisher_alpha;
+		end
+		
 		for i_session = 1 : size(late_nCoordinations, 1)
-			cur_cont_table = [early_nCoordinations(i_session), early_nCoordinations(i_session); early_nNoncoordinations(i_session), late_nNoncoordinations(i_session)];
+			cur_cont_table = [early_nCoordinations(i_session), late_nCoordinations(i_session); early_nNoncoordinations(i_session), late_nNoncoordinations(i_session)];
 			[h, p_coordination_change_early_late_list(i_session), stats] = fishertest(cur_cont_table, 'Alpha', fisher_alpha, 'Tail', 'both');
 		end
 		
@@ -2638,12 +2858,23 @@ if (plot_AR_scatter_by_session_state_early_late)
 		%current_scatter_color = [0.5 0.5 0.5];
 		x_list = early_AVG_rewardAB;
 		y_list = late_AVG_rewardAB;
-		
+
+		% to allow further testing save these out		
+		early_late_struct.early_AVG_rewardAB = early_AVG_rewardAB;
+		early_late_struct.early_nCoordinations = early_nCoordinations;
+		early_late_struct.early_nNoncoordinations = early_nNoncoordinations;
+		early_late_struct.early_group_label = early_group_label;	
+		early_late_struct.late_AVG_rewardAB = late_AVG_rewardAB;
+		early_late_struct.late_nCoordinations = late_nCoordinations;
+		early_late_struct.late_nNoncoordinations = late_nNoncoordinations;
+		early_late_struct.late_group_label = late_group_label;
+		early_late_struct.delta_AVG_reward_list = late_AVG_rewardAB - early_AVG_rewardAB;	
+						
 		plot([0.9 3.6], [0.9 3.6], 'Color', [0.5 0.5 0.5], 'LineStyle', '--');
 		scatter(x_list, y_list, ScatterSymbolSize, current_scatter_color, ScatterMaker, 'LineWidth', ScatterLineWidth);
 		
 		% plot significant data points as filled symbols
-		significant_data_idx = find(p_coordination_change_early_late_list <= fisher_alpha);
+		significant_data_idx = find(p_coordination_change_early_late_list <= cur_fisher_alpha);
 		scatter(x_list(significant_data_idx), y_list(significant_data_idx), ScatterSymbolSize, current_scatter_color, 'filled', ScatterMaker, 'LineWidth', ScatterLineWidth);
 		
 		axis equal
@@ -2666,7 +2897,7 @@ if (plot_AR_scatter_by_session_state_early_late)
 			end
 		end
 		
-		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', 'exact', 'tail', 'both'); %#ok<*ASGLU>
+		[p, h, signrank_stats] = signrank(early_AVG_rewardAB, late_AVG_rewardAB, 'alpha', wilcoxon_signed_rank_alpha, 'method', signed_rank_method_string, 'tail', 'both'); %#ok<*ASGLU>
 		% (Mdn = 0.85) than in male faces (Mdn = 0.65), Z = 4.21, p < .001, r = .76.
 		% A measure of effect size, r, can be calculated by dividing Z by the square root of N(r = Z / ?N).
 		% 		title_text = ['N: ',num2str(length(late_AVG_rewardAB)) , '; Early (Mdn: ', num2str(median(early_AVG_rewardAB)), '), Late (Mdn: ', num2str(median(late_AVG_rewardAB)),...
@@ -2680,8 +2911,9 @@ if (plot_AR_scatter_by_session_state_early_late)
 				'), SignedRank: ', num2str(signrank_stats.signedrank), ', p < ', num2str(p)];
 		end
 		
-		
-		title(title_text, 'FontSize', 6);
+		if (AR_scatter_show_FET)
+			title(title_text, 'FontSize', 6);
+		end
 		
 		hold off
 		% save out the results
@@ -2696,6 +2928,9 @@ if (plot_AR_scatter_by_session_state_early_late)
 			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.AvgRewardScatter.', 'fig']); %#ok<*UNRCH>
 			write_out_figure(Cur_fh_cAvgRewardScatter_for_naive_macaques, outfile_fqn);
 		end
+		
+		% save out the group data for statistical comparison
+		save(fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.EarlyLateAVGreward.mat']), 'early_late_struct')		
 	end
 end
 
@@ -2775,10 +3010,20 @@ if (plot_RT_by_switch_type)
 			SideB_pattern_histogram_pertrial_struct = fn_merge_pertrial_structs(SideB_pattern_histogram_pertrial_struct, current_SideB_pattern_histogram_pertrial_struct, full_choice_combinaton_pattern_list);
 		end
 		
-		
-		
+		% run a test
 		SideA_pattern_histogram_struct = fn_aggregate_event_data_by_switches(SideA_pattern_histogram_pertrial_struct);
 		SideB_pattern_histogram_struct = fn_aggregate_event_data_by_switches(SideB_pattern_histogram_pertrial_struct);
+		
+		% save this data out for further analysis?
+		RT_pattern_struct.SideA_pattern_histogram_pertrial_struct = SideA_pattern_histogram_pertrial_struct;
+		RT_pattern_struct.SideB_pattern_histogram_pertrial_struct = SideB_pattern_histogram_pertrial_struct;
+		RT_pattern_struct.SideA_pattern_histogram_struct = SideA_pattern_histogram_struct;
+		RT_pattern_struct.SideB_pattern_histogram_struct = SideB_pattern_histogram_struct;
+		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.RT.HistogramBySwitches.', RT_type, '.mat']);
+		% save this for further analysis
+		save(outfile_fqn, 'RT_pattern_struct');
+		
+		
 		
 		
 		% find the trial indices for the selected switch trials
@@ -2817,6 +3062,13 @@ if (plot_RT_by_switch_type)
 				y_lim = get(gca(), 'YLim');
 				fnPlotStackedCategoriesAtPositionWrapper('StackedOnBottom', StackHeightToInitialPLotHeightRatio, {trial_outcome_list}, y_lim, {trial_outcome_colors}, {trial_outcome_BGTransparency});
 				y_lim = get(gca(), 'YLim');
+				
+				%TODO:t-test between
+				% A's RT 3 trials before RM versus three trials after MR
+				% B's RT 3 trials before BM versus three trials after MB
+				% the question is: do monkeys slow down before a change
+				% over
+				
 				
 				
 				CurrentTitleSetDescriptorString = [TitleSetDescriptorString, '.', current_group_label];
