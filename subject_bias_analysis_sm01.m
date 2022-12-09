@@ -459,7 +459,6 @@ if strcmp(project_name, 'BoS_manuscript')
 	run_switches_test_BoS_hum_mac(project_name)
 end
 
-
 % how long did it take?
 timestamps.(mfilename).end = toc(timestamps.(mfilename).start);
 disp([mfilename, ' took: ', num2str(timestamps.(mfilename).end), ' seconds.']);
