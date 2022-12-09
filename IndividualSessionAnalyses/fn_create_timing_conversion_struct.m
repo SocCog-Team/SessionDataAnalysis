@@ -72,7 +72,7 @@ first2second_time_conversion_struct.last_ts_first_timebase_event = last_ts_first
 second2first_time_conversion_struct.last_ts_second_timebase_event = last_ts_second_timebase_event;
 
 
-% the scale factors baed on the range of both event lists
+% the scale factors based on the range of both event lists
 first2second_time_conversion_struct.scale_factor = (last_ts_second_timebase_event - first_ts_second_timebase_event) / (last_ts_first_timebase_event - first_ts_first_timebase_event);
 second2first_time_conversion_struct.scale_factor = (last_ts_first_timebase_event - first_ts_first_timebase_event) / (last_ts_second_timebase_event - first_ts_second_timebase_event);
 
