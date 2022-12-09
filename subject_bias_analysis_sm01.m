@@ -31,12 +31,20 @@ project_name = 'BoS_manuscript';
 
 
 set_name = '';
-project_name = 'SfN2008'; % this loops back to 2019
+%project_name = 'SfN2008'; % this loops back to 2019
 %%project_name = 'SfN2018'; % this loops back to 2019
 
 
 use_named_set = 0;
 %set_name = 'ConfederateElmoDiffGO';
+
+%set_name = 'ConfederateCurius2';
+if strcmp(set_name, 'ConfederateCurius2')
+	use_named_set = 1;
+	ProcessNewestFirst = 1;
+	ProcessFreshSessionsOnly = 0;	% only process sessions without a *.triallog.vNN.mat file, aka completely fresh sessions
+end
+
 
 if strcmp(set_name, 'ConfederateElmoDiffGO')
 	use_named_set = 1;
@@ -46,12 +54,18 @@ end
 
 % special case for the paper set
 if strcmp(project_name, 'BoS_manuscript')
-	ProcessFreshSessionsOnly = 0;
+	ProcessFreshSessionsOnly = 1;
+	ProcessFirstOnly = 0;
 	use_named_set = 1;
 	set_name = 'BoS_manuscript';
 	%fresh_definition_string = 'no_statistics_txt';
 	fresh_definition_string = 'no_coordination_check_mat';
 end
+%% FIXME TESTING 200221012
+%ProcessNewestFirst = 0;
+%ProcessFreshSessionsOnly = 0;
+
+
 
 
 % from the linux VM
@@ -432,7 +446,7 @@ if (RunSingleSessionAnalysis)
 		% sessions
 		
 		
-		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, cur_TmpOutBaseDir, project_name);
+		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, cur_TmpOutBaseDir, project_name, override_directive);
 		if ~isempty(out)
 			out_list{end+1} = out;
 		end

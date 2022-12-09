@@ -9,7 +9,7 @@ cur_data = load(input_FQN);
 data = struct();
 good_trial_idx = cur_data.TrialsInCurrentSetIdx; % the dyadic complete trials
 cur_FullPerTrialStruct = cur_data.FullPerTrialStruct;
-confederate_list = {'SM', 'JK', 'TN', 'RN', 'IK', 'FS', 'DL', 'KN', 'ST'};
+confederate_list = {'SM', 'JK', 'TN', 'RN', 'IK', 'FS', 'DL', 'KN', 'ST', 'AW'};
 
 
 data.info = fn_split_and_sanitize_session_id_string(cur_data.info.session_id, confederate_list);

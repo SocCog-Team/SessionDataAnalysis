@@ -1,4 +1,4 @@
-function [ coordination_metrics_table, tmp_coordination_metrics_table ] = fn_population_per_session_aggregates_per_trialsubset_wrapper( OutputPath, PopulationAggregateName, current_file_group_id_string, info, isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, TrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string )
+function [ coordination_metrics_table, tmp_coordination_metrics_table ] = fn_population_per_session_aggregates_per_trialsubset_wrapper( OutputPath, PopulationAggregateName, current_file_group_id_string, info, isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, TrialsInCurrentSetIdx, use_all_trials, prefix_string, suffix_string, force_recalc )
 %FN_POPULATION_PER_SESSION_AGGREGATES_PER_TRIALSUBSET_WRAPPER Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -26,7 +26,7 @@ tmp_coordination_metrics_table = struct();
 
 % now only (re-)calculate the coordination_metrics if the
 % current coordination_metrics_cfg does not match the existing
-% one, as the caculation is costly.
+% one, as the calculation is costly.
 
 % find the index of the current key
 recalc_coordination_metrics = 1;

@@ -1,4 +1,4 @@
-function [ output ] = fnAnalyzeJointTrials( SessionLogFQN, OutputBasePath, DataStruct, TrialSets, project_name )
+function [ output ] = fnAnalyzeJointTrials( SessionLogFQN, OutputBasePath, DataStruct, TrialSets, project_name, override_directive )
 %FNANALYZEJOINTTRIALS Summary of this function goes here
 %   Detailed explanation goes here
 % ATM this is hardcoded for BvS, needs work to generalize
@@ -261,6 +261,8 @@ end
 
 
 show_SOC_percentage = 1;
+show_soloSOC_percentage = 1;
+save_SOC_percentage = 1;
 show_RTdiff_ttests = 1;
 title_fontsize = 8;
 title_fontweight = 'bold';
@@ -365,6 +367,9 @@ switch project_name
         title_fontweight = 'normal';
         show_RTdiff_ttests = 0;
         show_SOC_percentage = 0;
+		show_soloSOC_percentage = 1;
+		save_SOC_percentage = 1;
+		
         %make the who-was-faster-plots effectively invisible but still
         %scale the plot to accomodate the required space
         %SideARTColor = [1 1 1];
@@ -444,7 +449,7 @@ if ~exist('DataStruct', 'var') || isempty(DataStruct)
     if strcmp(SessionLogExt, '.triallog')
         % use magic .triallog extension to load the freshest version cheaply,
         % the logic moved into fnParseEventIDEReportSCPv06
-        DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]));
+        DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]), ';', '|', override_directive);
         disp(['Processing: ', SessionLogFQN]);
         FileName = [FileName, SessionLogExt];
     elseif strcmp(SessionLogExt, '.txt')
@@ -458,7 +463,7 @@ if ~exist('DataStruct', 'var') || isempty(DataStruct)
             DataStruct = tmpDataStruct.report_struct;
             clear tmpDataStruct;
         else
-            DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]));
+            DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]), ';', '|', override_directive);
             %save(matFilename, 'DataStruct'); % fnParseEventIDEReportSCPv06 saves by default
         end
         disp(['Processing: ', SessionLogFQN]);
@@ -1758,12 +1763,20 @@ for iGroup = 1 : length(GroupNameList)
             line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideAColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             legend_list{end + 1} = 'all trials avg. A';
         end
-        if length(GoodTrialsIdx) > 25
+        if length(GoodTrialsIdx) >= 25
             TmpMean25 = mean(PreferableTargetSelected_A(GoodTrialsIdx(end-24:end)));
         else
             TmpMean25 = mean(PreferableTargetSelected_A(GoodTrialsIdx));
-        end
-        title_textA = ['A: SOC(all) ', num2str(100 * TmpMean), '%; SOC(last25) ', num2str(100 * TmpMean25), '%; '];
+		end
+		% 26-50
+		if length(GoodTrialsIdx) >= 50
+            TmpMean50 = mean(PreferableTargetSelected_A(GoodTrialsIdx(50-24:50)));
+		elseif length(GoodTrialsIdx) >= 25
+            TmpMean50 = mean(PreferableTargetSelected_A(end-24:end));
+		else
+			TmpMean50 = mean(PreferableTargetSelected_A(GoodTrialsIdx));
+		end		
+		title_textA = ['A: SOC(all ', num2str(numel(GoodTrialsIdx)),') ', num2str(100 * TmpMean), '%; SOC(last25) ', num2str(100 * TmpMean25),'%; SOC(26-50) ', num2str(100 * TmpMean50), '%; '];
     end
     if (ProcessSideB)
         plot(FilteredJointTrialX_Vector, FilteredJointTrials_PreferableTargetSelected_B(FilteredJointTrialX_Vector), 'Color', SideBColor, 'LineWidth', project_line_width);
@@ -1773,17 +1786,34 @@ for iGroup = 1 : length(GroupNameList)
             line([FilteredJointTrialX_Vector(1), FilteredJointTrialX_Vector(end)], [TmpMean, TmpMean], 'Color', (SideBColor * 0.66), 'LineStyle', '--', 'LineWidth', project_line_width);
             legend_list{end + 1} = 'all trials avg. B';
         end
-        if length(GoodTrialsIdx) > 25
+        if length(GoodTrialsIdx) >= 25
             TmpMean25 = mean(PreferableTargetSelected_B(GoodTrialsIdx(end-24:end)));
         else
             TmpMean25 = mean(PreferableTargetSelected_B(GoodTrialsIdx));
-        end
-        title_textB = ['B: SOC(all) ', num2str(100 * TmpMean), '%; SOC(last25) ', num2str(100 * TmpMean25), '%'];
-    end
-    if (show_SOC_percentage)
+		end
+		% 26-50
+		if length(GoodTrialsIdx) >= 50
+            TmpMean50 = mean(PreferableTargetSelected_B(GoodTrialsIdx(50-24:50)));
+		elseif length(GoodTrialsIdx) >= 25
+            TmpMean50 = mean(PreferableTargetSelected_B(end-24:end));
+		else
+			TmpMean50 = mean(PreferableTargetSelected_B(GoodTrialsIdx));
+		end		
+        title_textB = ['B: SOC(all ', num2str(numel(GoodTrialsIdx)),') ', num2str(100 * TmpMean), '%; SOC(last25) ', num2str(100 * TmpMean25),'%; SOC(26-50) ', num2str(100 * TmpMean50), '%; '];
+	end
+	
+    if (show_SOC_percentage) || (show_soloSOC_percentage && IsSoloGroup)
         title({[title_textA, title_textB]}, 'FontSize', title_fontsize, 'Interpreter', 'none', 'FontWeight', title_fontweight);
-    end
-    
+	end
+	
+	if (save_SOC_percentage)
+		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SOC.percentages.', 'txt']);
+		fid = fopen(outfile_fqn, 'w', 'n', 'UTF-8');
+		fprintf(fid, 'SideA: %s\n', title_textA);
+		fprintf(fid, 'SideB: %s', title_textB);
+		fclose(fid);	
+	end
+	
     hold off
     %
     SoC_axes_h = gca();

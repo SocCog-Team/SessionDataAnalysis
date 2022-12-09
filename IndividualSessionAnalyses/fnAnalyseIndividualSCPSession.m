@@ -1,4 +1,4 @@
-function [ output ] = fnAnalyseIndividualSCPSession( SessionLogFQN, OutputBasePath, project_name )
+function [ output ] = fnAnalyseIndividualSCPSession( SessionLogFQN, OutputBasePath, project_name, override_directive )
 %fnAnalyseIndividualSCPSession perform the analysis of individual sessions
 %   This function is intended to generate the single session analysis and
 %   also to accumulate data into a sessions table for inter session
@@ -66,7 +66,7 @@ end
 if strcmp(SessionLogExt, '.triallog')
 	% use magic .triallog extension to load the freshest version cheaply,
 	% the logic moved into fnParseEventIDEReportSCPv06
-	DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]));
+	DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]), ';', '|', override_directive);
 	FileName = [FileName, SessionLogExt]; % to meet old behaviour
 elseif strcmp(SessionLogExt, '.txt')
 	% check the current parser version
@@ -79,7 +79,7 @@ elseif strcmp(SessionLogExt, '.txt')
 		DataStruct = tmpDataStruct.report_struct;
 		clear tmpDataStruct;
 	else
-		DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]));
+		DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]), ';', '|', override_directive);
 		%save(matFilename, 'DataStruct'); % fnParseEventIDEReportSCPv06 saves by default
 	end
 end
@@ -124,14 +124,14 @@ ExcludeTrialIdx = intersect(TrialSets.ByOutcome.REWARD, TrialSets.ByChoices.NumC
 if ~isempty(TrialSets.ByJointness.DualSubjectJointTrials)
 	% here we only have the actually cooperation trials (for BvS)
 	% do some timecourse analysis and imaging
-	[tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets, project_name);
+	[tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets, project_name, override_directive);
 	output.joint = tmp_output;
 	if (ProcessJointTrialsOnly)
 		%disp([]);
 		return
 	end
 elseif ~isempty(TrialSets.ByActivity.SingleSubjectTrials) || ~isempty(TrialSets.ByJointness.DualSubjectSoloTrials)
-	[tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets, project_name);
+	[tmp_output] = fnAnalyzeJointTrials(SessionLogFQN, OutputBasePath, DataStruct, TrialSets, project_name, override_directive);
 	output.single = tmp_output;
 	if (ProcessJointTrialsOnly)
 		disp([mfilename, ': Found zero joint trial records in ', SessionLogFQN, ' bailing out...']);
