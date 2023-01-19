@@ -7,6 +7,8 @@ function [ TrialSets ] = fnCollectTrialSets( LogStruct )
 % not set for EvaluateTouchPanel, so detect true joint trials by both
 % subjects touching the initial target, the main target and getting rewards
 
+%TODO: add blocked/shuffled sets.
+
 TrialSets = [];
 
 if ~isfield(LogStruct, 'data') || isempty(LogStruct.data)
@@ -149,12 +151,46 @@ if isfield(LogStruct.Enums, 'RandomizationMethodCodes') && isfield(LogStruct.Enu
             
             TrialSets.ByConfChoiceCue_RndMethod.SideA.(cur_rnd_method) = find(ismember(ConfChoiceCue_A_rnd_method_by_trial_list, {cur_rnd_method}));
             TrialSets.ByConfChoiceCue_RndMethod.SideB.(cur_rnd_method) = find(ismember(ConfChoiceCue_B_rnd_method_by_trial_list, {cur_rnd_method}));
-        end
-    else
-        TrialSets.ByConfChoiceCue_RndMethod = [];
-    end
+		end
+		
+		% blocked_shuffled
+		shortConfChoiceCue_A_rnd_method_by_trial_list = ConfChoiceCue_A_rnd_method_by_trial_list;
+		shortConfChoiceCue_A_rnd_method_by_trial_list(ismember(ConfChoiceCue_A_rnd_method_by_trial_list, {'BLOCKED_GEN_LIST'})) = {'BLOCKED'};
+		shortConfChoiceCue_A_rnd_method_by_trial_list(ismember(ConfChoiceCue_A_rnd_method_by_trial_list, {'RND_GEN_LIST'})) = {'SHUFFLED'};
+
+		shortConfChoiceCue_B_rnd_method_by_trial_list = ConfChoiceCue_B_rnd_method_by_trial_list;
+		shortConfChoiceCue_B_rnd_method_by_trial_list(ismember(ConfChoiceCue_B_rnd_method_by_trial_list, {'BLOCKED_GEN_LIST'})) = {'BLOCKED'};
+		shortConfChoiceCue_B_rnd_method_by_trial_list(ismember(ConfChoiceCue_B_rnd_method_by_trial_list, {'RND_GEN_LIST'})) = {'SHUFFLED'};
+		
+		
+		 ConfChoiceCueRnd_methodCombination_list = strcat('cue', shortConfChoiceCue_A_rnd_method_by_trial_list, '_', 'cue', shortConfChoiceCue_B_rnd_method_by_trial_list);
+		[unique_ConfChoiceCueRnd_method_combinations, ~, ConfChoiceCueRnd_methodCombination_trial_idx] = unique(ConfChoiceCueRnd_methodCombination_list);
+		for i_ConfChoiceCueRnd_method_combination = 1 : length(unique_ConfChoiceCueRnd_method_combinations)
+			TrialSets.ByConfChoiceCue_RndMethod.Combinations.(unique_ConfChoiceCueRnd_method_combinations{i_ConfChoiceCueRnd_method_combination}) = find(ConfChoiceCueRnd_methodCombination_trial_idx == i_ConfChoiceCueRnd_method_combination);
+		end
+% 		[unique_SideA_list, ~, SideA_trial_idx] = unique(ConfChoiceCue_A_rnd_method_by_trial_list);
+% 		for i_SideA = 1 : length(unique_SideA_list)
+% 			TrialSets.ByConfChoiceCue_RndMethod.SideA.(unique_SideA_list{i_SideA}) = find(SideA_trial_idx == i_SideA);
+% 		end
+% 		[unique_SideB_list, ~, SideB_trial_idx] = unique(ConfChoiceCue_B_rnd_method_by_trial_list);
+% 		for i_SideB = 1 : length(unique_SideB_list)
+% 			TrialSets.ByConfChoiceCue_RndMethod.SideB.(unique_SideB_list{i_SideB}) = find(SideB_trial_idx == i_SideB);
+% 		end
+% 		
+		
+		
+	else
+		TrialSets.ByConfChoiceCue_RndMethod.SideA.NONE = TrialSets.All;
+		TrialSets.ByConfChoiceCue_RndMethod.SideB.NONE = TrialSets.All;
+		TrialSets.ByConfChoiceCue_RndMethod.NONE = TrialSets.All;
+		TrialSets.ByConfChoiceCue_RndMethod.Combinations.('cueNONE_cueNONE') = TrialSets.All;
+	end
 else
-    TrialSets.ByConfChoiceCue_RndMethod = [];
+	TrialSets.ByConfChoiceCue_RndMethod = [];
+	TrialSets.ByConfChoiceCue_RndMethod.SideA.NONE = TrialSets.All;
+	TrialSets.ByConfChoiceCue_RndMethod.SideB.NONE = TrialSets.All;
+	TrialSets.ByConfChoiceCue_RndMethod.NONE = TrialSets.All;
+	TrialSets.ByConfChoiceCue_RndMethod.Combinations.('cueNONE_cueNONE') = TrialSets.All;
 end
 
 
@@ -279,10 +315,10 @@ solo_trialsubtype_list = proto_solo_trialsubtype_list(ismember(proto_solo_trials
 for i_solo_sst = 1 : length(solo_trialsubtype_list)
 	cur_solo_trialsubtype = solo_trialsubtype_list{i_solo_sst};
 	if ~isempty(strfind(cur_solo_trialsubtype, 'SoloB'))
-		SideA_agent_list(TrialSets.ByTrialSubType.(cur_solo_trialsubtype)) = {'None'};
+		SideA_agent_list(TrialSets.ByTrialSubType.(cur_solo_trialsubtype)) = {'idNone'};
 	end
 	if ~isempty(strfind(cur_solo_trialsubtype, 'SoloA'))
-		SideB_agent_list(TrialSets.ByTrialSubType.(cur_solo_trialsubtype)) = {'None'};
+		SideB_agent_list(TrialSets.ByTrialSubType.(cur_solo_trialsubtype)) = {'idNone'};
 	end
 end
 SubjectCombination_list = strcat(SideA_agent_list, '_', SideB_agent_list);
@@ -815,13 +851,6 @@ TrialSets.ByFirstReaction.SideB.TargetAcquisition = union(TmpOnly_B, TmpJointTri
 % or equal
 TrialSets.ByFirstReaction.SideA.TargetAcquisitionEqual = TmpJointTrials(TmpBothSidesEquallyFast_idx);
 TrialSets.ByFirstReaction.SideB.TargetAcquisitionEqual = TmpJointTrials(TmpBothSidesEquallyFast_idx);
-
-
-
-
-
-
-
 
 return
 end
