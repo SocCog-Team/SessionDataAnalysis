@@ -1,4 +1,4 @@
-function [ session_struct ] = fn_collect_and_store_per_session_information( cur_session_logfile_fqn,  cur_cur_output_base_dir, config_name )
+function [ session_info_struct, session_info_struct_version ] = fn_collect_and_store_per_session_information( cur_session_logfile_fqn,  cur_cur_output_base_dir, config_name )
 %FN_COLLECT_AND_STORE_PER_SESSION_INFORMATION extract information for
 %individual sessions and store them into a big table
 %   Collect information about sessions about number of trials per trial sub
@@ -11,8 +11,19 @@ function [ session_struct ] = fn_collect_and_store_per_session_information( cur_
 %B, name A, B, meanRT(A, mean RT(B), Cue type A, B (shuffled/blocked), with
 %ephys (ckeck folder), tank id list, is clustered? is analyzed
 
+summary_suffix = 'session_summary';
+% to allow automatic updates for newer versions with more fields or error
+% corrections add the version number...
+session_info_struct_version = '1';
+
 [logfile_path, logfile_name, log_file_ext] = fileparts(cur_session_logfile_fqn);
-session_info = fn_parse_session_id(logfile_name);
+% find the canonical session ID
+processed_session_id = logfile_name;
+processed_session_id = regexprep(processed_session_id, '.gz', '');
+processed_session_id = regexprep(processed_session_id, '.txt', '');
+processed_session_id = regexprep(processed_session_id, '.triallog', '');
+
+session_info = fn_parse_session_id(processed_session_id);
 
 [cur_session_logfile_path, cur_session_logfile_name, cur_session_logfile_ext] = fileparts(cur_session_logfile_fqn);
 
@@ -69,6 +80,8 @@ session_info_struct = struct();
 
 % collect information affecting the whole session
 session_struct.session_ID = session_info.session_id;
+session_struct.sort_key_string = session_info.session_id;
+session_struct.version = session_info_struct_version;
 session_struct.date = session_info.YYYYMMDD_string;
 session_struct.time = session_info.HHmmSS_string;
 
@@ -141,7 +154,7 @@ trialsubtype_list = proto_trialsubtype_list(real_trial_subtype_ldx);
 % rewarded trials
 rewarded_trial_idx = TrialSets.ByOutcome.REWARD;
 aborted_trial_idx = TrialSets.ByOutcome.ABORT;
-
+combination_count = 0;
 for i_subject_side_combination = 1 : length(subject_side_combination_list)
 	subject_side_combination_struct = session_struct;
 	cur_subject_side_combination = subject_side_combination_list{i_subject_side_combination};
@@ -162,7 +175,7 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 		cur_trial_idx = intersect(cur_subject_side_combination_trial_idx, cur_trialsubtype_trial_idx);
 		% skip over empty sets
 		if isempty(cur_trial_idx)
-			disp(['No trials for ',cur_subject_side_combination, ' ', cur_trialsubtype]);
+			disp(['No trials for TrialSubType',cur_subject_side_combination, ' ', cur_trialsubtype]);
 			continue
 		end
 		trialsubtype_struct = subject_side_combination_struct;
@@ -185,6 +198,9 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 				disp(['No trials for ',cur_subject_side_combination, ' ', cur_trialsubtype, ' ', cur_cue_randomization_combination]);
 				continue
 			end
+			
+			cue_randomization_combination_struct.record_type = 'combination';
+			
 			% outcome (rewarded versus aborted) combined for both sides
 			cur_rewarded_trials_idx = intersect(TrialSets.ByOutcome.REWARD, cur_trial_idx);
 			cur_aborted_trials_idx = intersect(TrialSets.ByOutcome.ABORT, cur_trial_idx);
@@ -206,17 +222,63 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 			else
 				session_info_struct(end+1) = cue_randomization_combination_struct;
 			end
-	
+			combination_count = combination_count + 1;
+			session_info_struct(end).sort_key_string = [session_struct.session_ID, '_', num2str(combination_count, '%03d')];
+			session_info_struct(end).Session_dir = logfile_path;
 		end
 	end
 end
 
 % TODO add summary giving the number of different values per string field
 % and total trials for trial fields
-disp('Doh...');
+
+% report these veridically
+total_string_fields = {'session_ID', 'date', 'time', 'Analysed', 'TankID_list', 'EPhysRecorded', 'EPhysClustered', 'Session_dir'};
+total_aggregate_fields =     {'HitTrials', 'AbortedTrials', 'HitTrials_A', 'AbortedTrials_A', 'HitTrials_B', 'AbortedTrials_B'};
+
+session_info_struct_fieldlist = fieldnames(session_info_struct(end));
+total_session_info_struct = struct();
+for i_field = 1 : length(session_info_struct_fieldlist)
+	cur_field = session_info_struct_fieldlist{i_field};
+	if ismember(cur_field, total_string_fields)
+		% copy
+		total_session_info_struct.(cur_field) = session_info_struct(end).(cur_field);
+	else
+		if iscell(session_info_struct(end).(cur_field)) || isstring(session_info_struct(end).(cur_field)) || ischar(session_info_struct(end).(cur_field))
+			% report the count of unique values per field
+			tmp_list = {session_info_struct(:).(cur_field)};
+			if ~iscell(tmp_list)
+				tmp_list = {tmp_list};
+			end
+			tmp_unique = unique(tmp_list);
+			total_session_info_struct.(cur_field) = ['N_', num2str(length(tmp_unique))];
+		end
+		if isnumeric(session_info_struct(end).(cur_field))
+			%report the sum
+			total_session_info_struct.(cur_field) = sum(session_info_struct(:).(cur_field), 'omitnan');
+			
+		end
+	end
+end
+% add the total as a tally at the very end
+session_info_struct(end+1) = total_session_info_struct;
+combination_count = combination_count + 1;
+session_info_struct(end).sort_key_string = [session_struct.session_ID, '_', num2str(combination_count, '%03d')];
+session_info_struct(end).record_type = 'total';
+
 
 % save out the output as semicolon-separated-values and as excel worksheet
 % per sessiondir
+% save as matlab struct
+save(fullfile(logfile_path, [processed_session_id, '.single_', summary_suffix, '.mat']), 'session_info_struct');
+% convert to table
+single_session_table = struct2table(session_info_struct);
+% save as excel file
+writetable(single_session_table, fullfile(logfile_path, [processed_session_id, '.single_', summary_suffix, '.xlsx']));
+% save as TXT
+writetable(single_session_table, fullfile(logfile_path, [processed_session_id, '.single_', summary_suffix, '.txt']), 'Delimiter', ';');
+% save as CSV
+writetable(single_session_table, fullfile(logfile_path, [processed_session_id, '.single_', summary_suffix, '.csv']), 'Delimiter', ',');
 
 
 % return the completed struct?
