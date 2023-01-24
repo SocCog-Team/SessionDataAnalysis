@@ -20,17 +20,18 @@ else
 	disp([mfilename, ': ProcessFirstOnly from caller: ', num2str(ProcessFirstOnly)]);
 end
 
-ProcessNewestFirst = 1;	% sort order, natural order is oldest first
+ProcessNewestFirst = 0;	% sort order, natural order is oldest first
 copy_triallogs_to_outputdir = 0;				% 
-RunSingleSessionAnalysis = 1;					% actually do the work...
+RunSingleSessionAnalysis = 0;					% actually do the work...
 ProcessFreshSessionsOnly = 0;					% only process sessions without signs of being already analysed
 fresh_definition_string = 'no_statistics_txt';	% which method to use to detect whether a session is already analysed
 session_group_name = '';						% a name to be defenied in fn_get_session_group as part of the include list
 project_name = [];								% this string will be appended to the OutputDir as subdirectory and passed to group analysis scripts
-save_data_to_sessiondir = 0;					% either collect plots in a big output directory or inside each session directory
 
-save_per_session_info_table = 1;				% write out a table that collects information about each session
-per_session_info_type = 'default';				% what form to export the per session information into
+save_data_to_sessiondir = 0;							% either collect plots in a big output directory or inside each session directory
+session_info_name_stem = 'All_session_summary_table';	% how to name the big session information file
+save_per_session_info_table = 1;						% write out a table that collects information about each session
+per_session_info_type = 'default';						% what form to export the per session information into
 
 project_name = [];								%'BoS_manuscript', 'ephys', 'SfN2018'
 project_name = 'BoS_manuscript';
@@ -146,8 +147,8 @@ ExperimentFileFQN_list = {fullfile(experimentFolder, '/2017/171121/20171121T1626
 % Jump over the examples and start clean
 ExperimentFileFQN_list = [];
 
-
-ExperimentFileFQN_list = {fullfile(experimentFolder, '/2020/201117/20201117T135345.A_Elmo.B_None.SCP_01.sessiondir/20201117T135345.A_Elmo.B_None.SCP_01.triallog.txt')};
+% example with ePhys data
+%ExperimentFileFQN_list = {fullfile(experimentFolder, '/2020/201117/20201117T135345.A_Elmo.B_None.SCP_01.sessiondir/20201117T135345.A_Elmo.B_None.SCP_01.triallog.txt')};
 
 
 tic
@@ -308,7 +309,12 @@ for iSession = 1 : length(experimentFile)
 	
 	% store aggregate information into a table/database
 	if (save_per_session_info_table)
-		fn_collect_and_store_per_session_information(CurentSessionLogFQN, cur_cur_output_base_dir, per_session_info_type);
+		[session_info_struct, session_info_struct_version]  = fn_collect_and_store_per_session_information(CurentSessionLogFQN, cur_cur_output_base_dir, per_session_info_type);
+		if ~exist('session_info_struct_array', 'var')
+			session_info_struct_array = session_info_struct;
+		else
+			session_info_struct_array(end+1) = session_info_struct;
+		end
 	end
 	% perform actual time consuming analysis
 	if (RunSingleSessionAnalysis)
@@ -323,6 +329,13 @@ for iSession = 1 : length(experimentFile)
 		end
 	end
 end
+
+% now save the session_info_struct_array out 
+all_session_info_table_FQN = fullfile(experimentFolder, [session_info_name_stem, '.V', num2str(session_info_struct_version, '%03d'), '.mat']);
+fn_update_session_info_table(all_session_info_table_FQN, session_info_struct_array, 'sort_key_string');
+
+
+
 
 
 % collect the output from

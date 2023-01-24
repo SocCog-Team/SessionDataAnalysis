@@ -21,6 +21,8 @@ sort_key_list = {data_struct_array(:).(sort_by_field_name)};
 output_data_struct_array = data_struct_array(unique_record_idx);
 
 % save as mat file:
+disp(['Saving session info data as: ' existing_session_info_table_FQN]);
+
 save(existing_session_info_table_FQN, 'output_data_struct_array');
 
 % now save as xlsx and csv

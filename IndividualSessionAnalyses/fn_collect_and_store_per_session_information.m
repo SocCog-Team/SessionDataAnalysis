@@ -60,7 +60,7 @@ else
 	A_blocked_trials_idx = [];
 	B_shuffled_trials_idx = [];
 	B_blocked_trials_idx = [];
-end	
+end
 
 if ~exist(config_name, 'var') || isempty(config_name)
 	config_name = 'default';
@@ -68,7 +68,7 @@ end
 
 
 switch lower(config_name)
-	case {'default'}	
+	case {'default'}
 	otherwise
 		error(['Unkown config_name requested: ', config_name, ', FIX ME.']);
 end
@@ -91,12 +91,11 @@ session_struct.time = session_info.HHmmSS_string;
 
 % ephys, clustered, analyses
 
+session_struct.Analysed = 0;
 if isfolder(fullfile(logfile_path, 'ANALYSIS'))
 	if ~isempty(dir(fullfile(logfile_path, 'ANALYSIS', '*.pdf')))
 		session_struct.Analysed = 1;
 	end
-else
-	session_struct.Analysed = 0;
 end
 
 if isfolder(fullfile(logfile_path, 'TDT'))
@@ -124,7 +123,7 @@ if isfolder(fullfile(logfile_path, 'TDT'))
 				tmp_EPhysClustered_string = [tmp_EPhysClustered_string, ';', '1'];
 			else
 				tmp_EPhysClustered_string = [tmp_EPhysClustered_string, ';', '0'];
-			end			
+			end
 		end
 		session_struct.TankID_list = tmp_TankID_list(2:end);
 		session_struct.EPhysRecorded = tmp_EPhysRecorded_string(2:end);
@@ -141,7 +140,7 @@ else
 end
 
 % get trial numbers
-% find the subsets of subject side combination pairs and trial types and shuffled/blocked 
+% find the subsets of subject side combination pairs and trial types and shuffled/blocked
 subject_side_combination_list = fieldnames(TrialSets.ByName.Combinations);
 
 cue_randomization_combination_list = fieldnames(TrialSets.ByConfChoiceCue_RndMethod.Combinations);
@@ -213,10 +212,13 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 			cue_randomization_combination_struct.AbortedTrials_A = length(cur_aborted_trials_A_idx);
 			% Side B
 			cur_rewarded_trials_B_idx = intersect(TrialSets.ByOutcome.SideB.REWARD, cur_trial_idx);
-			cur_aborted_trials_B_idx = intersect(TrialSets.ByOutcome.SideB.ABORT, cur_trial_idx);			
+			cur_aborted_trials_B_idx = intersect(TrialSets.ByOutcome.SideB.ABORT, cur_trial_idx);
 			cue_randomization_combination_struct.HitTrials_B = length(cur_rewarded_trials_B_idx);
 			cue_randomization_combination_struct.AbortedTrials_B = length(cur_aborted_trials_B_idx);
- 			
+			
+			% add final long fields
+			cue_randomization_combination_struct.Session_dir = logfile_path;
+			
 			if (length(fieldnames(session_info_struct)) == 0)
 				session_info_struct = cue_randomization_combination_struct;
 			else
@@ -224,7 +226,7 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 			end
 			combination_count = combination_count + 1;
 			session_info_struct(end).sort_key_string = [session_struct.session_ID, '_', num2str(combination_count, '%03d')];
-			session_info_struct(end).Session_dir = logfile_path;
+			
 		end
 	end
 end
@@ -233,7 +235,7 @@ end
 % and total trials for trial fields
 
 % report these veridically
-total_string_fields = {'session_ID', 'date', 'time', 'Analysed', 'TankID_list', 'EPhysRecorded', 'EPhysClustered', 'Session_dir'};
+total_string_fields = {'session_ID', 'sort_key_string', 'version', 'date', 'time', 'Analysed', 'TankID_list', 'EPhysRecorded', 'EPhysClustered', 'Session_dir'};
 total_aggregate_fields =     {'HitTrials', 'AbortedTrials', 'HitTrials_A', 'AbortedTrials_A', 'HitTrials_B', 'AbortedTrials_B'};
 
 session_info_struct_fieldlist = fieldnames(session_info_struct(end));
@@ -255,7 +257,7 @@ for i_field = 1 : length(session_info_struct_fieldlist)
 		end
 		if isnumeric(session_info_struct(end).(cur_field))
 			%report the sum
-			total_session_info_struct.(cur_field) = sum(session_info_struct(:).(cur_field), 'omitnan');
+			total_session_info_struct.(cur_field) = sum([session_info_struct(:).(cur_field)], 'omitnan');
 			
 		end
 	end
