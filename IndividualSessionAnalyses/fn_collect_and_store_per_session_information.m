@@ -36,7 +36,7 @@ end
 [report_struct, TrialSets] = fn_load_triallog(cur_session_logfile_fqn);
 
 % we need at least one trial in the logfile
-if size(report_struct.data, 1) < 1 
+if isempty(fieldnames(report_struct)) || size(report_struct.data, 1) < 1 
 	session_info_struct = [];
 	disp([processed_session_id, ': no trials found in logfile, skipping...']);
 	return
@@ -213,7 +213,7 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 				continue
 			end
 			
-			cue_randomization_combination_struct.record_type = 'combination';
+			cue_randomization_combination_struct.record_type = 'COMBINATION';
 			
 			% outcome (rewarded versus aborted) combined for both sides
 			cur_rewarded_trials_idx = intersect(TrialSets.ByOutcome.REWARD, cur_trial_idx);
@@ -249,6 +249,12 @@ end
 % TODO add summary giving the number of different values per string field
 % and total trials for trial fields
 
+if isempty(fieldnames(session_info_struct))
+	session_info_struct = [];
+	disp([processed_session_id, ': no rewarded trials found in logfile, skipping...']);
+	return
+end
+
 % report these veridically
 total_string_fields = {'session_ID', 'sort_key_string', 'version', 'date', 'time', 'Analysed', 'TankID_list', 'EPhysRecorded', 'EPhysClustered', 'Session_dir'};
 total_aggregate_fields =     {'HitTrials', 'AbortedTrials', 'HitTrials_A', 'AbortedTrials_A', 'HitTrials_B', 'AbortedTrials_B'};
@@ -281,7 +287,7 @@ end
 session_info_struct(end+1) = total_session_info_struct;
 combination_count = combination_count + 1;
 session_info_struct(end).sort_key_string = [session_struct.session_ID, '_', num2str(combination_count, '%03d')];
-session_info_struct(end).record_type = 'total';
+session_info_struct(end).record_type = 'TOTAL';
 
 
 % save out the output as semicolon-separated-values and as excel worksheet
