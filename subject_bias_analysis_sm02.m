@@ -22,7 +22,7 @@ end
 
 ProcessNewestFirst = 0;	% sort order, natural order is oldest first
 copy_triallogs_to_outputdir = 0;				% 
-RunSingleSessionAnalysis = 0;					% actually do the work...
+RunSingleSessionAnalysis = 1;					% actually do the work...
 ProcessFreshSessionsOnly = 0;					% only process sessions without signs of being already analysed
 fresh_definition_string = 'no_statistics_txt';	% which method to use to detect whether a session is already analysed
 session_group_name = '';						% a name to be defenied in fn_get_session_group as part of the include list
@@ -37,8 +37,7 @@ project_name = [];								%'BoS_manuscript', 'ephys', 'SfN2018'
 project_name = 'BoS_manuscript';
 project_name = 'ephys'; % this is the default 
 project_name = 'SfN2018'; % or SfN2008 this loops back to 2019
-
-project_name = 'per_session_information'; 
+%project_name = 'per_session_information'; 
 
 % allow to ignore some sessions
 %TODO fix up the parser to deal with older well-formed report files, switch
@@ -85,6 +84,7 @@ if (fnIsMatlabRunningInTextMode)
 	ProcessNewestFirst = 1;
 	ProcessFreshSessionsOnly = 1;
 	save_per_session_info_table = 1;
+	RunSingleSessionAnalysis = 1;					% actually do the work...
 end
 
 
