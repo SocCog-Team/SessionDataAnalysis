@@ -324,14 +324,18 @@ end
 SubjectCombination_list = strcat(SideA_agent_list, '_', SideB_agent_list);
 [unique_subject_combinations, ~, subject_combination_trial_idx] = unique(SubjectCombination_list);
 for i_subject_combination = 1 : length(unique_subject_combinations)
+	% make sure to remove dots in names...
+	unique_subject_combinations{i_subject_combination} = regexprep(unique_subject_combinations{i_subject_combination}, '\.', '_');
 	TrialSets.ByName.Combinations.(unique_subject_combinations{i_subject_combination}) = find(subject_combination_trial_idx == i_subject_combination);
 end
 [unique_SideA_list, ~, SideA_trial_idx] = unique(SideA_agent_list);
 for i_SideA = 1 : length(unique_SideA_list)
+	unique_SideA_list{i_SideA} = regexprep(unique_SideA_list{i_SideA}, '\.', '_');
 	TrialSets.ByName.SideA.(unique_SideA_list{i_SideA}) = find(SideA_trial_idx == i_SideA);
 end
 [unique_SideB_list, ~, SideB_trial_idx] = unique(SideB_agent_list);
 for i_SideB = 1 : length(unique_SideB_list)
+	unique_SideB_list{i_SideB} = regexprep(unique_SideB_list{i_SideB}, '\.', '_');
 	TrialSets.ByName.SideB.(unique_SideB_list{i_SideB}) = find(SideB_trial_idx == i_SideB);
 end
 

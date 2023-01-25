@@ -65,6 +65,7 @@ end
 
 % special case for exporting per session aggregate information
 if strcmp(project_name, 'per_session_information')
+	ProcessFirstOnly = 0;
 	ProcessFreshSessionsOnly = 0;
 	RunSingleSessionAnalysis = 0;
 	session_group_name = '';
@@ -310,10 +311,12 @@ for iSession = 1 : length(experimentFile)
 	% store aggregate information into a table/database
 	if (save_per_session_info_table)
 		[session_info_struct, session_info_struct_version]  = fn_collect_and_store_per_session_information(CurentSessionLogFQN, cur_cur_output_base_dir, per_session_info_type);
-		if ~exist('session_info_struct_array', 'var')
-			session_info_struct_array = session_info_struct;
-		else
-			session_info_struct_array(end+1) = session_info_struct;
+		if ~isempty(session_info_struct)
+			if ~exist('session_info_struct_array', 'var')
+				session_info_struct_array = session_info_struct;
+			else
+				session_info_struct_array = [session_info_struct_array, session_info_struct];
+			end
 		end
 	end
 	% perform actual time consuming analysis

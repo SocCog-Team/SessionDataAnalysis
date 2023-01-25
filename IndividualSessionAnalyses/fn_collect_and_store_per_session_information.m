@@ -35,6 +35,21 @@ end
 % load data and TrialSets
 [report_struct, TrialSets] = fn_load_triallog(cur_session_logfile_fqn);
 
+% we need at least one trial in the logfile
+if size(report_struct.data, 1) < 1 
+	session_info_struct = [];
+	disp([processed_session_id, ': no trials found in logfile, skipping...']);
+	return
+end	
+
+% we also need a filled TrialSet...
+if isempty(TrialSets) 
+	session_info_struct = [];
+	disp([processed_session_id, ': empty TrialSets found for logfile, skipping...']);
+	return
+end	
+
+
 % this is primaryly information about whether a cue was visibe and by which
 % rule it was selected, it does not show that a subject actually folowed
 % the cue signal.
