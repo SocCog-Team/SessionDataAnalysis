@@ -80,7 +80,7 @@ if (fnIsMatlabRunningInTextMode)
 	project_name = 'SfN2008';
 	%project_name = [];
 	fresh_definition_string = 'no_statistics_txt';
-	ProcessFirstOnly = 1;
+	ProcessFirstOnly = 0;
 	ProcessNewestFirst = 1;
 	ProcessFreshSessionsOnly = 1;
 	save_per_session_info_table = 1;
