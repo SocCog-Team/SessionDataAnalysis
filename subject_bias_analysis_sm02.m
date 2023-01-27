@@ -80,7 +80,7 @@ if (fnIsMatlabRunningInTextMode)
 	project_name = 'SfN2008';
 	%project_name = [];
 	fresh_definition_string = 'no_statistics_txt';
-	ProcessFirstOnly = 0;
+	ProcessFirstOnly = 1;
 	ProcessNewestFirst = 1;
 	ProcessFreshSessionsOnly = 1;
 	save_per_session_info_table = 1;
@@ -150,6 +150,7 @@ ExperimentFileFQN_list = [];
 
 % example with ePhys data
 %ExperimentFileFQN_list = {fullfile(experimentFolder, '/2020/201117/20201117T135345.A_Elmo.B_None.SCP_01.sessiondir/20201117T135345.A_Elmo.B_None.SCP_01.triallog.txt')};
+%ExperimentFileFQN_list = {'Y:\SCP_DATA\SCP-CTRL-01\SESSIONLOGS\2020\200624\20200624T000001M.A_Elmo.B_None.SCP_01.sessiondir\20200624T000001M.A_Elmo.B_None.SCP_01.triallog'};
 
 
 tic
@@ -321,7 +322,7 @@ for iSession = 1 : length(experimentFile)
 	end
 	% perform actual time consuming analysis
 	if (RunSingleSessionAnalysis)
-		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, cur_cur_output_base_dir, project_name);
+		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, cur_cur_output_base_dir, project_name, override_directive);
 		if ~isempty(out)
 			out_list{end+1} = out;
 		end
