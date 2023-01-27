@@ -334,10 +334,14 @@ for iSession = 1 : length(experimentFile)
 	end
 end
 
-% now save the session_info_struct_array out 
-all_session_info_table_FQN = fullfile(experimentFolder, [session_info_name_stem, '.V', num2str(session_info_struct_version, '%03d'), '.mat']);
-fn_update_session_info_table(all_session_info_table_FQN, session_info_struct_array, 'sort_key_string');
 
+if ~exist('session_info_struct_array', 'var')
+	% now save the session_info_struct_array out 
+	all_session_info_table_FQN = fullfile(experimentFolder, [session_info_name_stem, '.V', num2str(session_info_struct_version, '%03d'), '.mat']);
+	fn_update_session_info_table(all_session_info_table_FQN, session_info_struct_array, 'sort_key_string');
+else
+	disp('No data extracted in session_info_struct_array, nothing to add to table...');
+end
 
 
 
