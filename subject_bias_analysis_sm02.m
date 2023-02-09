@@ -45,10 +45,18 @@ project_name = 'SfN2018'; % or SfN2008 this loops back to 2019
 % this will operate before IncludeWildcardList
 ExcludeWildCardList = {...
 	'A_None.B_None', 'A_Test', 'B_Test', 'TestA', 'TestB', ...
-	'Exclude.', 'exclude', '_PARKING', '_TESTVERSIONS', '.broken.', 'bak.', ...
+	'Exclude.', 'exclude', '_PARKING', '_TESTVERSIONS', '.broken.', 'bak.', '.EXCLUDE', ...
 	'isOwnChoice_sideChoice.mat', 'DATA_', '.statistics.txt', '.pdf', '.png', '.fig', '.ProximitySensorChanges.log', ...
 	'201701', '20170201', 'A_SM-InactiveVirusScanner', ... % these might be recoverable...
 	};
+
+% detect all valid and analysable triallog variants
+valid_triallog_suffix_regexp_list = {'.triallog.txt.gz$', '.triallog.txt.Fixed.txt$', '.triallog.txt.orig$', '.triallog.txt$', ...
+	'.triallog.v[0-9][0-9][0-9].mat$', '.triallog.txt.v[0-9][0-9][0-9].mat$', '.triallog.fixed.v[0-9][0-9][0-9].mat$', ...
+	};
+% exclude all proto triallog files that do not match the suffix list above
+ignore_invalid_triallog_suffixes = 1;
+
 
 % allow to restrict to a set of sessions we are currently interested in
 % by using wildcard (preferably the unique session IDs)
@@ -73,7 +81,8 @@ end
 
 
 % from the linux VM
-if (fnIsMatlabRunningInTextMode)
+test_text_mode = 1;
+if (fnIsMatlabRunningInTextMode) || test_text_mode
 	session_group_name = '';
 	save_data_to_sessiondir = 1;
 	override_directive = 'local_code';
@@ -158,26 +167,62 @@ if isempty(ExperimentFileFQN_list)
 	disp([mfilename, ': Trying to find all logfiles in ', experimentFolder]);
 	experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
 	
-	if (use_triallog_without_extension) && regexp(LogFileWildCardString, 'triallog\*$')
-		% now get all files matching
+	if (ignore_invalid_triallog_suffixes) || ( (use_triallog_without_extension) && regexp(LogFileWildCardString, 'triallog\*$'))
+	
 		for i_exp_file = 1 : length(experimentFile)
-			%cur_experimentFile = experimentFile{i_exp_file};
-			% canonize the extension to .triallog (handle all variations)
-			% we do this by replacing all known variants of triallog.* with
-			% .triallog
-			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.gz$', '.triallog');
-			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.Fixed.txt$', '.triallog');
-			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.orig$', '.triallog');
-			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt$', '.triallog');
-			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.v[0-9][0-9][0-9].mat$', '.triallog');
-			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.v[0-9][0-9][0-9].mat$', '.triallog');
-			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.fixed.v[0-9][0-9][0-9].mat$', '.triallog');
-			%experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.broken.v013.mat$', '.triallog');
+			cur_experimentFile = experimentFile{i_exp_file};
+			is_match_counter = 0;
+			for i_valid_suffix = 1 : length(valid_triallog_suffix_regexp_list)
+				cur_valid_suffix_regexp = valid_triallog_suffix_regexp_list{i_valid_suffix};
+				% does the pattern match
+				if ~isempty(regexp(cur_experimentFile, cur_valid_suffix_regexp))
+					is_match_counter = is_match_counter + 1;
+				
+					% only change this if requested
+					if  (use_triallog_without_extension) && regexp(LogFileWildCardString, 'triallog\*$')
+						experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, cur_valid_suffix_regexp, '.triallog');
+					end
+				end
+			end
+			if (is_match_counter == 0)
+				% does not match so make sure we exclude this by
+				% temporarily giving it the EXCLUDE suffix
+				experimentFile{i_exp_file} = [experimentFile{i_exp_file}, '.EXCLUDE'];
+			end
+			
 		end
 		% we likely accumulated duplicates while reducing the extension to
 		% .triallog,so get rid of the duplicates, while keeping the order
 		% intact
 		experimentFile = fnUnsortedUnique(experimentFile);	% to keep temporal ordering intact...
+		
+
+	
+% 	if (use_triallog_without_extension) && regexp(LogFileWildCardString, 'triallog\*$')
+% 		% now get all files matching
+% 		for i_exp_file = 1 : length(experimentFile)
+% 			%cur_experimentFile = experimentFile{i_exp_file};
+% 			% canonize the extension to .triallog (handle all variations)
+% 			% we do this by replacing all known variants of triallog.* with
+% 			% .triallog
+% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.gz$', '.triallog');
+% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.Fixed.txt$', '.triallog');
+% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.orig$', '.triallog');
+% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt$', '.triallog');
+% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.v[0-9][0-9][0-9].mat$', '.triallog');
+% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.v[0-9][0-9][0-9].mat$', '.triallog');
+% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.fixed.v[0-9][0-9][0-9].mat$', '.triallog');
+% 			%experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.broken.v013.mat$', '.triallog');
+% 		end
+% 		% mark all other suffixes as to be excluded...
+% 		if isempty(regexp(experimentFile{i_exp_file}, '.triallog$'))
+% 			experimentFile{i_exp_file} = [experimentFile{i_exp_file}, '.EXCLUDE'];
+% 		end
+% 		% we likely accumulated duplicates while reducing the extension to
+% 		% .triallog,so get rid of the duplicates, while keeping the order
+% 		% intact
+% 		experimentFile = fnUnsortedUnique(experimentFile);	% to keep temporal ordering intact...
+% 	end
 	end
 else
 	experimentFile = ExperimentFileFQN_list;
