@@ -81,7 +81,7 @@ end
 
 
 % from the linux VM
-test_text_mode = 1;
+test_text_mode = 0;
 if (fnIsMatlabRunningInTextMode) || test_text_mode
 	session_group_name = '';
 	save_data_to_sessiondir = 1;
@@ -380,7 +380,7 @@ for iSession = 1 : length(experimentFile)
 end
 
 
-if ~exist('session_info_struct_array', 'var')
+if exist('session_info_struct_array', 'var')
 	% now save the session_info_struct_array out 
 	all_session_info_table_FQN = fullfile(experimentFolder, [session_info_name_stem, '.V', num2str(session_info_struct_version, '%03d'), '.mat']);
 	fn_update_session_info_table(all_session_info_table_FQN, session_info_struct_array, 'sort_key_string');
