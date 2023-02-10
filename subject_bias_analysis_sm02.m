@@ -30,8 +30,10 @@ project_name = [];								% this string will be appended to the OutputDir as sub
 
 save_data_to_sessiondir = 0;							% either collect plots in a big output directory or inside each session directory
 session_info_name_stem = 'All_session_summary_table';	% how to name the big session information file
-save_per_session_info_table = 1;						% write out a table that collects information about each session
-per_session_info_type = 'default';						% what form to export the per session information into
+session_info_save_table = 1;							% write out a table that collects information about each session
+session_info_type = 'default';							% what form to export the per session information into
+session_info_incremental_update = 1;					% only extract session_info for unprocessed sessions, otherwise re-extract all sessions.
+
 
 project_name = [];								%'BoS_manuscript', 'ephys', 'SfN2018'
 project_name = 'BoS_manuscript';
@@ -92,7 +94,7 @@ if (fnIsMatlabRunningInTextMode) || test_text_mode
 	ProcessFirstOnly = 0;
 	ProcessNewestFirst = 1;
 	ProcessFreshSessionsOnly = 1;
-	save_per_session_info_table = 1;
+	session_info_save_table = 1;
 	RunSingleSessionAnalysis = 1;					% actually do the work...
 end
 
@@ -195,34 +197,6 @@ if isempty(ExperimentFileFQN_list)
 		% .triallog,so get rid of the duplicates, while keeping the order
 		% intact
 		experimentFile = fnUnsortedUnique(experimentFile);	% to keep temporal ordering intact...
-		
-
-	
-% 	if (use_triallog_without_extension) && regexp(LogFileWildCardString, 'triallog\*$')
-% 		% now get all files matching
-% 		for i_exp_file = 1 : length(experimentFile)
-% 			%cur_experimentFile = experimentFile{i_exp_file};
-% 			% canonize the extension to .triallog (handle all variations)
-% 			% we do this by replacing all known variants of triallog.* with
-% 			% .triallog
-% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.gz$', '.triallog');
-% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.Fixed.txt$', '.triallog');
-% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.orig$', '.triallog');
-% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt$', '.triallog');
-% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.v[0-9][0-9][0-9].mat$', '.triallog');
-% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.txt.v[0-9][0-9][0-9].mat$', '.triallog');
-% 			experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.fixed.v[0-9][0-9][0-9].mat$', '.triallog');
-% 			%experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, '.triallog.broken.v013.mat$', '.triallog');
-% 		end
-% 		% mark all other suffixes as to be excluded...
-% 		if isempty(regexp(experimentFile{i_exp_file}, '.triallog$'))
-% 			experimentFile{i_exp_file} = [experimentFile{i_exp_file}, '.EXCLUDE'];
-% 		end
-% 		% we likely accumulated duplicates while reducing the extension to
-% 		% .triallog,so get rid of the duplicates, while keeping the order
-% 		% intact
-% 		experimentFile = fnUnsortedUnique(experimentFile);	% to keep temporal ordering intact...
-% 	end
 	end
 else
 	experimentFile = ExperimentFileFQN_list;
@@ -285,12 +259,15 @@ if ~isempty(dir(CoordinationSummaryFQN))
 	delete(CoordinationSummaryFQN);
 end
 
-% enforce uniqueness of sessions to avoid work
+% enforce uniqueness of sessions to avoid busy work
 unique_experimentFile = unique(experimentFile);
 if length(unique_experimentFile) < length(experimentFile)
 	disp([mfilename, ': The experimentFile list contained ', num2str(length(experimentFile)-length(unique_experimentFile)), ' duplicates, which we will ignore']);
 	experimentFile = unique_experimentFile;
 end
+
+% testing
+experimentFile = {'Y:\SCP_DATA\SCP-CTRL-01\SESSIONLOGS\2023\230208\20230208T133605.A_Curius.B_SM.SCP_01.sessiondir\ANALYSIS\20230208T133605.A_Curius.B_SM.SCP_01.triallog.A.Curius.B.SM_IC_Dyadic.MutualInformation.pdf'};
 
 % now loop over the sessions/triallogs
 out_list = {};
@@ -314,6 +291,7 @@ for iSession = 1 : length(experimentFile)
 		copyfile(CurentSessionLogFQN, fullfile(tmp_out_path, [current_triallog_name, current_triallog_ext]));
 	end
 	
+	skip_this_session = 0;
 	if (ProcessFreshSessionsOnly)
 		% look for existence of a parsed triallog mat-file, very coarre
 		
@@ -323,7 +301,7 @@ for iSession = 1 : length(experimentFile)
 				[~, CurrentEventIDEReportParserVersionString] = fnParseEventIDEReportSCPv06([]);
 				MatFilename = fullfile(current_triallog_path, [current_triallog_name CurrentEventIDEReportParserVersionString '.mat']);
 				if (exist(MatFilename, 'file'))
-					continue
+					skip_this_session = 1;
 				end
 			case 'no_coordination_check_mat'
 				% does not work for single/solo only sessions
@@ -332,10 +310,7 @@ for iSession = 1 : length(experimentFile)
 				check_suffix = 'isOwnChoice_sideChoice.mat';
 				check_dir_stat = dir(fullfile(check_dir, [check_prefix, current_triallog_name, '*', check_suffix]));
 				if ~isempty(check_dir_stat)
-					disp([mfilename, ': Found existing ', check_suffix,' file for ', current_triallog_name, '; assuming already processed session, skipping over.'])
-					continue
-				else
-					disp([mfilename, ': No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
+					skip_this_session
 				end
 			case 'no_statistics_txt'
 				check_dir = fullfile(cur_cur_output_base_dir);
@@ -343,10 +318,7 @@ for iSession = 1 : length(experimentFile)
 				check_suffix = '.statistics.txt';
 				check_dir_stat = dir(fullfile(check_dir, [check_prefix, current_triallog_name, '*', check_suffix]));
 				if ~isempty(check_dir_stat)
-					disp([mfilename, ': Found existing ', check_suffix,' file for ', current_triallog_name, '; assuming already processed session, skipping over.'])
-					continue
-				else
-					disp([mfilename, ': No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
+					skip_this_session
 				end
 		end
 	end
@@ -354,17 +326,29 @@ for iSession = 1 : length(experimentFile)
 	% was set to zero, otherwise we jump over this for existing
 	% sessions
 	
-	% store aggregate information into a table/database
-	if (save_per_session_info_table)
-		[session_info_struct, session_info_struct_version]  = fn_collect_and_store_per_session_information(CurentSessionLogFQN, cur_cur_output_base_dir, per_session_info_type);
-		if ~isempty(session_info_struct)
-			if ~exist('session_info_struct_array', 'var')
-				session_info_struct_array = session_info_struct;
-			else
-				session_info_struct_array = [session_info_struct_array, session_info_struct];
+	if ((skip_this_session) && ~(session_info_incremental_update)) ...% we do not want to analyse the session, but still re-export the session_info
+		|| (~(skip_this_session) && (session_info_incremental_update))
+	
+		% store aggregate information into a table/database
+		if (session_info_save_table)
+			[session_info_struct, session_info_struct_version]  = fn_collect_and_store_per_session_information(CurentSessionLogFQN, cur_cur_output_base_dir, session_info_type);
+			if ~isempty(session_info_struct)
+				if ~exist('session_info_struct_array', 'var')
+					session_info_struct_array = session_info_struct;
+				else
+					session_info_struct_array = [session_info_struct_array, session_info_struct];
+				end
 			end
 		end
 	end
+	
+	if (skip_this_session)
+		disp([mfilename, ': Found existing ', check_suffix,' file for ', current_triallog_name, '; assuming already processed session, skipping over.'])
+		continue
+	else
+		disp([mfilename, ': No existing ', check_suffix,' file found for', current_triallog_name, '; assuming fresh session, processing.']);
+	end
+	
 	% perform actual time consuming analysis
 	if (RunSingleSessionAnalysis)
 		out = fnAnalyseIndividualSCPSession(CurentSessionLogFQN, cur_cur_output_base_dir, project_name, override_directive);

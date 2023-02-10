@@ -35,6 +35,12 @@ end
 % load data and TrialSets
 [report_struct, TrialSets] = fn_load_triallog(cur_session_logfile_fqn);
 
+if isempty(report_struct) || isempty(TrialSets)
+	session_info_struct = [];
+	disp([logfile_name, log_file_ext, ': does not appear to be a valid trialllog file, skipping...']);
+	return
+end
+
 % we need at least one trial in the logfile
 if isempty(fieldnames(report_struct)) || size(report_struct.data, 1) < 1 
 	session_info_struct = [];

@@ -36,6 +36,11 @@ elseif strcmp(SessionLogExt, '.txt')
 		DataStruct = fnParseEventIDEReportSCPv06(fullfile(PathStr, [FileName, SessionLogExt]), ';', '|', override_directive);
 		%save(matFilename, 'DataStruct'); % fnParseEventIDEReportSCPv06 saves by default
 	end
+else
+	disp([mfilename, ': Not a handled report file: ', SessionLogFQN]);
+	DataStruct = [];
+	TrialSets = [];
+	return
 end
 
 disp([mfilename, ': Processing: ', SessionLogFQN]);
