@@ -266,8 +266,8 @@ if length(unique_experimentFile) < length(experimentFile)
 	experimentFile = unique_experimentFile;
 end
 
-% testing
-experimentFile = {'Y:\SCP_DATA\SCP-CTRL-01\SESSIONLOGS\2023\230208\20230208T133605.A_Curius.B_SM.SCP_01.sessiondir\ANALYSIS\20230208T133605.A_Curius.B_SM.SCP_01.triallog.A.Curius.B.SM_IC_Dyadic.MutualInformation.pdf'};
+% % testing
+% experimentFile = {'Y:\SCP_DATA\SCP-CTRL-01\SESSIONLOGS\2023\230208\20230208T133605.A_Curius.B_SM.SCP_01.sessiondir\ANALYSIS\20230208T133605.A_Curius.B_SM.SCP_01.triallog.A.Curius.B.SM_IC_Dyadic.MutualInformation.pdf'};
 
 % now loop over the sessions/triallogs
 out_list = {};
@@ -310,7 +310,7 @@ for iSession = 1 : length(experimentFile)
 				check_suffix = 'isOwnChoice_sideChoice.mat';
 				check_dir_stat = dir(fullfile(check_dir, [check_prefix, current_triallog_name, '*', check_suffix]));
 				if ~isempty(check_dir_stat)
-					skip_this_session
+					skip_this_session = 1;
 				end
 			case 'no_statistics_txt'
 				check_dir = fullfile(cur_cur_output_base_dir);
@@ -318,7 +318,7 @@ for iSession = 1 : length(experimentFile)
 				check_suffix = '.statistics.txt';
 				check_dir_stat = dir(fullfile(check_dir, [check_prefix, current_triallog_name, '*', check_suffix]));
 				if ~isempty(check_dir_stat)
-					skip_this_session
+					skip_this_session = 1;
 				end
 		end
 	end
