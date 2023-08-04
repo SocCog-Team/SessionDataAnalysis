@@ -6,9 +6,11 @@ function [ ] = fn_update_session_info_table(existing_session_info_table_FQN, new
 if ~isempty(dir(existing_session_info_table_FQN))
 	% load and concatenate the structure arrays
 	existing_data_struct_array = load(existing_session_info_table_FQN);
-	existing_data_struct_array = existing_data_struct_array.output_data_struct_array;
+	existing_data_struct_array = existing_data_struct_array.output_data_struct_array;	
+	% concatenation assures the new modified values are after earlier
+	% instances of the same records, which we use later to replace the old
+	% with the new
 	data_struct_array = [existing_data_struct_array, new_data_struct_array];
-	
 else
 	% existing_session_info_table_FQN does not yet exist, simply sort and
 	% save the data
@@ -17,7 +19,9 @@ end
 
 % sort the data, and return only unique instances
 sort_key_list = {data_struct_array(:).(sort_by_field_name)};
-[unique_key_list, unique_record_idx] = unique(sort_key_list);
+% using 'last' assures that the newer record versions of existing records
+% are kept while the previous once are overwritten...
+[unique_key_list, unique_record_idx] = unique(sort_key_list, 'last');
 output_data_struct_array = data_struct_array(unique_record_idx);
 
 % save as mat file:
