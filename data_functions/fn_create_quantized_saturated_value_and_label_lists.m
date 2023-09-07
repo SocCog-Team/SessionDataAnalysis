@@ -40,6 +40,10 @@ if (~isempty(saturation_min)) || (~isempty(saturation_max))
 end
 
 
+if (quantum > min(abs([saturation_max, saturation_min])))
+	error('Absolute saturation values need to be >= quantum...');
+end	
+
 % quantize?
 output_struct.parameter.quantum = quantum;
 output_struct.parameter.quantum_method_string = quantum_method_string;
