@@ -363,7 +363,7 @@ for iSession = 1 : length(experimentFile)
 	end
 end
 
-
+% TODO export selected version with ephys results
 if exist('session_info_struct_array', 'var')
 	% now save the session_info_struct_array out 
 	all_session_info_table_FQN = fullfile(experimentFolder, [session_info_name_stem, '.V', num2str(session_info_struct_version, '%03d'), '.mat']);
