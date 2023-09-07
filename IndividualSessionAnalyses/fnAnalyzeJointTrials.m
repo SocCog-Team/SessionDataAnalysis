@@ -1298,20 +1298,24 @@ for iGroup = 1 : length(GroupNameList)
                         if (FullPerTrialStruct.isTrialInvisible_AB(1) == 0) && ~isempty(CurTrialsInCurrentSetIdx)
                             % vis pre block
                             vis_pre_trials_idx = find(CurTrialsInCurrentSetIdx < visibility_changes_idx(1));
-                            CurCurTrialsInCurrentSetIdx = CurTrialsInCurrentSetIdx(1:vis_pre_trials_idx(end));
-                            suffix_string = 'visible_pre';
-                            PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.', suffix_string, '.mat'];
-                            [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
-                                OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
-                                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
+							if ~isempty(vis_pre_trials_idx)
+								CurCurTrialsInCurrentSetIdx = CurTrialsInCurrentSetIdx(1:vis_pre_trials_idx(end));
+								suffix_string = 'visible_pre';
+								PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.', suffix_string, '.mat'];
+								[full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+									OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+									isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
+							end
                             % vis_post block
                             vis_post_trials_idx = find(CurTrialsInCurrentSetIdx >= visibility_changes_idx(2));
-                            CurCurTrialsInCurrentSetIdx = CurTrialsInCurrentSetIdx(vis_post_trials_idx(1):end);
-                            suffix_string = 'visible_post';
-                            PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.', suffix_string, '.mat'];
-                            [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
-                                OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
-                                isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
+							if ~isempty(vis_post_trials_idx)
+								CurCurTrialsInCurrentSetIdx = CurTrialsInCurrentSetIdx(vis_post_trials_idx(1):end);
+								suffix_string = 'visible_post';
+								PopulationAggregateName = ['ALL_SESSSION_METRICS', ALL_SESSSION_METRICS_group_string, '.', suffix_string, '.mat'];
+							    [full_coordination_metrics_table, cur_full_coordination_metrics_table] = fn_population_per_session_aggregates_per_trialsubset_wrapper(...
+								    OutputPath, PopulationAggregateName, current_file_group_id_string, info, ...
+								    isOwnChoiceFullArray, sideChoiceObjectiveFullArray, FullPerTrialStruct, coordination_metrics_cfg, CurCurTrialsInCurrentSetIdx, use_all_trials, prefix_string, ['_', suffix_string]);
+							end
 						else
 							if ~isempty(CurTrialsInCurrentSetIdx)
 								error([mfilename, ': found 3 visibility block swith the first invisible, not handled yet.']);
@@ -2192,6 +2196,11 @@ for iGroup = 1 : length(GroupNameList)
             % only look at the good trials in the current set
             cur_diffGoSIgnalTime_idx = intersect(cur_diffGoSIgnalTime_idx, GoodTrialsIdx);
             
+			
+			% collect the average reward per side for each group
+			mean(RewardByTrial_A(cur_diffGoSIgnalTime_idx))
+			mean(RewardByTrial_B(cur_diffGoSIgnalTime_idx))
+			
             % collect the joint choices and build contingency table
             for i_joint_choice = 1 : num_joint_choice_combinations
                 tmp_value_idx = find(value_choices(cur_diffGoSIgnalTime_idx) == i_joint_choice);
