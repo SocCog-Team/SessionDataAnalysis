@@ -83,18 +83,18 @@ for i_switch_type = 1 : length(selected_choice_combinaton_pattern_list)
 			
 			% effectively too short a data set
 			if (cur_switch_start_bin_idx < 1) && (cur_switch_end_bin_idx > length(data))
-				error('This should not trigger anymore, since we pre extend slassifier string and data array.');
+				error('This should not trigger anymore, since we pre extend classifier string and data array.');
 				current_PeriEventTimeData_raw = nan([(n_pre_bins + 1 + n_post_bins), 1]);
 				current_PeriEventTimeData_padded = current_PeriEventTimeData_raw;
 			else
 				if (cur_switch_start_bin_idx < 1)
-					error('This should not trigger anymore, since we pre extend slassifier string and data array.');
+					error('This should not trigger anymore, since we pre extend classifier string and data array.');
 					n_missing_bins = 1 - cur_switch_start_bin_idx;
 					current_PeriEventTimeData_padded = [nan([n_missing_bins, 1]); data(1:cur_switch_end_bin_idx)];
 					current_PeriEventTimeData_raw = nan(size(current_PeriEventTimeData_padded)); % mark event as incomplete
 					cur_switch_start_bin_idx_offset = n_missing_bins;
 				elseif (cur_switch_end_bin_idx > length(data))
-					error('This should not trigger anymore, since we pre extend slassifier string and data array.');
+					error('This should not trigger anymore, since we pre extend classifier string and data array.');
 					n_missing_bins = cur_switch_end_bin_idx - length(data);
 					current_PeriEventTimeData_padded = [data(cur_switch_start_bin_idx:end); nan([n_missing_bins, 1])];
 					current_PeriEventTimeData_raw = nan(size(current_PeriEventTimeData_padded)); % mark event as incomplete

@@ -310,7 +310,8 @@ switch project_name
         histogram_show_median = 0;
         Add_AR_subplot_to_SoC_plot = 1;
         InvisibleFigures = 1;
-        
+         show_coordination_results_in_fig_title = 0;
+
         % 	% PLOS
         % 	case 'BoS_manuscript'
         % 		ShowSelectedSidePerSubjectInRewardPlotBG = 0;
@@ -345,7 +346,7 @@ switch project_name
         % 		Add_AR_subplot_to_SoC_plot = 1;
         % 		InvisibleFigures = 1;
         
-    case 'BoS_manuscript'
+    case {'BoS_manuscript', 'SfN2018'}
         ShowSelectedSidePerSubjectInRewardPlotBG = 0;
         ShowEffectorHandInBackground = 0;
         project_line_width = 0.5;
@@ -358,7 +359,8 @@ switch project_name
         ShowEffectorHandInBackground = 0;
         ShowFasterSideInBackground = 0;
         calc_extra_aggregate_measures = 1;
-        
+          show_coordination_results_in_fig_title = 0;
+       
         DefaultAxesType = 'BoS_manuscript'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
         DefaultPaperSizeType = 'BoS_manuscript.5'; % DPZ2017Evaluation, PrimateNeurobiology2018DPZ
         DefaultPaperSizeType = 'SciAdv'; % Plos_text_col or Plos
@@ -505,7 +507,7 @@ end
 
 
 if ~exist('TrialSets', 'var') || isempty('SfN2008')
-    TrialSets = fnCollectTrialSets(logData);
+    TrialSets = fnCollectTrialSets(DataStruct);
 end
 if isempty(TrialSets)
     disp(['Found zero trial records in ', SessionLogFQN, ' bailing out...']);
@@ -2979,15 +2981,18 @@ for iGroup = 1 : length(GroupNameList)
                     ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
                 
                 % SameA versus 0
-                [ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
-                    0,...
-                    'Tail', 'both');
-                coordinated_vs_anticoordinated.ttest2 = ttest2res;
-                % now add the result
-                title_text2B = ['t-Test (hands visible): B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
-                    ' vs. 0', ...
-                    ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-                
+				if ~isempty(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))
+					[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
+					    0,...
+					    'Tail', 'both');
+				    coordinated_vs_anticoordinated.ttest2 = ttest2res;
+				    % now add the result
+				    title_text2B = ['t-Test (hands visible): B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
+				        ' vs. 0', ...
+				        ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+				else
+					title_text2B = '';
+				end
                 
                 if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
                     % SameA versus SameB
@@ -3212,18 +3217,21 @@ for iGroup = 1 : length(GroupNameList)
                 title_text2 = ['t-Test (hands visible): Coordination on A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
                     ' vs. B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
                     ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-                
-                % SameA versus 0
-                [ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
-                    0,...
-                    'Tail', 'both');
-                coordinated_vs_anticoordinated.ttest2 = ttest2res;
-                % now add the result
-                title_text2A = ['t-Test (hands visible): A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
-                    ' vs. 0', ...
-                    ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-                
-                % SameA versus 0
+				
+				% SameA versus 0
+				if ~isempty(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))
+					[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
+						0,...
+						'Tail', 'both');
+					coordinated_vs_anticoordinated.ttest2 = ttest2res;
+					% now add the result
+					title_text2A = ['t-Test (hands visible): A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
+						' vs. 0', ...
+						', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+				else
+					title_text2A = '';
+				end
+				% SameA versus 0
                 [ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
                     0,...
                     'Tail', 'both');

@@ -158,6 +158,7 @@ ExperimentFileFQN_list = {fullfile(experimentFolder, '/2018/180419/20180419T1413
 ExperimentFileFQN_list = {fullfile(experimentFolder, '/2017/171121/20171121T162619.A_10018.B_20017.SCP_01.sessiondir/20171121T162619.A_10018.B_20017.SCP_01.triallog.txt')};
 % Jump over the examples and start clean
 ExperimentFileFQN_list = [];
+ExperimentFileFQN_list = {fullfile(experimentFolder, '/2018/180419/20180419T141311.A_Flaffus.B_Curius.SCP_01.sessiondir/20180419T141311.A_Flaffus.B_Curius.SCP_01.triallog.txt')};
 
 % example with ePhys data
 %ExperimentFileFQN_list = {fullfile(experimentFolder, '/2020/201117/20201117T135345.A_Elmo.B_None.SCP_01.sessiondir/20201117T135345.A_Elmo.B_None.SCP_01.triallog.txt')};
@@ -321,6 +322,8 @@ for iSession = 1 : length(experimentFile)
 					skip_this_session = 1;
 				end
 		end
+	else
+		check_suffix = [];
 	end
 	% only of either session is fresh or ProcessFreshSessionsOnly
 	% was set to zero, otherwise we jump over this for existing

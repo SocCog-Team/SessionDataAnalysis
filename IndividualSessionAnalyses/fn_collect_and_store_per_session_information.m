@@ -57,7 +57,7 @@ end
 
 
 % this is primaryly information about whether a cue was visibe and by which
-% rule it was selected, it does not show that a subject actually folowed
+% rule it was selected, it does not show that a subject actually followed
 % the cue signal.
 if ~isempty(TrialSets.ByConfChoiceCue_RndMethod) && (isfield(TrialSets.ByConfChoiceCue_RndMethod.SideA, 'BLOCKED_GEN_LIST'))
 	%A

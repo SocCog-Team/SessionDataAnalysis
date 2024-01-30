@@ -32,6 +32,12 @@ if ~exist('project_name', 'var') || isempty(project_name)
 	project_name = [];
 end
 
+if ~exist('override_directive', 'var') || isempty(override_directive)
+	override_directive = 'local_code';
+end
+
+
+
 
 ProcessReactionTimes = 1; % needs work...
 ForceParsingOfExperimentLog = 0; % rewrite the logfiles anyway
