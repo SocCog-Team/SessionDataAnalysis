@@ -27,6 +27,8 @@ ProcessFreshSessionsOnly = 0;					% only process sessions without signs of being
 fresh_definition_string = 'no_statistics_txt';	% which method to use to detect whether a session is already analysed
 session_group_name = '';						% a name to be defenied in fn_get_session_group as part of the include list
 project_name = [];								% this string will be appended to the OutputDir as subdirectory and passed to group analysis scripts
+search_triallog_method = 'use_SCP_structure';	% find_all_files: slow but cpmprehensive will create the full directoty tree, use_SCP_structure: exploit the way SCP01 organizes its data
+
 
 save_data_to_sessiondir = 0;							% either collect plots in a big output directory or inside each session directory
 session_info_name_stem = 'All_session_summary_table';	% how to name the big session information file
@@ -39,7 +41,7 @@ project_name = [];								%'BoS_manuscript', 'ephys', 'SfN2018'
 project_name = 'BoS_manuscript';
 project_name = 'ephys'; % this is the default 
 project_name = 'SfN2018'; % or SfN2008 this loops back to 2019
-%project_name = 'per_session_information'; 
+project_name = 'per_session_information'; 
 
 % allow to ignore some sessions
 %TODO fix up the parser to deal with older well-formed report files, switch
@@ -165,13 +167,53 @@ ExperimentFileFQN_list = {fullfile(experimentFolder, '/2018/180419/20180419T1413
 %ExperimentFileFQN_list = {'Y:\SCP_DATA\SCP-CTRL-01\SESSIONLOGS\2020\200624\20200624T000001M.A_Elmo.B_None.SCP_01.sessiondir\20200624T000001M.A_Elmo.B_None.SCP_01.triallog'};
 
 
+timestamps.search_triallog.start = tic;
 tic
 if isempty(ExperimentFileFQN_list)
-	disp([mfilename, ': Trying to find all logfiles in ', experimentFolder]);
-	experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
-	
+	disp([mfilename, ': Trying to find all logfiles (method ', search_triallog_method,') in ', experimentFolder]);
+	switch search_triallog_method
+		case 'find_all_files'	
+			experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
+		case 'use_SCP_structure'
+			if ~isempty(regexp(experimentFolder, 'SESSIONLOGS'))
+				experimentFile = {};
+				year_level_dirstruct = dir(fullfile(experimentFolder, '20??'));
+				for i_year = 1 : length(year_level_dirstruct)
+					cur_year_name = year_level_dirstruct(i_year).name;
+					disp([mfilename, ': Searching year ', cur_year_name]);
+					% non numbers convert to NaNs...
+					if ~isnan(str2double(cur_year_name)) && year_level_dirstruct(i_year).isdir
+						YYMMDD_level_dirstruct = dir(fullfile(experimentFolder, cur_year_name, '??????'));
+						for i_YYMMDD = 1 : length(YYMMDD_level_dirstruct)
+							cur_YYMMDD = YYMMDD_level_dirstruct(i_YYMMDD).name;
+							if ~isnan(str2double(cur_YYMMDD)) && YYMMDD_level_dirstruct(i_YYMMDD).isdir
+								sessiondir_level_dirstruct = dir(fullfile(experimentFolder, cur_year_name, cur_YYMMDD, [cur_year_name(1:2), cur_YYMMDD, 'T?????*.A_*.B_*.SCP_??.sessiondir']));
+								for i_sessiondir = 1 : length(sessiondir_level_dirstruct)
+									cur_sessiondir = sessiondir_level_dirstruct(i_sessiondir).name;
+									if (sessiondir_level_dirstruct(i_sessiondir).isdir)
+										triallog_dirstruct = dir(fullfile(experimentFolder, cur_year_name, cur_YYMMDD, cur_sessiondir, [cur_year_name(1:2), cur_YYMMDD, 'T?????*.A_*.B_*.SCP_??', LogFileWildCardString]));
+										% now convert the dirstruct into a
+										% list of triallog names
+										for i_triallog = 1 : length(triallog_dirstruct)
+											if ~triallog_dirstruct(i_triallog).isdir
+												experimentFile(end+1) = {fullfile(triallog_dirstruct(i_triallog).folder, triallog_dirstruct(i_triallog).name)};
+											end
+										end
+									end
+								end % i_sessiondir
+							end
+						end % i_YYMMDD
+					end
+				end % i_year
+			else
+				error([mfilename, ': experimentFolder does not end in SESSIONLOGS, so search_triallog_method use_SCP_structure is not applicable...']);
+			end
+
+		otherwise
+			error([mfilename, ': unhandled search_triallog_method encountered, fix invocation or implement...']);
+	end % switch search_triallog_method
+
 	if (ignore_invalid_triallog_suffixes) || ( (use_triallog_without_extension) && regexp(LogFileWildCardString, 'triallog\*$'))
-	
 		for i_exp_file = 1 : length(experimentFile)
 			cur_experimentFile = experimentFile{i_exp_file};
 			is_match_counter = 0;
@@ -180,7 +222,7 @@ if isempty(ExperimentFileFQN_list)
 				% does the pattern match
 				if ~isempty(regexp(cur_experimentFile, cur_valid_suffix_regexp))
 					is_match_counter = is_match_counter + 1;
-				
+
 					% only change this if requested
 					if  (use_triallog_without_extension) && regexp(LogFileWildCardString, 'triallog\*$')
 						experimentFile{i_exp_file} = regexprep(experimentFile{i_exp_file}, cur_valid_suffix_regexp, '.triallog');
@@ -192,7 +234,6 @@ if isempty(ExperimentFileFQN_list)
 				% temporarily giving it the EXCLUDE suffix
 				experimentFile{i_exp_file} = [experimentFile{i_exp_file}, '.EXCLUDE'];
 			end
-			
 		end
 		% we likely accumulated duplicates while reducing the extension to
 		% .triallog,so get rid of the duplicates, while keeping the order
@@ -202,7 +243,10 @@ if isempty(ExperimentFileFQN_list)
 else
 	experimentFile = ExperimentFileFQN_list;
 end
-toc
+
+timestamps.search_triallog.end = toc(timestamps.search_triallog.start);
+disp([mfilename, ' finding triallogs took: ', num2str(timestamps.search_triallog.end), ' seconds.']);
+disp([mfilename, ' finding triallogs took: ', num2str(timestamps.search_triallog.end / 60), ' minutes. Done...']);toc
 
 % use wild card search strings to exclude session log files from further
 % processing
