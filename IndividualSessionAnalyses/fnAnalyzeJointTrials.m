@@ -3231,16 +3231,19 @@ for iGroup = 1 : length(GroupNameList)
 				else
 					title_text2A = '';
 				end
-				% SameA versus 0
-                [ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
-                    0,...
-                    'Tail', 'both');
-                coordinated_vs_anticoordinated.ttest2 = ttest2res;
-                % now add the result
-                title_text2B = ['t-Test (hands visible): B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
-                    ' vs. 0', ...
-                    ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-                
+				% SameB versus 0
+				if ~isempty(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))
+					[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
+						0,...
+						'Tail', 'both');
+					coordinated_vs_anticoordinated.ttest2 = ttest2res;
+					% now add the result
+					title_text2B = ['t-Test (hands visible): B (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))), ')', ...
+						' vs. 0', ...
+						', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
+				else
+					title_text2B = '';
+				end
                 
                 
                 if (find(Invisible_AB(GoodTrialsIdx(JointTrialX_Vector))))
