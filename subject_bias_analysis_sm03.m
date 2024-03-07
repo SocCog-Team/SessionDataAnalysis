@@ -382,7 +382,7 @@ for iSession = 1 : length(experimentFile)
 				if ~exist('session_info_struct_array', 'var')
 					session_info_struct_array = session_info_struct;
 				else
-					session_info_struct_array = [session_info_struct_array, session_info_struct];
+					session_info_struct_array = [session_info_struct_array, session_info_struct]; % 74 fields
 				end
 			end
 		end

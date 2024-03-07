@@ -4,6 +4,9 @@ function [ session_info_struct, session_info_struct_version ] = fn_collect_and_s
 %   Collect information about sessions about number of trials per trial sub
 %   type, number of sucessful trials, number aborted trials agent ID
 %	save as CSV and as excel table
+%
+% TODO:
+%	add information about value and side biases and prediction for 
 
 % information:
 
@@ -14,7 +17,7 @@ function [ session_info_struct, session_info_struct_version ] = fn_collect_and_s
 summary_suffix = 'session_summary';
 % to allow automatic updates for newer versions with more fields or error
 % corrections add the version number...
-session_info_struct_version = '1';
+session_info_struct_version = '2';
 
 [logfile_path, logfile_name, log_file_ext] = fileparts(cur_session_logfile_fqn);
 % find the canonical session ID
@@ -24,6 +27,10 @@ processed_session_id = regexprep(processed_session_id, '.txt', '');
 processed_session_id = regexprep(processed_session_id, '.triallog', '');
 
 session_info = fn_parse_session_id(processed_session_id);
+
+
+sequence_is_random_threshold_p = 0.05;			% which p-threshold to use to reject the hypothesis that a side or value sequence is random/unpredictable
+prediction_is_above_chance_threshold_p = 0.05;	% which p-threshold to use to accept significant prediction
 
 [cur_session_logfile_path, cur_session_logfile_name, cur_session_logfile_ext] = fileparts(cur_session_logfile_fqn);
 
@@ -54,6 +61,30 @@ if isempty(TrialSets)
 	disp([processed_session_id, ': empty TrialSets found for logfile, skipping...']);
 	return
 end	
+
+n_trials = size(report_struct.data, 1);
+action_sequence_list = cell([n_trials, 1]);
+if isfield(report_struct.cn, 'A_GoSignalTime_ms') && isfield(report_struct.cn, 'B_GoSignalTime_ms')
+	AB_GoSignalTime_diff = report_struct.data(:, report_struct.cn.A_GoSignalTime_ms) - report_struct.data(:, report_struct.cn.B_GoSignalTime_ms);
+	action_sequence_list(find(AB_GoSignalTime_diff < 0)) = {'AgoB'};
+	action_sequence_list(find(AB_GoSignalTime_diff > 0)) = {'BgoA'};
+	action_sequence_list(find(AB_GoSignalTime_diff== 0)) = {'ABgo'};
+else
+	% old data all ABgo
+	action_sequence_list(:) = {'ABgo'};
+end
+
+%% the following will not give stable, well sorted results in case any of
+%% the timing condition is missing...
+%% now we want/need these for all sessions, so create a 
+%[action_sequence_name_list, ~, action_sequence_idx_by_trial] = unique(action_sequence_list, 'first');
+% this should give us sorted action sequences for a given set...
+action_sequence_name_list = {'AgoB', 'ABgo', 'BgoA'};
+action_sequence_idx_by_trial = zeros(size(action_sequence_list));
+for i_action_sequence = 1 : length(action_sequence_name_list)
+	cur_action_sequence_occurence_idx = ismember(action_sequence_list, action_sequence_name_list(i_action_sequence));
+	action_sequence_idx_by_trial(cur_action_sequence_occurence_idx) = i_action_sequence;
+end
 
 
 % this is primaryly information about whether a cue was visibe and by which
@@ -218,7 +249,28 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 				disp(['No trials for ',cur_subject_side_combination, ' ', cur_trialsubtype, ' ', cur_cue_randomization_combination]);
 				continue
 			end
-			
+
+			% prediction requires a predictable partner, so is the partner
+			% predictable? The runs test is maybe not the best test for
+			% randomness in a sequence but it seems the best matlab offers
+			% out of the box.
+			trial_vector = zeros([n_trials, 1]);
+			left_choices_A = trial_vector;
+			left_choices_A(TrialSets.ByChoice.SideA.ChoiceScreenFromALeft) = 1;
+			[~, cue_randomization_combination_struct.A_nonrandomSide_p, stats] = runstest(left_choices_A(intersect(TrialSets.ByOutcome.SideA.REWARD, cur_trial_idx)));
+			high_choices_A = trial_vector;
+			high_choices_A(TrialSets.ByChoice.SideA.TargetValueHigh) = 1;
+			[~, cue_randomization_combination_struct.A_nonrandomValue_p, stats] = runstest(high_choices_A(intersect(TrialSets.ByOutcome.SideA.REWARD, cur_trial_idx)));
+
+			left_choices_B = trial_vector;
+			left_choices_B(TrialSets.ByChoice.SideB.ChoiceScreenFromALeft) = 1;
+			[~, cue_randomization_combination_struct.B_nonrandomSide_p, stats] = runstest(left_choices_B(intersect(TrialSets.ByOutcome.SideB.REWARD, cur_trial_idx)));
+			high_choices_B = trial_vector;
+			high_choices_B(TrialSets.ByChoice.SideB.TargetValueHigh) = 1;
+			[~, cue_randomization_combination_struct.B_nonrandomValue_p, stats] = runstest(high_choices_B(intersect(TrialSets.ByOutcome.SideB.REWARD, cur_trial_idx)));
+
+
+
 			cue_randomization_combination_struct.record_type = 'COMBINATION';
 			
 			% outcome (rewarded versus aborted) combined for both sides
@@ -237,6 +289,125 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 			cue_randomization_combination_struct.HitTrials_B = length(cur_rewarded_trials_B_idx);
 			cue_randomization_combination_struct.AbortedTrials_B = length(cur_aborted_trials_B_idx);
 			
+
+			% get the relative timing
+			for i_action_sequence = 1 : length(action_sequence_name_list)
+				cur_action_sequence_name = action_sequence_name_list{i_action_sequence};
+				cur_action_sequence_trial_idx =  find(action_sequence_idx_by_trial == i_action_sequence);
+				% here we only look at completed/rewarded trials
+				cur_trial_idx_A = intersect(intersect(TrialSets.ByOutcome.SideA.REWARD, cur_trial_idx), cur_action_sequence_trial_idx);
+				cur_trial_idx_B = intersect(intersect(TrialSets.ByOutcome.SideB.REWARD, cur_trial_idx), cur_action_sequence_trial_idx);
+				cur_trial_idx_AB = intersect(intersect(intersect(TrialSets.ByOutcome.SideA.REWARD, TrialSets.ByOutcome.SideB.REWARD), cur_trial_idx), cur_action_sequence_trial_idx);
+
+				% NOTE: if the indices are empty the fields contain NaNs, which should work out...
+
+				% A's biases
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_nTrials_A']) = length(cur_trial_idx_A);
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_HighPCT_A']) = 100 * (length(intersect(TrialSets.ByChoice.SideA.TargetValueHigh, cur_trial_idx_A)) / length(cur_trial_idx_A));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_LeftPCT_A']) = 100 * (length(intersect(TrialSets.ByChoice.SideA.ChoiceScreenFromALeft, cur_trial_idx_A)) / length(cur_trial_idx_A));
+
+				% B's biases
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_nTrials_B']) = length(cur_trial_idx_B);
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_HighPCT_B']) = 100 * (length(intersect(TrialSets.ByChoice.SideB.TargetValueHigh, cur_trial_idx_B)) / length(cur_trial_idx_B));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_LeftPCT_B']) = 100 * (length(intersect(TrialSets.ByChoice.SideB.TargetValueHigh, cur_trial_idx_B)) / length(cur_trial_idx_B));
+
+				% joint choices
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_nTrials_AB']) = length(cur_trial_idx_AB);
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_SamePCT_AB']) = 100 * (length(intersect(TrialSets.ByChoice.SameTarget, cur_trial_idx_B)) / length(cur_trial_idx_AB));
+				
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_Ahigh_Blow_RED']) = length(intersect(TrialSets.ByChoice.JointChoices.TargetValue_HighLow, cur_trial_idx_AB));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_Alow_Bhigh_BLUE']) = length(intersect(TrialSets.ByChoice.JointChoices.TargetValue_LowHigh, cur_trial_idx_AB));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_Ahigh_Bhigh_PINK']) = length(intersect(TrialSets.ByChoice.JointChoices.TargetValue_HighHigh, cur_trial_idx_AB));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_Alow_Blow_GREEN']) = length(intersect(TrialSets.ByChoice.JointChoices.TargetValue_LowLow, cur_trial_idx_AB));
+
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_Aleft_Bleft']) = length(intersect(intersect(TrialSets.ByChoice.SideA.ChoiceScreenFromALeft, TrialSets.ByChoice.SideB.ChoiceScreenFromALeft), cur_trial_idx_AB));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_Aright_Bright']) = length(intersect(intersect(TrialSets.ByChoice.SideA.ChoiceScreenFromARight, TrialSets.ByChoice.SideB.ChoiceScreenFromARight), cur_trial_idx_AB));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_Aleft_Bright']) = length(intersect(intersect(TrialSets.ByChoice.SideA.ChoiceScreenFromALeft, TrialSets.ByChoice.SideB.ChoiceScreenFromARight), cur_trial_idx_AB));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_Aright_Bleft']) = length(intersect(intersect(TrialSets.ByChoice.SideA.ChoiceScreenFromARight, TrialSets.ByChoice.SideB.ChoiceScreenFromALeft), cur_trial_idx_AB));
+
+
+			end
+
+
+			% get the fraction of correctly selecting the partner"s
+			% prefered color
+			if ismember('AgoB', action_sequence_name_list)
+				cue_randomization_combination_struct.A_prediction_of_anyValue_pct = cue_randomization_combination_struct.(['AgoB', '_SamePCT_AB']);
+				cue_randomization_combination_struct.A_prediction_of_lowValue_pct = 100 * cue_randomization_combination_struct.(['AgoB', '_Alow_Bhigh_BLUE']) / (cue_randomization_combination_struct.(['AgoB', '_Alow_Bhigh_BLUE']) + cue_randomization_combination_struct.(['AgoB', '_Ahigh_Bhigh_PINK']));
+				[~, cue_randomization_combination_struct.A_prediction_of_lowValue_p, stats] = fishertest(fn_fishertest_ratio_versus_random([cue_randomization_combination_struct.(['AgoB', '_Alow_Bhigh_BLUE']), cue_randomization_combination_struct.(['AgoB', '_Ahigh_Bhigh_PINK'])]));
+			else
+				cue_randomization_combination_struct.A_prediction_of_anyValue_pct = NaN;
+				cue_randomization_combination_struct.A_prediction_of_lowValue_pct = NaN;
+				cue_randomization_combination_struct.A_prediction_of_lowValue_p = NaN;
+			end
+			
+			if ismember('BgoA', action_sequence_name_list)
+				cue_randomization_combination_struct.B_prediction_of_anyValue_pct = cue_randomization_combination_struct.(['BgoA', '_SamePCT_AB']);
+				cue_randomization_combination_struct.B_prediction_of_lowValue_pct = 100 * cue_randomization_combination_struct.(['BgoA', '_Ahigh_Blow_RED']) / (cue_randomization_combination_struct.(['BgoA', '_Ahigh_Blow_RED']) + cue_randomization_combination_struct.(['BgoA', '_Ahigh_Bhigh_PINK']));
+				[~, cue_randomization_combination_struct.B_prediction_of_lowValue_p, stats] = fishertest(fn_fishertest_ratio_versus_random([cue_randomization_combination_struct.(['BgoA', '_Ahigh_Blow_RED']), cue_randomization_combination_struct.(['BgoA', '_Ahigh_Bhigh_PINK'])]));
+			else
+				cue_randomization_combination_struct.B_prediction_of_anyValue_pct = NaN;
+				cue_randomization_combination_struct.B_prediction_of_lowValue_pct = NaN;
+				cue_randomization_combination_struct.B_prediction_of_lowValue_p = NaN;
+			end
+			% preferred side, since agents use the left hand and we use
+			% ChoiceScreenFromA, left is likely preferred by A and "right"
+			% is preferred by B (as that is the subjective left side from B)
+			if ismember('AgoB', action_sequence_name_list)
+				cue_randomization_combination_struct.A_prediction_of_anySide_pct = cue_randomization_combination_struct.(['AgoB', '_SamePCT_AB']);
+				cue_randomization_combination_struct.A_prediction_of_rightSide_pct = 100 * cue_randomization_combination_struct.(['AgoB', '_Aright_Bright']) / (cue_randomization_combination_struct.(['AgoB', '_Aright_Bright']) + cue_randomization_combination_struct.(['AgoB', '_Aleft_Bright']));
+				[~, cue_randomization_combination_struct.A_prediction_of_rightSide_p, stats] = fishertest(fn_fishertest_ratio_versus_random([cue_randomization_combination_struct.(['AgoB', '_Aright_Bright']), cue_randomization_combination_struct.(['AgoB', '_Aleft_Bright'])]));
+			else
+				cue_randomization_combination_struct.A_prediction_of_anySide_pct = NaN;
+				cue_randomization_combination_struct.A_prediction_of_rightSide_pct = NaN;
+				cue_randomization_combination_struct.A_prediction_of_rightSide_p = NaN;
+			end
+
+			if ismember('BgoA', action_sequence_name_list)
+				cue_randomization_combination_struct.B_prediction_of_anySide_pct = cue_randomization_combination_struct.(['BgoA', '_SamePCT_AB']);
+				cue_randomization_combination_struct.B_prediction_of_leftSide_pct = 100 * cue_randomization_combination_struct.(['BgoA', '_Aleft_Bleft']) / (cue_randomization_combination_struct.(['BgoA', '_Aleft_Bleft']) + cue_randomization_combination_struct.(['BgoA', '_Aleft_Bright']));
+				[~, cue_randomization_combination_struct.B_prediction_of_leftSide_p, stats] = fishertest(fn_fishertest_ratio_versus_random([cue_randomization_combination_struct.(['BgoA', '_Aleft_Bleft']), cue_randomization_combination_struct.(['BgoA', '_Aleft_Bright'])]));
+			else
+				cue_randomization_combination_struct.B_prediction_of_anySide_pct = NaN;
+				cue_randomization_combination_struct.B_prediction_of_leftSide_pct = NaN;
+				cue_randomization_combination_struct.B_prediction_of_leftSide_p = NaN;
+			end
+
+			% for a to predict we expect a non-random partner and a high
+			% fraction of also proactively selecting the partner's
+			% preferred color...			
+
+			cue_randomization_combination_struct.A_predicts_Bside = 0;
+			if (cue_randomization_combination_struct.B_nonrandomSide_p <= sequence_is_random_threshold_p) ...
+					&& (cue_randomization_combination_struct.A_prediction_of_rightSide_pct > 50) ...
+					&& (cue_randomization_combination_struct.A_prediction_of_rightSide_p <= prediction_is_above_chance_threshold_p)
+				cue_randomization_combination_struct.A_predicts_Bside = 1;
+			end
+
+			cue_randomization_combination_struct.B_predicts_Aside = 0;
+			if (cue_randomization_combination_struct.A_nonrandomSide_p <= sequence_is_random_threshold_p) ...
+					&& (cue_randomization_combination_struct.B_prediction_of_leftSide_pct > 50) ...
+					&& (cue_randomization_combination_struct.B_prediction_of_leftSide_p <= prediction_is_above_chance_threshold_p)
+				cue_randomization_combination_struct.B_predicts_Aside = 1;
+			end
+
+
+			cue_randomization_combination_struct.A_predicts_Bvalue = 0;
+			if (cue_randomization_combination_struct.B_nonrandomValue_p <= sequence_is_random_threshold_p) ...
+					&& (cue_randomization_combination_struct.A_prediction_of_lowValue_pct > 50) ...
+					&& (cue_randomization_combination_struct.A_prediction_of_lowValue_p <= prediction_is_above_chance_threshold_p)
+				cue_randomization_combination_struct.A_predicts_Bvalue = 1;
+			end
+
+			cue_randomization_combination_struct.B_predicts_Avalue = 0;
+			if (cue_randomization_combination_struct.A_nonrandomValue_p <= sequence_is_random_threshold_p) ...
+					&& (cue_randomization_combination_struct.B_prediction_of_lowValue_pct > 50) ...
+					&& (cue_randomization_combination_struct.B_prediction_of_lowValue_p <= prediction_is_above_chance_threshold_p)
+				cue_randomization_combination_struct.B_predicts_Avalue = 1;
+			end
+
+
+
 			% add final long fields
 			cue_randomization_combination_struct.Session_dir = logfile_path;
 			
