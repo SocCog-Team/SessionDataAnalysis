@@ -263,46 +263,17 @@ disp([mfilename, ' finding triallogs took: ', num2str(timestamps.search_triallog
 if ~isempty(ExcludeWildCardList)
 	experimentFile = fn_prune_list_by_wildcards(experimentFile, 'exclude', ExcludeWildCardList);
 end
-% if ~isempty(ExcludeWildCardList)
-% 	IncludedFilesIdx = [];
-% 	for iFile = 1 : length(experimentFile)
-% 		TmpIdx = [];
-% 		for iExcludeWildCard = 1 : length(ExcludeWildCardList)
-% 			TmpIdx = [TmpIdx, strfind(experimentFile{iFile}, ExcludeWildCardList{iExcludeWildCard})];
-% 		end
-% 		if isempty(TmpIdx)
-% 			IncludedFilesIdx(end+1) = iFile;
-% 		end
-% 	end
-% 	experimentFile = experimentFile(IncludedFilesIdx);
-% end
-
 
 % if specified include a named session_group
 if ~isempty(session_group_name)
 	[~, IncludeWildcardList] = fn_get_session_group(session_group_name);
 end
+
 % this will only leave files in experimentFile that contain
 % IncludeWildcardList substrings
-
-
 if ~isempty(IncludeWildcardList)
 	experimentFile = fn_prune_list_by_wildcards(experimentFile, 'include', IncludeWildcardList);
 end
-% if ~isempty(IncludeWildcardList)
-% 	IncludedFilesIdx = [];
-% 	for iFile = 1 : length(experimentFile)
-% 		TmpIdx = [];
-% 		for iIncludeWildCard = 1 : length(IncludeWildcardList)
-% 			TmpIdx = [TmpIdx, strfind(experimentFile{iFile}, IncludeWildcardList{iIncludeWildCard})];
-% 		end
-% 
-% 		if ~isempty(TmpIdx)
-% 			IncludedFilesIdx(end+1) = iFile;
-% 		end
-% 	end
-% 	experimentFile = experimentFile(IncludedFilesIdx);
-% end
 
 % the newest sessions might of most interest
 if (ProcessNewestFirst)
