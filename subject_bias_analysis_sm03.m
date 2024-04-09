@@ -1,5 +1,9 @@
 function [] = subject_bias_analysis_sm03(ProcessFirstOnly)
 % this is intended to be a cleaned-up version of subject_bias_analysis_sm01
+% TODO:
+%	export a list of all sessiondirs, export a list of all sessiondirs that
+%	contain a TDT folder (proto ephys sessions...)
+
 
 timestamps.(mfilename).start = tic;
 disp([mfilename, ': Starting: ', mfilename]);
@@ -176,39 +180,42 @@ if isempty(ExperimentFileFQN_list)
 		case 'find_all_files'	
 			experimentFile = find_all_files(experimentFolder, LogFileWildCardString, 0);
 		case 'use_SCP_structure'
-			if ~isempty(regexp(experimentFolder, 'SESSIONLOGS'))
-				experimentFile = {};
-				year_level_dirstruct = dir(fullfile(experimentFolder, '20??'));
-				for i_year = 1 : length(year_level_dirstruct)
-					cur_year_name = year_level_dirstruct(i_year).name;
-					disp([mfilename, ': Searching year ', cur_year_name]);
-					% non numbers convert to NaNs...
-					if ~isnan(str2double(cur_year_name)) && year_level_dirstruct(i_year).isdir
-						YYMMDD_level_dirstruct = dir(fullfile(experimentFolder, cur_year_name, '??????'));
-						for i_YYMMDD = 1 : length(YYMMDD_level_dirstruct)
-							cur_YYMMDD = YYMMDD_level_dirstruct(i_YYMMDD).name;
-							if ~isnan(str2double(cur_YYMMDD)) && YYMMDD_level_dirstruct(i_YYMMDD).isdir
-								sessiondir_level_dirstruct = dir(fullfile(experimentFolder, cur_year_name, cur_YYMMDD, [cur_year_name(1:2), cur_YYMMDD, 'T?????*.A_*.B_*.SCP_??.sessiondir']));
-								for i_sessiondir = 1 : length(sessiondir_level_dirstruct)
-									cur_sessiondir = sessiondir_level_dirstruct(i_sessiondir).name;
-									if (sessiondir_level_dirstruct(i_sessiondir).isdir)
-										triallog_dirstruct = dir(fullfile(experimentFolder, cur_year_name, cur_YYMMDD, cur_sessiondir, [cur_year_name(1:2), cur_YYMMDD, 'T?????*.A_*.B_*.SCP_??', LogFileWildCardString]));
-										% now convert the dirstruct into a
-										% list of triallog names
-										for i_triallog = 1 : length(triallog_dirstruct)
-											if ~triallog_dirstruct(i_triallog).isdir
-												experimentFile(end+1) = {fullfile(triallog_dirstruct(i_triallog).folder, triallog_dirstruct(i_triallog).name)};
-											end
-										end
-									end
-								end % i_sessiondir
-							end
-						end % i_YYMMDD
-					end
-				end % i_year
-			else
-				error([mfilename, ': experimentFolder does not end in SESSIONLOGS, so search_triallog_method use_SCP_structure is not applicable...']);
-			end
+
+			[experimentFile, sessiondir_fqn_list, sessiondir_has_TDT_data_ldx, session_id_list] = fn_find_all_sessiondirs_from_SESSIONLOGS_dir(experimentFolder, LogFileWildCardString);
+
+			% if ~isempty(regexp(experimentFolder, 'SESSIONLOGS'))
+			% 	experimentFile = {};
+			% 	year_level_dirstruct = dir(fullfile(experimentFolder, '20??'));
+			% 	for i_year = 1 : length(year_level_dirstruct)
+				% 	cur_year_name = year_level_dirstruct(i_year).name;
+				% 	disp([mfilename, ': Searching year ', cur_year_name]);
+				% 	% non numbers convert to NaNs...
+				% 	if ~isnan(str2double(cur_year_name)) && year_level_dirstruct(i_year).isdir
+					% 	YYMMDD_level_dirstruct = dir(fullfile(experimentFolder, cur_year_name, '??????'));
+					% 	for i_YYMMDD = 1 : length(YYMMDD_level_dirstruct)
+						% 	cur_YYMMDD = YYMMDD_level_dirstruct(i_YYMMDD).name;
+						% 	if ~isnan(str2double(cur_YYMMDD)) && YYMMDD_level_dirstruct(i_YYMMDD).isdir
+							% 	sessiondir_level_dirstruct = dir(fullfile(experimentFolder, cur_year_name, cur_YYMMDD, [cur_year_name(1:2), cur_YYMMDD, 'T?????*.A_*.B_*.SCP_??.sessiondir']));
+							% 	for i_sessiondir = 1 : length(sessiondir_level_dirstruct)
+								% 	cur_sessiondir = sessiondir_level_dirstruct(i_sessiondir).name;
+								% 	if (sessiondir_level_dirstruct(i_sessiondir).isdir)
+									% 	triallog_dirstruct = dir(fullfile(experimentFolder, cur_year_name, cur_YYMMDD, cur_sessiondir, [cur_year_name(1:2), cur_YYMMDD, 'T?????*.A_*.B_*.SCP_??', LogFileWildCardString]));
+									% 	% now convert the dirstruct into a
+									% 	% list of triallog names
+									% 	for i_triallog = 1 : length(triallog_dirstruct)
+										% 	if ~triallog_dirstruct(i_triallog).isdir
+											% 	experimentFile(end+1) = {fullfile(triallog_dirstruct(i_triallog).folder, triallog_dirstruct(i_triallog).name)};
+										% 	end
+									% 	end
+								% 	end
+							% 	end % i_sessiondir
+						% 	end
+					% 	end % i_YYMMDD
+				% 	end
+			% 	end % i_year
+			% else
+			% 	error([mfilename, ': experimentFolder does not end in SESSIONLOGS, so search_triallog_method use_SCP_structure is not applicable...']);
+			% end
 
 		otherwise
 			error([mfilename, ': unhandled search_triallog_method encountered, fix invocation or implement...']);
@@ -239,7 +246,9 @@ if isempty(ExperimentFileFQN_list)
 		% we likely accumulated duplicates while reducing the extension to
 		% .triallog,so get rid of the duplicates, while keeping the order
 		% intact
-		experimentFile = fnUnsortedUnique(experimentFile);	% to keep temporal ordering intact...
+		%experimentFile1 = fnUnsortedUnique(experimentFile);	% to keep temporal ordering intact...
+		experimentFile = unique(experimentFile, 'stable');	% to keep temporal ordering intact...
+		%isequal(experimentFile1, experimentFile2)
 	end
 else
 	experimentFile = ExperimentFileFQN_list;
@@ -252,18 +261,21 @@ disp([mfilename, ' finding triallogs took: ', num2str(timestamps.search_triallog
 % use wild card search strings to exclude session log files from further
 % processing
 if ~isempty(ExcludeWildCardList)
-	IncludedFilesIdx = [];
-	for iFile = 1 : length(experimentFile)
-		TmpIdx = [];
-		for iExcludeWildCard = 1 : length(ExcludeWildCardList)
-			TmpIdx = [TmpIdx, strfind(experimentFile{iFile}, ExcludeWildCardList{iExcludeWildCard})];
-		end
-		if isempty(TmpIdx)
-			IncludedFilesIdx(end+1) = iFile;
-		end
-	end
-	experimentFile = experimentFile(IncludedFilesIdx);
+	experimentFile = fn_prune_list_by_wildcards(experimentFile, 'exclude', ExcludeWildCardList);
 end
+% if ~isempty(ExcludeWildCardList)
+% 	IncludedFilesIdx = [];
+% 	for iFile = 1 : length(experimentFile)
+% 		TmpIdx = [];
+% 		for iExcludeWildCard = 1 : length(ExcludeWildCardList)
+% 			TmpIdx = [TmpIdx, strfind(experimentFile{iFile}, ExcludeWildCardList{iExcludeWildCard})];
+% 		end
+% 		if isempty(TmpIdx)
+% 			IncludedFilesIdx(end+1) = iFile;
+% 		end
+% 	end
+% 	experimentFile = experimentFile(IncludedFilesIdx);
+% end
 
 
 % if specified include a named session_group
@@ -272,20 +284,25 @@ if ~isempty(session_group_name)
 end
 % this will only leave files in experimentFile that contain
 % IncludeWildcardList substrings
-if ~isempty(IncludeWildcardList)
-	IncludedFilesIdx = [];
-	for iFile = 1 : length(experimentFile)
-		TmpIdx = [];
-		for iIncludeWildCard = 1 : length(IncludeWildcardList)
-			TmpIdx = [TmpIdx, strfind(experimentFile{iFile}, IncludeWildcardList{iIncludeWildCard})];
-		end
 
-		if ~isempty(TmpIdx)
-			IncludedFilesIdx(end+1) = iFile;
-		end
-	end
-	experimentFile = experimentFile(IncludedFilesIdx);
+
+if ~isempty(IncludeWildcardList)
+	experimentFile = fn_prune_list_by_wildcards(experimentFile, 'include', IncludeWildcardList);
 end
+% if ~isempty(IncludeWildcardList)
+% 	IncludedFilesIdx = [];
+% 	for iFile = 1 : length(experimentFile)
+% 		TmpIdx = [];
+% 		for iIncludeWildCard = 1 : length(IncludeWildcardList)
+% 			TmpIdx = [TmpIdx, strfind(experimentFile{iFile}, IncludeWildcardList{iIncludeWildCard})];
+% 		end
+% 
+% 		if ~isempty(TmpIdx)
+% 			IncludedFilesIdx(end+1) = iFile;
+% 		end
+% 	end
+% 	experimentFile = experimentFile(IncludedFilesIdx);
+% end
 
 % the newest sessions might of most interest
 if (ProcessNewestFirst)
@@ -413,7 +430,7 @@ end
 if exist('session_info_struct_array', 'var')
 	% now save the session_info_struct_array out
 	all_session_info_table_FQN = fullfile(experimentFolder, [session_info_name_stem, '.V', num2str(session_info_struct_version, '%03d'), '.mat']);
-	fn_update_session_info_table(all_session_info_table_FQN, session_info_struct_array, 'sort_key_string');
+	session_info_data_table = fn_update_session_info_table(all_session_info_table_FQN, session_info_struct_array, 'sort_key_string');
 else
 	disp('No data extracted in session_info_struct_array, nothing to add to table...');
 end
