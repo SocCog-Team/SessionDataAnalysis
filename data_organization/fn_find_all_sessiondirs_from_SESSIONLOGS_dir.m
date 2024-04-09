@@ -47,7 +47,7 @@ if strcmp(SESSIONLOGS_dir_name, 'SESSIONLOGS')
 								end
 								if ~isempty(tankdir_dirstruct) && tankdir_dirstruct(1).isdir
 									%cur_tankdir_fqn = fullfile(EPHYSdir_fqn, tankdir_dirstruct(1).name);
-									sessiondir_has_TDT_data_idx = length(sessiondir_fqn_list);
+									sessiondir_has_TDT_data_idx(end+1) = length(sessiondir_fqn_list);
 								end
 							end
 							% end
