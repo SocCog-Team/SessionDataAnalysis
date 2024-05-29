@@ -2971,6 +2971,8 @@ for iGroup = 1 : length(GroupNameList)
                     ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
                 
                 % SameA versus 0
+				if ~isempty(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))
+
                 [ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
                     0,...
                     'Tail', 'both');
@@ -2979,7 +2981,10 @@ for iGroup = 1 : length(GroupNameList)
                 title_text2A = ['t-Test (hands visible): A (M: ', num2str(mean(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', SD: ', num2str(std(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), '%.2f'), ', N: ', num2str(length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))), ')', ...
                     ' vs. 0', ...
                     ', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
-                
+				else
+					title_text2A = '';
+				end
+
                 % SameA versus 0
 				if ~isempty(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))
 					[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
