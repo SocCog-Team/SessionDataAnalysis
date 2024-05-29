@@ -29,7 +29,8 @@ processed_session_id = regexprep(processed_session_id, '.triallog', '');
 session_info = fn_parse_session_id(processed_session_id);
 
 
-sequence_is_random_threshold_p = 0.05;			% which p-threshold to use to reject the hypothesis that a side or value sequence is random/unpredictable
+value_sequence_is_random_threshold_p = 0.005;			% which p-threshold to use to reject the hypothesis that a side or value sequence is random/unpredictable
+side_sequence_is_random_threshold_p = 0.05;			% which p-threshold to use to reject the hypothesis that a side or value sequence is random/unpredictable
 prediction_is_above_chance_threshold_p = 0.05;	% which p-threshold to use to accept significant prediction
 
 [cur_session_logfile_path, cur_session_logfile_name, cur_session_logfile_ext] = fileparts(cur_session_logfile_fqn);
@@ -66,13 +67,22 @@ n_trials = size(report_struct.data, 1);
 action_sequence_list = cell([n_trials, 1]);
 if isfield(report_struct.cn, 'A_GoSignalTime_ms') && isfield(report_struct.cn, 'B_GoSignalTime_ms')
 	AB_GoSignalTime_diff = report_struct.data(:, report_struct.cn.A_GoSignalTime_ms) - report_struct.data(:, report_struct.cn.B_GoSignalTime_ms);
+	valid_trial_AB_GoSignalTime_diff = find((report_struct.data(:, report_struct.cn.A_GoSignalTime_ms) ~= 0) & (report_struct.data(:, report_struct.cn.B_GoSignalTime_ms) ~= 0)); % 0 denotes missing value here
 	action_sequence_list(find(AB_GoSignalTime_diff < 0)) = {'AgoB'};
 	action_sequence_list(find(AB_GoSignalTime_diff > 0)) = {'BgoA'};
 	action_sequence_list(find(AB_GoSignalTime_diff== 0)) = {'ABgo'};
+
+	unique_action_sequence_types = unique(action_sequence_list(valid_trial_AB_GoSignalTime_diff)); % if only one Go signal was shown before an abort we 
+	ABgo_only_session = 1;
+	if sum(ismember(unique_action_sequence_types, {'AgoB', 'BgoA'})) > 0
+		ABgo_only_session = 0;
+	end
 else
 	% old data all ABgo
 	action_sequence_list(:) = {'ABgo'};
+	ABgo_only_session = 1;
 end
+
 
 %% the following will not give stable, well sorted results in case any of
 %% the timing condition is missing...
@@ -151,45 +161,117 @@ if isfolder(fullfile(logfile_path, 'ANALYSIS'))
 end
 
 if isfolder(fullfile(logfile_path, 'TDT'))
+	GoodChannelMapNum2String = '';
 	SCP_dir_struct = dir(fullfile(logfile_path, 'TDT', 'SCP_DAG*'));
 	%SCP_dir_struct = dir(fullfile(logfile_path, 'TDT'));
 	if ~isempty(SCP_dir_struct)
 		TankID_list = {SCP_dir_struct(:).name}';
+
+		% since there can (but should not) be multiple tanks per TDT
+		% directory we want to report on all of those, so collect
+		% information in a string...
 		tmp_TankID_list = [];
 		tmp_EPhysRecorded_string = [];
-		tmp_EPhysClustered_string = [];
+		tmp_session_is_PCA_cleaned_string = [];
+		tmp_EPhysSpikeSorted_string = [];
+		tmp_session_is_clustered_version_string = []; % 0 means none here
 		for i_tankID = 1 : length(TankID_list)
 			cur_Tank_ID = TankID_list{i_tankID};
 			tmp_TankID_list = [tmp_TankID_list, ';', cur_Tank_ID];
 			
 			TBK_dir_struct = dir(fullfile(logfile_path, 'TDT', cur_Tank_ID, '*SCP_DAG*.Tbk'));
 			SEV_dir_struct = dir(fullfile(logfile_path, 'TDT', cur_Tank_ID, '*SCP_DAG*_RSn*.sev'));
+			n_channels = length(SEV_dir_struct);
 			if ~isempty(TBK_dir_struct) && ~isempty(SEV_dir_struct)
 				tmp_EPhysRecorded_string = [tmp_EPhysRecorded_string, ';', '1'];
 			else
 				tmp_EPhysRecorded_string = [tmp_EPhysRecorded_string, ';', '0'];
 			end
 			
-			cluster_img_dir_struct = dir(fullfile(logfile_path, 'TDT', cur_Tank_ID, 'ch*dataspikes_*thr*.jpg'));
-			if ~isempty(TBK_dir_struct) && ~isempty(SEV_dir_struct) && ~isempty(cluster_img_dir_struct)
-				tmp_EPhysClustered_string = [tmp_EPhysClustered_string, ';', '1'];
+			if isfile(fullfile(logfile_path, 'TDT', cur_Tank_ID, 'STAGE_SpikedelArt8.finished'))
+				tmp_session_is_PCA_cleaned_string = [tmp_session_is_PCA_cleaned_string, ';', '1'];
 			else
-				tmp_EPhysClustered_string = [tmp_EPhysClustered_string, ';', '0'];
+				tmp_session_is_PCA_cleaned_string = [tmp_session_is_PCA_cleaned_string, ';', '0'];
+			end
+
+			session_is_clustered_version = 0;
+			if isfile(fullfile(logfile_path, 'TDT', cur_Tank_ID, 'STAGE_Do_clustering4_redo.finished'))
+				session_is_clustered_version = 4;
+			end
+			if isfile(fullfile(logfile_path, 'TDT', cur_Tank_ID, 'STAGE_Do_clustering6.finished'))
+				session_is_clustered_version = 6;
+			end
+			tmp_session_is_clustered_version_string = [tmp_session_is_clustered_version_string, ';', num2str(session_is_clustered_version)];
+
+
+			spike_sort_img_dir_struct = dir(fullfile(logfile_path, 'TDT', cur_Tank_ID, 'ch*dataspikes_*thr*.jpg'));
+			if ~isempty(TBK_dir_struct) && ~isempty(SEV_dir_struct) && ~isempty(spike_sort_img_dir_struct)
+				tmp_EPhysSpikeSorted_string = [tmp_EPhysSpikeSorted_string, ';', '1'];
+			else
+				tmp_EPhysSpikeSorted_string = [tmp_EPhysSpikeSorted_string, ';', '0'];
+			end
+
+			if (n_channels == 0)
+				disp([mfilename, ': TDT RS4 files are missing, exclude Tank folder by prefixing, ''EXCLUDE.'' ']);
+				good_channel_map = [];
+			else
+				[highest_channel_number, sorted_channel_ID_list] = fn_find_highest_SEV_channel({SEV_dir_struct.name});
+
+				%TODO for non EXCLUDE. exclude. tank directories read in the
+				%bad_channel_list.txt and store this out...
+				bad_channel_file_fqn = fullfile(logfile_path, 'TDT', cur_Tank_ID, 'bad_channel_list.txt');
+				good_channel_map = nan([max(160, highest_channel_number), 1]);	% currently we only have
+
+				if (highest_channel_number > 160)
+					disp([mfilename, ': Doh...']);
+				end
+
+				if isfile(bad_channel_file_fqn)
+					good_channel_map(sorted_channel_ID_list) = 1; % all channels are presumed to be good, IFF bad_channel_file_fqn exists
+					% read it in... and set the appropriate
+					bad_channel_idx = importdata(bad_channel_file_fqn);
+					good_channel_map(bad_channel_idx) = 0;	% mark these channels as not good
+				else
+					% keep this as nans?
+				end
+				if size(good_channel_map, 1) > 160
+					disp([mfilename, ': Doh...']);
+				end
+
+
+				% only report the last not excluded good_channel_map
+				if isempty(regexpi(cur_Tank_ID, '^exclude.', 'match'))
+					GoodChannelMapNum2String = num2str(good_channel_map');
+				end
 			end
 		end
 		session_struct.TankID_list = tmp_TankID_list(2:end);
 		session_struct.EPhysRecorded = tmp_EPhysRecorded_string(2:end);
-		session_struct.EPhysClustered = tmp_EPhysClustered_string(2:end);
+		session_struct.PCAcleaned = tmp_session_is_PCA_cleaned_string(2:end);
+		session_struct.EPhysClustered = tmp_session_is_clustered_version_string(2:end);
+		session_struct.EPhysSpikeSorted = tmp_EPhysSpikeSorted_string(2:end);
+		session_struct.GoodChannelMap = GoodChannelMapNum2String;
 	else
+		% no TANK dir
 		session_struct.TankID_list = '';
 		session_struct.EPhysRecorded = '0';
+		session_struct.PCAcleaned = '0';
 		session_struct.EPhysClustered = '0';
+		session_struct.EPhysSpikeSorted = '0';
+		session_struct.GoodChannelMap = '';
 	end
 else
+	% no TDT dir at all...
 	session_struct.TankID_list = '';
 	session_struct.EPhysRecorded = '0';
+	session_struct.PCAcleaned = '0';
 	session_struct.EPhysClustered = '0';
+	session_struct.EPhysSpikeSorted = '0';
+	session_struct.GoodChannelMap = '';
 end
+
+session_struct.ABgo_only_session = ABgo_only_session;
+
 
 % get trial numbers
 % find the subsets of subject side combination pairs and trial types and shuffled/blocked
@@ -215,13 +297,26 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 	cur_subjectA = regexprep(proto_subjectA, 'id', '');
 	cur_subjectB = regexprep(proto_subjectB(2:end), 'id', '');
 	subject_side_combination_struct.subject_A = cur_subjectA;
+	subject_side_combination_struct.species_A = session_info.species_A;
 	subject_side_combination_struct.subject_B = cur_subjectB;
+	subject_side_combination_struct.species_B = session_info.species_B;
 	cur_trial_idx = cur_subject_side_combination_trial_idx;
 	
 	% now find the trial subtypes for this combination
 	for i_trialsubtype = 1 : length(trialsubtype_list)
 		cur_trialsubtype = trialsubtype_list{i_trialsubtype};
 		disp(['TrialSubType: ', cur_trialsubtype]);
+		% old experiments automatically switched to Solo reward scheme if 
+		% only a single agent was present, reflect that in the table
+		cur_trialsubtype_effective = cur_trialsubtype;
+		if ~strcmp(cur_subjectA, 'None') && strcmp(cur_subjectB, 'None') && strcmp(cur_trialsubtype, 'Dyadic')
+			cur_trialsubtype_effective = 'SoloA';
+			disp(['Effective TrialSubType: ', cur_trialsubtype_effective]);
+		elseif strcmp(cur_subjectA, 'None') && ~strcmp(cur_subjectB, 'None') && strcmp(cur_trialsubtype, 'Dyadic')
+			cur_trialsubtype_effective = 'SoloB';
+			disp(['Effective TrialSubType: ', cur_trialsubtype_effective]);
+		end
+
 		cur_trialsubtype_trial_idx = TrialSets.ByTrialSubType.(cur_trialsubtype);
 		cur_trial_idx = intersect(cur_subject_side_combination_trial_idx, cur_trialsubtype_trial_idx);
 		% skip over empty sets
@@ -231,7 +326,8 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 		end
 		trialsubtype_struct = subject_side_combination_struct;
 		trialsubtype_struct.trial_subtype = cur_trialsubtype;
-		
+		trialsubtype_struct.effective_trial_subtype = cur_trialsubtype_effective;
+
 		% shuffled/blocked count per side combinations
 		for i_cue_randomization_combination = 1 : length(cue_randomization_combination_list)
 			cue_randomization_combination_struct = trialsubtype_struct;
@@ -378,14 +474,14 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 			% preferred color...			
 
 			cue_randomization_combination_struct.A_predicts_Bside = 0;
-			if (cue_randomization_combination_struct.B_nonrandomSide_p <= sequence_is_random_threshold_p) ...
+			if (cue_randomization_combination_struct.B_nonrandomSide_p <= side_sequence_is_random_threshold_p) ...
 					&& (cue_randomization_combination_struct.A_prediction_of_rightSide_pct > 50) ...
 					&& (cue_randomization_combination_struct.A_prediction_of_rightSide_p <= prediction_is_above_chance_threshold_p)
 				cue_randomization_combination_struct.A_predicts_Bside = 1;
 			end
 
 			cue_randomization_combination_struct.B_predicts_Aside = 0;
-			if (cue_randomization_combination_struct.A_nonrandomSide_p <= sequence_is_random_threshold_p) ...
+			if (cue_randomization_combination_struct.A_nonrandomSide_p <= side_sequence_is_random_threshold_p) ...
 					&& (cue_randomization_combination_struct.B_prediction_of_leftSide_pct > 50) ...
 					&& (cue_randomization_combination_struct.B_prediction_of_leftSide_p <= prediction_is_above_chance_threshold_p)
 				cue_randomization_combination_struct.B_predicts_Aside = 1;
@@ -393,14 +489,14 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 
 
 			cue_randomization_combination_struct.A_predicts_Bvalue = 0;
-			if (cue_randomization_combination_struct.B_nonrandomValue_p <= sequence_is_random_threshold_p) ...
+			if (cue_randomization_combination_struct.B_nonrandomValue_p <= value_sequence_is_random_threshold_p) ...
 					&& (cue_randomization_combination_struct.A_prediction_of_lowValue_pct > 50) ...
 					&& (cue_randomization_combination_struct.A_prediction_of_lowValue_p <= prediction_is_above_chance_threshold_p)
 				cue_randomization_combination_struct.A_predicts_Bvalue = 1;
 			end
 
 			cue_randomization_combination_struct.B_predicts_Avalue = 0;
-			if (cue_randomization_combination_struct.A_nonrandomValue_p <= sequence_is_random_threshold_p) ...
+			if (cue_randomization_combination_struct.A_nonrandomValue_p <= value_sequence_is_random_threshold_p) ...
 					&& (cue_randomization_combination_struct.B_prediction_of_lowValue_pct > 50) ...
 					&& (cue_randomization_combination_struct.B_prediction_of_lowValue_p <= prediction_is_above_chance_threshold_p)
 				cue_randomization_combination_struct.B_predicts_Avalue = 1;
@@ -485,4 +581,25 @@ writetable(single_session_table, fullfile(logfile_path, [processed_session_id, '
 
 return
 end
+
+function [ highest_channel_number, sorted_channel_ID_list ] = fn_find_highest_SEV_channel(sev_file_name_list)
+% Extract the channe number from a list of SEV file names ad return the
+% highest channel number
+n_channels = length(sev_file_name_list);
+unsorted_channel_ID_list = zeros(size(sev_file_name_list));
+
+for i_SEV_name = 1 : n_channels
+	cur_ch_string_cell = regexp(sev_file_name_list{i_SEV_name}, '_ch\d*\.sev$', 'match');
+	cur_chnum_string = cur_ch_string_cell{1}(4:end-4);
+	unsorted_channel_ID_list(i_SEV_name) = str2double(cur_chnum_string);
+end
+
+sorted_channel_ID_list = sort(unsorted_channel_ID_list, 'ascend');
+
+highest_channel_number = sorted_channel_ID_list(end);
+
+return
+end
+
+
 
