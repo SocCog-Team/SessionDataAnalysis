@@ -681,6 +681,8 @@ TrialSets.ByChoice.SideA.TargetValueLow = intersect(intersect(TrialSets.ByTrialT
 TrialSets.ByChoice.SideB.TargetValueHigh = intersect(intersect(TrialSets.ByTrialType.InformedTrials, setdiff(TrialSets.All, B_SelectedTargetEqualsRandomizedTargetTrialIdx)), TrialSets.ByActivity.SideB.AllTrials);
 TrialSets.ByChoice.SideB.TargetValueLow = intersect(TrialSets.ByTrialType.InformedTrials, B_SelectedTargetEqualsRandomizedTargetTrialIdx); % here the randomized position equals lower payoff
 
+
+
 %TODO make sure that the higher rewarded trials are truely from trials
 %using a differential RewardFunction.
 
@@ -737,7 +739,7 @@ tmp_same_LL_idx = intersect(TrialSets.ByChoice.JointChoices.LastTrial_TargetValu
 tmp_same_HH_idx = intersect(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighHigh, TrialSets.ByChoice.JointChoices.TargetValue_HighHigh);
 tmp_same_LH_idx = intersect(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowHigh, TrialSets.ByChoice.JointChoices.TargetValue_LowHigh);
 tmp_same_HL_idx = intersect(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighLow, TrialSets.ByChoice.JointChoices.TargetValue_HighLow);
-% these are the trials with =exact same joint choces as the last informed trial
+% these are the trials with exact same joint choices as the last informed trial
 TrialSets.ByChoice.JointChoices.LastTrial_SameValue = sort([tmp_same_LL_idx; tmp_same_HH_idx; tmp_same_LH_idx; tmp_same_HL_idx]);
 % find instances when individual agents changed their value choice
 tmp_diff_LL_idx = setdiff(TrialSets.ByChoice.JointChoices.TargetValue_LowLow, TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowLow);
@@ -746,6 +748,50 @@ tmp_diff_LH_idx = setdiff(TrialSets.ByChoice.JointChoices.TargetValue_LowHigh, T
 tmp_diff_HL_idx = setdiff(TrialSets.ByChoice.JointChoices.TargetValue_HighLow, TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighLow);
 % these are the trials with =exact same joint choces as the last informed trial
 TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue = sort([tmp_diff_LL_idx; tmp_diff_HH_idx; tmp_diff_LH_idx; tmp_diff_HL_idx]);
+
+
+% for each agent, same different from own or partner's last choice, in
+% essence is the current choice mimicking the partner's previous choice?
+% since this requires a real partner start with creating this under JointChoices
+TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh = union(tmp_same_HH_idx, union(tmp_same_HL_idx, union(tmp_diff_HH_idx, tmp_diff_HL_idx))); % here the randomized position equals higher payoff
+TrialSets.ByChoice.JointChoices.A_LastTargetValueLow = union(tmp_same_LL_idx, union(tmp_same_LH_idx, union(tmp_diff_LL_idx, tmp_diff_LH_idx)));
+TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh = union(tmp_same_HH_idx, union(tmp_same_LH_idx, union(tmp_diff_HH_idx, tmp_diff_LH_idx)));
+TrialSets.ByChoice.JointChoices.B_LastTargetValueLow = union(tmp_same_LL_idx, union(tmp_same_HL_idx, union(tmp_diff_LL_idx, tmp_diff_HL_idx))); % here the randomized position equals lower payoff
+
+%
+TrialSets.ByChoice.JointChoices.Same_A_High_LastB_Low = intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.JointChoices.B_LastTargetValueLow);
+TrialSets.ByChoice.JointChoices.Diff_A_High_LastB_High = intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh);
+TrialSets.ByChoice.JointChoices.Diff_A_Low_LastB_Low = intersect(TrialSets.ByChoice.SideA.TargetValueLow, TrialSets.ByChoice.JointChoices.B_LastTargetValueLow);
+TrialSets.ByChoice.JointChoices.Same_A_Low_LastB_High = intersect(TrialSets.ByChoice.SideA.TargetValueLow, TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh);
+
+TrialSets.ByChoice.JointChoices.Diff_A_High_LastA_Low = intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.JointChoices.A_LastTargetValueLow);
+TrialSets.ByChoice.JointChoices.Same_A_High_LastA_High = intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh);
+TrialSets.ByChoice.JointChoices.Same_A_Low_LastA_Low = intersect(TrialSets.ByChoice.SideA.TargetValueLow, TrialSets.ByChoice.JointChoices.A_LastTargetValueLow);
+TrialSets.ByChoice.JointChoices.Diff_A_Low_LastA_High = intersect(TrialSets.ByChoice.SideA.TargetValueLow, TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh);
+
+TrialSets.ByChoice.JointChoices.Same_B_High_LastA_Low = intersect(TrialSets.ByChoice.SideB.TargetValueHigh, TrialSets.ByChoice.JointChoices.A_LastTargetValueLow);
+TrialSets.ByChoice.JointChoices.Diff_B_High_LastA_High = intersect(TrialSets.ByChoice.SideB.TargetValueHigh, TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh);
+TrialSets.ByChoice.JointChoices.Diff_B_Low_LastA_Low = intersect(TrialSets.ByChoice.SideB.TargetValueLow, TrialSets.ByChoice.JointChoices.A_LastTargetValueLow);
+TrialSets.ByChoice.JointChoices.Same_B_Low_LastA_High = intersect(TrialSets.ByChoice.SideB.TargetValueLow, TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh);
+
+TrialSets.ByChoice.JointChoices.Diff_B_High_LastB_Low = intersect(TrialSets.ByChoice.SideB.TargetValueHigh, TrialSets.ByChoice.JointChoices.B_LastTargetValueLow);
+TrialSets.ByChoice.JointChoices.Same_B_High_LastB_High = intersect(TrialSets.ByChoice.SideB.TargetValueHigh, TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh);
+TrialSets.ByChoice.JointChoices.Same_B_Low_LastB_Low = intersect(TrialSets.ByChoice.SideB.TargetValueLow, TrialSets.ByChoice.JointChoices.B_LastTargetValueLow);
+TrialSets.ByChoice.JointChoices.Diff_B_Low_LastB_High = intersect(TrialSets.ByChoice.SideB.TargetValueLow, TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh);
+
+% 
+TrialSets.ByChoice.JointChoices.A_SameTargetAsLastB = union(intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.JointChoices.B_LastTargetValueLow), intersect(TrialSets.ByChoice.SideA.TargetValueLow, TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh)); % RED is A"'s high and B's low value
+TrialSets.ByChoice.JointChoices.A_DiffTargetAsLastB = union(intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh), intersect(TrialSets.ByChoice.SideA.TargetValueLow, TrialSets.ByChoice.JointChoices.B_LastTargetValueLow));
+TrialSets.ByChoice.JointChoices.B_SameTargetAsLastA = union(intersect(TrialSets.ByChoice.SideB.TargetValueHigh, TrialSets.ByChoice.JointChoices.A_LastTargetValueLow), intersect(TrialSets.ByChoice.SideB.TargetValueLow, TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh)); % RED is A"'s high and B's low value
+TrialSets.ByChoice.JointChoices.B_DiffTargetAsLastA = union(intersect(TrialSets.ByChoice.SideB.TargetValueHigh, TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh), intersect(TrialSets.ByChoice.SideB.TargetValueLow, TrialSets.ByChoice.JointChoices.A_LastTargetValueLow));
+
+TrialSets.ByChoice.JointChoices.A_DiffTargetAsLastA = union(intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.JointChoices.A_LastTargetValueLow), intersect(TrialSets.ByChoice.SideA.TargetValueLow, TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh)); % RED is A"'s high and B's low value
+TrialSets.ByChoice.JointChoices.A_SameTargetAsLastA = union(intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh), intersect(TrialSets.ByChoice.SideA.TargetValueLow, TrialSets.ByChoice.JointChoices.A_LastTargetValueLow));
+TrialSets.ByChoice.JointChoices.B_DiffTargetAsLastB = union(intersect(TrialSets.ByChoice.SideB.TargetValueHigh, TrialSets.ByChoice.JointChoices.B_LastTargetValueLow), intersect(TrialSets.ByChoice.SideB.TargetValueLow, TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh)); % RED is A"'s high and B's low value
+TrialSets.ByChoice.JointChoices.B_SameTargetAsLastB = union(intersect(TrialSets.ByChoice.SideB.TargetValueHigh, TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh), intersect(TrialSets.ByChoice.SideB.TargetValueLow, TrialSets.ByChoice.JointChoices.B_LastTargetValueLow));
+
+
+
 
 % the first trial does not have one earlier so remove from set, note both
 % are sorted already
