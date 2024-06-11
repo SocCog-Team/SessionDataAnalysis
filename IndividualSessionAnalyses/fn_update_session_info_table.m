@@ -10,7 +10,22 @@ if ~isempty(dir(existing_session_info_table_FQN))
 	% concatenation assures the new modified values are after earlier
 	% instances of the same records, which we use later to replace the old
 	% with the new
-	data_struct_array = [existing_data_struct_array, new_data_struct_array];
+	existing_id_list = {existing_data_struct_array.sort_key_string};
+	new_id_list = {new_data_struct_array.sort_key_string};
+
+	if (sum(ismember(existing_id_list, new_id_list)) >= length(existing_id_list))
+		% if the new set contains all sessions of the existing set, replace
+		% it completely allowing to change the number of fields/columns...
+		disp([mfilename, ': freshly parsed new_data_struct_array is a superset of existing_data_struct_array, so replacing it completely...']);
+		data_struct_array = new_data_struct_array;
+	else
+		if isequal(fieldnames(existing_data_struct_array), fieldnames(new_data_struct_array))
+			data_struct_array = [existing_data_struct_array, new_data_struct_array];
+		else
+			disp([mfilename, ': unequal number of data fields between existing table and new data, bailing out...']);
+			keyboard
+		end
+	end
 else
 	% existing_session_info_table_FQN does not yet exist, simply sort and
 	% save the data
