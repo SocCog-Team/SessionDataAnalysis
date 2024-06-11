@@ -7,6 +7,11 @@ function [ session_info_struct, session_info_struct_version ] = fn_collect_and_s
 %
 % TODO:
 %	add information about value and side biases and prediction for 
+%	add the ratio of selecting the partner's previous choice, per action
+%	time
+% DONE:
+%	add information about succesful spike sorting...
+
 
 % information:
 
@@ -159,6 +164,20 @@ if isfolder(fullfile(logfile_path, 'ANALYSIS'))
 		session_struct.Analysed = 1;
 	end
 end
+
+
+
+% figure out whether we have exported PETH neuronal data
+session_struct.PETH_exported = isfile(fullfile(logfile_path, 'TDT', 'PETHdata', [processed_session_id, '.', 'NDT.raster_label_instance_count_list', '.txt']));
+
+% figure out whether we exported the MUA data and generated plots
+session_struct.MUA_A_exported = ~isempty(dir(fullfile(logfile_path, 'TDT', 'MUA', ['MUA.', processed_session_id, '*', '.A.statistic_summary_table', '.mat'])));
+session_struct.MUA_B_exported = ~isempty(dir(fullfile(logfile_path, 'TDT', 'MUA', ['MUA.', processed_session_id, '*', '.B.statistic_summary_table', '.mat'])));
+
+% figure out whether we exported the LFP data and generated plots
+session_struct.LFP_A_exported = ~isempty(dir(fullfile(logfile_path, 'TDT', 'LFP', ['LFP.', processed_session_id, '*', '.A.statistic_summary_table', '.mat'])));
+session_struct.LFP_B_exported = ~isempty(dir(fullfile(logfile_path, 'TDT', 'LFP', ['LFP.', processed_session_id, '*', '.B.statistic_summary_table', '.mat'])));
+
 
 if isfolder(fullfile(logfile_path, 'TDT'))
 	GoodChannelMapNum2String = '';
@@ -385,6 +404,58 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 			cue_randomization_combination_struct.HitTrials_B = length(cur_rewarded_trials_B_idx);
 			cue_randomization_combination_struct.AbortedTrials_B = length(cur_aborted_trials_B_idx);
 			
+			cur_rewarded_trials_AB_idx = intersect(intersect(TrialSets.ByOutcome.SideA.REWARD, cur_trial_idx), intersect(TrialSets.ByOutcome.SideB.REWARD, cur_trial_idx));
+
+			% get who is faster for purposes of prediction/X_follows_to_Y_Last_lowValue_pct
+			min_delta_RT = 100;
+			RF_diff_AminusB = report_struct.data(:, report_struct.cn.A_InitialFixationReleaseTime_ms) - report_struct.data(:, report_struct.cn.B_InitialFixationReleaseTime_ms);
+			RT_A_faster_B_trial_idx = find(RF_diff_AminusB < -min_delta_RT);
+			RT_A_equal_B_trial_idx = find(RF_diff_AminusB == 0);
+			RT_B_faster_A_trial_idx =  find(RF_diff_AminusB > min_delta_RT);
+
+
+			cur_rewarded_SameObjLeft_AB_idx = intersect(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.SideA.ChoiceScreenFromALeft), TrialSets.ByChoice.SideB.ChoiceScreenFromALeft);
+			cur_rewarded_SameObjRight_AB_idx = intersect(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.SideA.ChoiceScreenFromARight), TrialSets.ByChoice.SideB.ChoiceScreenFromARight);
+
+			cur_rewarded_Ahigh_Blow_RED_AB_idx = intersect(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.SideA.TargetValueHigh), TrialSets.ByChoice.SideB.TargetValueLow);
+			cur_rewarded_Alow_Bhigh_BLUE_AB_idx = intersect(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.SideA.TargetValueLow), TrialSets.ByChoice.SideB.TargetValueHigh);
+
+			cue_randomization_combination_struct.SameValHitTrialsPCT = 100 * (length(cur_rewarded_Ahigh_Blow_RED_AB_idx) + length(cur_rewarded_Alow_Bhigh_BLUE_AB_idx)) / length(cur_rewarded_trials_AB_idx);
+			cue_randomization_combination_struct.SameSideHitTrialsPCT = 100 * (length(cur_rewarded_SameObjLeft_AB_idx) + length(cur_rewarded_SameObjRight_AB_idx)) / length(cur_rewarded_trials_AB_idx);
+
+			% choices in relation to self and other's previous choice
+			cue_randomization_combination_struct.HitASameTargetAsLastB = length(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.JointChoices.A_SameTargetAsLastB));
+			%cue_randomization_combination_struct.HitADiffTargetAsLastB = length(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.JointChoices.A_DiffTargetAsLastB));
+
+			cue_randomization_combination_struct.HitASameTargetAsLastA =  length(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.JointChoices.A_SameTargetAsLastA));
+			%cue_randomization_combination_struct.HitADiffTargetAsLastA =  length(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.JointChoices.A_DiffTargetAsLastA));
+
+			cue_randomization_combination_struct.HitBSameTargetAsLastB =  length(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.JointChoices.B_SameTargetAsLastB));
+			%cue_randomization_combination_struct.HitBDiffTargetAsLastB = length(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.JointChoices.B_DiffTargetAsLastB));
+			
+			cue_randomization_combination_struct.HitBSameTargetAsLastA = length(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.JointChoices.B_SameTargetAsLastA));
+			%cue_randomization_combination_struct.HitBDiffTargetAsLastA = length(intersect(cur_rewarded_trials_AB_idx, TrialSets.ByChoice.JointChoices.B_DiffTargetAsLastA));
+
+
+
+			if (length(cur_rewarded_trials_AB_idx) > 0) && ~isempty(RT_A_faster_B_trial_idx)
+				cue_randomization_combination_struct.slower_A_predicts_to_B_Last_lowValue_pct = 100 * (length(intersect(intersect(cur_rewarded_trials_AB_idx, RT_A_faster_B_trial_idx), TrialSets.ByChoice.JointChoices.Same_A_Low_LastB_High))) /  (length(intersect(intersect(cur_rewarded_trials_AB_idx, RT_A_faster_B_trial_idx), union(TrialSets.ByChoice.JointChoices.Same_B_High_LastB_High, TrialSets.ByChoice.JointChoices.Diff_B_Low_LastB_High))));
+				% we test against 50:50 chance here, matched for number of trials
+				[~, cue_randomization_combination_struct.slower_A_predicts_to_B_Last_lowValue_p, stats] = fishertest(fn_fishertest_ratio_versus_random([(length(intersect(intersect(cur_rewarded_trials_AB_idx, RT_A_faster_B_trial_idx), TrialSets.ByChoice.JointChoices.Same_A_Low_LastB_High))), (length(intersect(intersect(cur_rewarded_trials_AB_idx, RT_A_faster_B_trial_idx), union(TrialSets.ByChoice.JointChoices.Same_B_High_LastB_High, TrialSets.ByChoice.JointChoices.Diff_B_Low_LastB_High))))]));
+			else
+				cue_randomization_combination_struct.slower_A_predicts_to_B_Last_lowValue_pct = NaN;
+				cue_randomization_combination_struct.slower_A_predicts_to_B_Last_lowValue_p = NaN;
+			end
+
+			if (length(cur_rewarded_trials_AB_idx) > 0) && ~isempty(RT_B_faster_A_trial_idx)
+				cue_randomization_combination_struct.slower_B_predicts_to_A_Last_lowValue_pct = 100 * (length(intersect(intersect(cur_rewarded_trials_AB_idx, RT_B_faster_A_trial_idx), TrialSets.ByChoice.JointChoices.Same_B_Low_LastA_High))) / (length(intersect(intersect(cur_rewarded_trials_AB_idx, RT_B_faster_A_trial_idx), union(TrialSets.ByChoice.JointChoices.Same_B_Low_LastA_High, TrialSets.ByChoice.JointChoices.Diff_B_High_LastA_High))));
+				% we test against 50:50 chance here, matched for number of trials
+				[~, cue_randomization_combination_struct.slower_B_predicts_to_A_Last_lowValue_p, stats] = fishertest(fn_fishertest_ratio_versus_random([(length(intersect(intersect(cur_rewarded_trials_AB_idx, RT_B_faster_A_trial_idx), TrialSets.ByChoice.JointChoices.Same_B_Low_LastA_High))), (length(intersect(intersect(cur_rewarded_trials_AB_idx, RT_B_faster_A_trial_idx), union(TrialSets.ByChoice.JointChoices.Same_B_Low_LastA_High, TrialSets.ByChoice.JointChoices.Diff_B_High_LastA_High))))]));
+			else
+				cue_randomization_combination_struct.slower_B_predicts_to_A_Last_lowValue_pct = NaN;
+				cue_randomization_combination_struct.slower_B_predicts_to_A_Last_lowValue_p = NaN;
+			end
+
 
 			% get the relative timing
 			for i_action_sequence = 1 : length(action_sequence_name_list)
@@ -394,6 +465,14 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 				cur_trial_idx_A = intersect(intersect(TrialSets.ByOutcome.SideA.REWARD, cur_trial_idx), cur_action_sequence_trial_idx);
 				cur_trial_idx_B = intersect(intersect(TrialSets.ByOutcome.SideB.REWARD, cur_trial_idx), cur_action_sequence_trial_idx);
 				cur_trial_idx_AB = intersect(intersect(intersect(TrialSets.ByOutcome.SideA.REWARD, TrialSets.ByOutcome.SideB.REWARD), cur_trial_idx), cur_action_sequence_trial_idx);
+
+				cur_rewarded_SameObjLeft_AB_idx = intersect(intersect(cur_trial_idx_AB, TrialSets.ByChoice.SideA.ChoiceScreenFromALeft), TrialSets.ByChoice.SideB.ChoiceScreenFromALeft);
+				cur_rewarded_SameObjRight_AB_idx = intersect(intersect(cur_trial_idx_AB, TrialSets.ByChoice.SideA.ChoiceScreenFromARight), TrialSets.ByChoice.SideB.ChoiceScreenFromARight);
+
+				cur_rewarded_Ahigh_Blow_RED_AB_idx = intersect(intersect(cur_trial_idx_AB, TrialSets.ByChoice.SideA.TargetValueHigh), TrialSets.ByChoice.SideB.TargetValueLow);
+				cur_rewarded_Alow_Bhigh_BLUE_AB_idx = intersect(intersect(cur_trial_idx_AB, TrialSets.ByChoice.SideA.TargetValueLow), TrialSets.ByChoice.SideB.TargetValueHigh);
+
+
 
 				% NOTE: if the indices are empty the fields contain NaNs, which should work out...
 
@@ -409,7 +488,8 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 
 				% joint choices
 				cue_randomization_combination_struct.([cur_action_sequence_name, '_nTrials_AB']) = length(cur_trial_idx_AB);
-				cue_randomization_combination_struct.([cur_action_sequence_name, '_SamePCT_AB']) = 100 * (length(intersect(TrialSets.ByChoice.SameTarget, cur_trial_idx_B)) / length(cur_trial_idx_AB));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_SamePCT_AB']) = 100 * (length(intersect(TrialSets.ByChoice.SameTarget, cur_trial_idx_AB)) / length(cur_trial_idx_AB));
+				%cue_randomization_combination_struct.([cur_action_sequence_name, '_SameSidePCT_AB']) = 100 * (length(union(cur_rewarded_SameObjLeft_AB_idx, cur_rewarded_SameObjRight_AB_idx)) / length(cur_trial_idx_AB));
 				
 				cue_randomization_combination_struct.([cur_action_sequence_name, '_Ahigh_Blow_RED']) = length(intersect(TrialSets.ByChoice.JointChoices.TargetValue_HighLow, cur_trial_idx_AB));
 				cue_randomization_combination_struct.([cur_action_sequence_name, '_Alow_Bhigh_BLUE']) = length(intersect(TrialSets.ByChoice.JointChoices.TargetValue_LowHigh, cur_trial_idx_AB));
@@ -422,7 +502,75 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 				cue_randomization_combination_struct.([cur_action_sequence_name, '_Aright_Bleft']) = length(intersect(intersect(TrialSets.ByChoice.SideA.ChoiceScreenFromARight, TrialSets.ByChoice.SideB.ChoiceScreenFromALeft), cur_trial_idx_AB));
 
 
+				% choices in relation to self and other's previous choice
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_ASameTarget_LastB_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.A_SameTargetAsLastB)) / length(cur_trial_idx_AB));
+				%cue_randomization_combination_struct.([cur_action_sequence_name, 'ADiffTarget_LastB_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.A_DiffTargetAsLastB)) / length(cur_trial_idx_AB));
+
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_ASameTarget_LastA_PCT_AB']) =  100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.A_SameTargetAsLastA)) / length(cur_trial_idx_AB));
+				%cue_randomization_combination_struct.([cur_action_sequence_name, 'ADiffTarget_LastA_PCT_AB']) =  100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.A_DiffTargetAsLastA)) / length(cur_trial_idx_AB));
+
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_BSameTarget_LastB_PCT_AB']) =  100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.B_SameTargetAsLastB)) / length(cur_trial_idx_AB));
+				%cue_randomization_combination_struct.([cur_action_sequence_name, 'BDiffTarget_LastB_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.B_DiffTargetAsLastB)) / length(cur_trial_idx_AB));
+			
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_BSameTarget_LastA_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.B_SameTargetAsLastA)) / length(cur_trial_idx_AB));
+				%cue_randomization_combination_struct.([cur_action_sequence_name, 'BDiffTarget_LastA_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.B_DiffTargetAsLastA)) / length(cur_trial_idx_AB));
+
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_ASame_LastBLow_RED_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.Same_A_High_LastB_Low)) / length(intersect(cur_trial_idx_AB, union(TrialSets.ByChoice.JointChoices.Same_A_High_LastB_Low, TrialSets.ByChoice.JointChoices.Diff_A_Low_LastB_Low))));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_ASame_LastBHigh_BLUE_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.Same_A_Low_LastB_High)) / length(intersect(cur_trial_idx_AB, union(TrialSets.ByChoice.JointChoices.Same_A_Low_LastB_High, TrialSets.ByChoice.JointChoices.Diff_A_High_LastB_High))));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_ASame_LastALow_BLUE_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.Same_A_Low_LastA_Low)) / length(intersect(cur_trial_idx_AB, union(TrialSets.ByChoice.JointChoices.Same_A_Low_LastA_Low, TrialSets.ByChoice.JointChoices.Diff_A_High_LastA_Low))));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_ASame_LastAHigh_RED_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.Same_A_High_LastA_High)) / length(intersect(cur_trial_idx_AB, union(TrialSets.ByChoice.JointChoices.Same_A_High_LastA_High, TrialSets.ByChoice.JointChoices.Diff_A_Low_LastA_High))));
+
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_BSame_LastBLow_RED_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.Same_B_Low_LastB_Low)) / length(intersect(cur_trial_idx_AB, union(TrialSets.ByChoice.JointChoices.Same_B_Low_LastB_Low, TrialSets.ByChoice.JointChoices.Diff_B_High_LastB_Low))));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_BSame_LastBHigh_BLUE_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.Same_B_High_LastB_High)) / length(intersect(cur_trial_idx_AB, union(TrialSets.ByChoice.JointChoices.Same_B_High_LastB_High, TrialSets.ByChoice.JointChoices.Diff_B_Low_LastB_High))));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_BSame_LastALow_BLUE_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.Same_B_High_LastA_Low)) / length(intersect(cur_trial_idx_AB, union(TrialSets.ByChoice.JointChoices.Same_B_High_LastA_Low, TrialSets.ByChoice.JointChoices.Diff_B_Low_LastA_Low))));
+				cue_randomization_combination_struct.([cur_action_sequence_name, '_BSame_LastAHigh_RED_PCT_AB']) = 100 * (length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.Same_B_Low_LastA_High)) / length(intersect(cur_trial_idx_AB, union(TrialSets.ByChoice.JointChoices.Same_B_Low_LastA_High, TrialSets.ByChoice.JointChoices.Diff_B_High_LastA_High))));
+
+				if ismember('AgoB', action_sequence_name_list) && (length(cur_trial_idx_AB) > 0) && strcmp('AgoB', cur_action_sequence_name)
+					AgoB_A_predicts_to_B_Last_lowValue_pct = cue_randomization_combination_struct.(['AgoB', '_ASame_LastBHigh_BLUE_PCT_AB']);
+					% we test against 50:50 chance here, matched for number of trials
+					[~, AgoB_A_predicts_to_B_Last_lowValue_p, stats] = fishertest(fn_fishertest_ratio_versus_random([(length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.Same_A_Low_LastB_High))), (length(intersect(cur_trial_idx_AB, union(TrialSets.ByChoice.JointChoices.Same_B_High_LastB_High, TrialSets.ByChoice.JointChoices.Diff_B_Low_LastB_High))))]));
+				else
+					AgoB_A_predicts_to_B_Last_lowValue_pct = NaN;
+					AgoB_A_predicts_to_B_Last_lowValue_p = NaN;
+				end
+	
+				if ismember('BgoA', action_sequence_name_list) && (length(cur_trial_idx_AB) > 0) && strcmp('BgoA', cur_action_sequence_name)
+					BgoA_B_predicts_to_A_Last_lowValue_pct = cue_randomization_combination_struct.(['BgoA', '_BSame_LastAHigh_RED_PCT_AB']);
+					% we test against 50:50 chance here, matched for number of trials
+					[~, BgoA_B_predicts_to_A_Last_lowValue_p, stats] = fishertest(fn_fishertest_ratio_versus_random([(length(intersect(cur_trial_idx_AB, TrialSets.ByChoice.JointChoices.Same_B_Low_LastA_High))), (length(intersect(cur_trial_idx_AB, union(TrialSets.ByChoice.JointChoices.Same_B_Low_LastA_High, TrialSets.ByChoice.JointChoices.Diff_B_High_LastA_High))))]));
+				else
+					BgoA_B_predicts_to_A_Last_lowValue_pct = NaN;
+					BgoA_B_predicts_to_A_Last_lowValue_p = NaN;
+				end
 			end
+			cue_randomization_combination_struct.AgoB_A_predicts_to_B_Last_lowValue_pct = AgoB_A_predicts_to_B_Last_lowValue_pct;
+			cue_randomization_combination_struct.AgoB_A_predicts_to_B_Last_lowValue_p = AgoB_A_predicts_to_B_Last_lowValue_p;
+
+			cue_randomization_combination_struct.BgoA_B_predicts_to_A_Last_lowValue_pct = BgoA_B_predicts_to_A_Last_lowValue_pct;
+			cue_randomization_combination_struct.BgoA_B_predicts_to_A_Last_lowValue_p = BgoA_B_predicts_to_A_Last_lowValue_p;
+
+
+			% fraction of following the partner's last selfish choice that
+			% is benevolently accomodating as a prediction
+
+
+			% if ismember('AgoB', action_sequence_name_list)
+			% 	cur_n_trials = cue_randomization_combination_struct.(['AgoB', '_nTrials_AB']);
+			% 	cue_randomization_combination_struct.A_follows_to_B_Last_lowValue_pct = cue_randomization_combination_struct.(['AgoB', '_ASame_LastBHigh_BLUE_PCT_AB']);
+			% 	[~, cue_randomization_combination_struct.A_follows_to_B_Last_lowValue_p, stats] = fishertest(fn_fishertest_ratio_versus_random([(cue_randomization_combination_struct.A_follows_to_B_Last_lowValue_pct * cur_n_trials / 100), (100 - cue_randomization_combination_struct.A_follows_to_B_Last_lowValue_pct * cur_n_trials / 100)]));
+			% else
+			% 	cue_randomization_combination_struct.A_follows_to_B_Last_lowValue_pct = NaN;
+			% 	cue_randomization_combination_struct.A_follows_to_B_Last_lowValue_pct = NaN;
+			% end
+
+			% if ismember('BgoA', action_sequence_name_list)
+			% 	cur_n_trials = cue_randomization_combination_struct.(['BgoA', '_nTrials_AB']);
+			% 	cue_randomization_combination_struct.B_follows_to_A_Last_lowValue_pct = cue_randomization_combination_struct.(['BgoA', '_BSame_LastAHigh_RED_PCT_AB']);
+			% 	[~, cue_randomization_combination_struct.B_follows_to_A_Last_lowValue_p, stats] = fishertest(fn_fishertest_ratio_versus_random([(cue_randomization_combination_struct.B_follows_to_A_Last_lowValue_pct * cur_n_trials / 100), (100 - cue_randomization_combination_struct.B_follows_to_A_Last_lowValue_pct * cur_n_trials / 100)]));
+			% else
+			% 	cue_randomization_combination_struct.B_follows_to_A_Last_lowValue_pct = NaN;
+			% 	cue_randomization_combination_struct.B_follows_to_A_Last_lowValue_p = NaN;
+			% end
 
 
 			% get the fraction of correctly selecting the partner"s
@@ -551,8 +699,11 @@ for i_field = 1 : length(session_info_struct_fieldlist)
 		end
 		if isnumeric(session_info_struct(end).(cur_field))
 			%report the sum
-			total_session_info_struct.(cur_field) = sum([session_info_struct(:).(cur_field)], 'omitnan');
-			
+			total_session_info_struct.(cur_field) = sum([session_info_struct(:).(cur_field)], 'omitnan');	
+		end
+		if islogical(session_info_struct(end).(cur_field))
+			%report the sum
+			total_session_info_struct.(cur_field) = sum([session_info_struct(:).(cur_field)], 'omitnan');	
 		end
 	end
 end
