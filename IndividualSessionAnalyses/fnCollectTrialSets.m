@@ -753,10 +753,18 @@ TrialSets.ByChoice.JointChoices.LastTrial_DifferentValue = sort([tmp_diff_LL_idx
 % for each agent, same different from own or partner's last choice, in
 % essence is the current choice mimicking the partner's previous choice?
 % since this requires a real partner start with creating this under JointChoices
-TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh = union(tmp_same_HH_idx, union(tmp_same_HL_idx, union(tmp_diff_HH_idx, tmp_diff_HL_idx))); % here the randomized position equals higher payoff
-TrialSets.ByChoice.JointChoices.A_LastTargetValueLow = union(tmp_same_LL_idx, union(tmp_same_LH_idx, union(tmp_diff_LL_idx, tmp_diff_LH_idx)));
-TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh = union(tmp_same_HH_idx, union(tmp_same_LH_idx, union(tmp_diff_HH_idx, tmp_diff_LH_idx)));
-TrialSets.ByChoice.JointChoices.B_LastTargetValueLow = union(tmp_same_LL_idx, union(tmp_same_HL_idx, union(tmp_diff_LL_idx, tmp_diff_HL_idx))); % here the randomized position equals lower payoff
+% TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh = union(tmp_same_HH_idx, union(tmp_same_HL_idx, union(tmp_diff_HH_idx, tmp_diff_HL_idx))); % here the randomized position equals higher payoff
+% TrialSets.ByChoice.JointChoices.A_LastTargetValueLow = union(tmp_same_LL_idx, union(tmp_same_LH_idx, union(tmp_diff_LL_idx, tmp_diff_LH_idx)));
+% TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh = union(tmp_same_HH_idx, union(tmp_same_LH_idx, union(tmp_diff_HH_idx, tmp_diff_LH_idx)));
+% TrialSets.ByChoice.JointChoices.B_LastTargetValueLow = union(tmp_same_LL_idx, union(tmp_same_HL_idx, union(tmp_diff_LL_idx, tmp_diff_HL_idx))); % here the randomized position equals lower payoff
+
+
+TrialSets.ByChoice.JointChoices.A_LastTargetValueHigh = union(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighHigh, TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighLow); % here the randomized position equals higher payoff
+TrialSets.ByChoice.JointChoices.A_LastTargetValueLow = union(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowLow, TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowHigh);
+TrialSets.ByChoice.JointChoices.B_LastTargetValueHigh = union(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighHigh, TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowHigh);
+TrialSets.ByChoice.JointChoices.B_LastTargetValueLow = union(TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_LowLow, TrialSets.ByChoice.JointChoices.LastTrial_TargetValue_HighLow); % here the randomized position equals lower payoff
+
+
 
 %
 TrialSets.ByChoice.JointChoices.Same_A_High_LastB_Low = intersect(TrialSets.ByChoice.SideA.TargetValueHigh, TrialSets.ByChoice.JointChoices.B_LastTargetValueLow);
