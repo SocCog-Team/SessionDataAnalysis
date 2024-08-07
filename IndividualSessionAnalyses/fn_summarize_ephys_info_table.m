@@ -28,6 +28,8 @@ prediction_measure_string = 'XgoY_SamePCT_AB'; % XgoY_X_depends_on_LastY_pval, X
 predictable_confederate_alpha_threshold_pval = 0.001;
 predicting_confederate_alpha_threshold_pval = 1e-05;
 predicting_confederate_sameness_threshold_pct = 66;
+min_prediction_trials = 20;	% exclude sessions with less then this number of trials in the AgoB category...
+
 
 % create one line per listed side, or aggregate if AB
 side_list = {'A', 'B'};
@@ -123,12 +125,12 @@ plot(x_lim, y_lim);
 hold off
 
 
-
+min_prediction_trials_ldx = (ephys_session_data.AgoB_nTrials_A > min_prediction_trials) & (ephys_session_data.AgoB_nTrials_B > min_prediction_trials);
 figure('Name', 'AgoB_SamePCT_AB');
-violinplot((ephys_session_data.AgoB_SamePCT_AB(ConfHP_B_ldx & dyadic_ldx)), category_list(ConfHP_B_ldx & dyadic_ldx));
-[ aggregate_struct, report_string ] = fn_statistic_test_and_report('blocked', (ephys_session_data.AgoB_SamePCT_AB(ConfHP_B_ldx & dyadic_ldx & blocked_confederate_ldx)), 'shuffled', (ephys_session_data.AgoB_SamePCT_AB(ConfHP_B_ldx & dyadic_ldx & shuffled_confederate_ldx)), 'ranksum', 1);
+violinplot((ephys_session_data.AgoB_SamePCT_AB(ConfHP_B_ldx & dyadic_ldx & min_prediction_trials_ldx)), category_list(ConfHP_B_ldx & dyadic_ldx & min_prediction_trials_ldx));
+[ aggregate_struct, report_string ] = fn_statistic_test_and_report('blocked', (ephys_session_data.AgoB_SamePCT_AB(ConfHP_B_ldx & dyadic_ldx & blocked_confederate_ldx & min_prediction_trials_ldx)), 'shuffled', (ephys_session_data.AgoB_SamePCT_AB(ConfHP_B_ldx & dyadic_ldx & shuffled_confederate_ldx & min_prediction_trials_ldx)), 'ranksum', 1);
 figure('Name', 'scatter AgoB_SamePCT_AB vs. BgoA_SamePCT_AB');
-scatter((ephys_session_data.AgoB_SamePCT_AB(ConfHP_B_ldx & dyadic_ldx)), (ephys_session_data.BgoA_SamePCT_AB(ConfHP_B_ldx & dyadic_ldx)))
+scatter((ephys_session_data.AgoB_SamePCT_AB(ConfHP_B_ldx & dyadic_ldx & min_prediction_trials_ldx)), (ephys_session_data.BgoA_SamePCT_AB(ConfHP_B_ldx & dyadic_ldx & min_prediction_trials_ldx)))
 xlabel('AgoB_SamePCT_AB', 'Interpreter', 'none');
 ylabel('BgoA_SamePCT_AB', 'Interpreter', 'none');
 axis equal
@@ -140,22 +142,22 @@ plot(x_lim, y_lim);
 hold off
 
 
-% just look at the overal sameness selection (ideally should be redone for AirtB instead of all hits...)
-%AirtB_SamePCT_AB = 100 * ((ephys_session_data.AirtB_Same_A_Low_LastB_High_N + ephys_session_data) / (ephys_session_data.AirtB_Same_A_Low_LastB_High_N + ephys_session_data + ephys_session_data))
-figure('Name', 'SameValHitTrialsPCT');
-violinplot((ephys_session_data.SameValHitTrialsPCT(ConfHP_B_ldx & dyadic_ldx)), category_list(ConfHP_B_ldx & dyadic_ldx));
-[ aggregate_struct, report_string ] = fn_statistic_test_and_report('blocked', (ephys_session_data.SameValHitTrialsPCT(ConfHP_B_ldx & dyadic_ldx & blocked_confederate_ldx)), 'shuffled', (ephys_session_data.SameValHitTrialsPCT(ConfHP_B_ldx & dyadic_ldx & shuffled_confederate_ldx)), 'ranksum', 1);
-figure('Name', 'scatter SameValHitTrialsPCT vs. BgoA_SamePCT_AB');
-scatter((ephys_session_data.SameValHitTrialsPCT(ConfHP_B_ldx & dyadic_ldx)), (ephys_session_data.SameValHitTrialsPCT(ConfHP_B_ldx & dyadic_ldx)))
-xlabel('SameValHitTrialsPCT', 'Interpreter', 'none');
-ylabel('SameValHitTrialsPCT', 'Interpreter', 'none');
-axis equal
-axis square
-hold on
-x_lim = get(gca(), 'XLim');
-y_lim = get(gca(), 'YLim');
-plot(x_lim, y_lim);
-hold off
+% % just look at the overal sameness selection (ideally should be redone for AirtB instead of all hits...)
+% %AirtB_SamePCT_AB = 100 * ((ephys_session_data.AirtB_Same_A_Low_LastB_High_N + ephys_session_data) / (ephys_session_data.AirtB_Same_A_Low_LastB_High_N + ephys_session_data + ephys_session_data))
+% figure('Name', 'SameValHitTrialsPCT');
+% violinplot((ephys_session_data.SameValHitTrialsPCT(ConfHP_B_ldx & dyadic_ldx)), category_list(ConfHP_B_ldx & dyadic_ldx));
+% [ aggregate_struct, report_string ] = fn_statistic_test_and_report('blocked', (ephys_session_data.SameValHitTrialsPCT(ConfHP_B_ldx & dyadic_ldx & blocked_confederate_ldx)), 'shuffled', (ephys_session_data.SameValHitTrialsPCT(ConfHP_B_ldx & dyadic_ldx & shuffled_confederate_ldx)), 'ranksum', 1);
+% figure('Name', 'scatter SameValHitTrialsPCT vs. BgoA_SamePCT_AB');
+% scatter((ephys_session_data.SameValHitTrialsPCT(ConfHP_B_ldx & dyadic_ldx)), (ephys_session_data.SameValHitTrialsPCT(ConfHP_B_ldx & dyadic_ldx)))
+% xlabel('SameValHitTrialsPCT', 'Interpreter', 'none');
+% ylabel('SameValHitTrialsPCT', 'Interpreter', 'none');
+% axis equal
+% axis square
+% hold on
+% x_lim = get(gca(), 'XLim');
+% y_lim = get(gca(), 'YLim');
+% plot(x_lim, y_lim);
+% hold off
 
 % AirtB_Same_A_Low_LastB_High_N
 % AirtB_Diff_A_High_LastB_High_N
@@ -183,7 +185,7 @@ switch prediction_measure_string
 end
 AB_predicted_partner_ldx = A_predicted_partner_B_ldx | B_predicted_partner_A_ldx;
 
-
+% number of trials required to include a session...
 
 
 % tmp = [blocked_confederate_ldx, shuffled_confederate_ldx, predictable_confederate_ldx, predicted_partner_A_ldx, predicted_partner_B_ldx, predicted_partner_ldx, ephys_session_data.AgoB_A_depends_on_LastB_pval, ephys_session_data.AirtB_A_depends_on_LastB_pval, ephys_session_data.BgoA_B_depends_on_LastA_pval, ephys_session_data.BirtA_B_depends_on_LastA_pval];
@@ -229,6 +231,7 @@ for i_ephys_subject = 1 : length(ephys_subject_list)
 
 			switch cur_side
 				case 'AB'
+					min_prediction_trials_ldx = (ephys_session_data.AgoB_nTrials_A > min_prediction_trials) & (ephys_session_data.BgoA_nTrials_B > min_prediction_trials);
 					cur_ephys_subject_on_X_ldx = cur_trial_subtype_ldx & (cur_selected_combinations_A_ldx | cur_selected_combinations_B_ldx);
 					cur_ephys_session_data_MUA_X_exported = ephys_session_data.MUA_A_exported | ephys_session_data.MUA_B_exported;
 					cur_ephys_session_data_LFP_X_exported = ephys_session_data.LFP_A_exported | ephys_session_data.LFP_B_exported;
@@ -242,8 +245,10 @@ for i_ephys_subject = 1 : length(ephys_subject_list)
 			switch cur_side
 				case {'A'}
 					cur_predicted_partner_ldx = A_predicted_partner_B_ldx;
+					min_prediction_trials_ldx = (ephys_session_data.AgoB_nTrials_A > min_prediction_trials);
 				case {'B'}
 					cur_predicted_partner_ldx = B_predicted_partner_A_ldx;
+					min_prediction_trials_ldx = (ephys_session_data.BgoA_nTrials_B > min_prediction_trials);
 			end
 
 
@@ -315,10 +320,10 @@ for i_ephys_subject = 1 : length(ephys_subject_list)
 					cur_ephys_summary_table_struct.Side = cur_side;
 					cur_ephys_summary_table_struct.TrialType = cur_trial_subtype;
 					cur_ephys_summary_table_struct.Comment = 'PC predicted'; % fill in later
-					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & predictable_confederate_ldx & cur_predicted_partner_ldx & blocked_confederate_ldx);
-					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & predictable_confederate_ldx & cur_predicted_partner_ldx & blocked_confederate_ldx);
-					cur_ephys_summary_table_struct.N_MUA = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported & predictable_confederate_ldx & cur_predicted_partner_ldx & blocked_confederate_ldx);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
-					cur_ephys_summary_table_struct.N_LFP = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported & predictable_confederate_ldx & cur_predicted_partner_ldx & blocked_confederate_ldx);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
+					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & predictable_confederate_ldx & cur_predicted_partner_ldx & blocked_confederate_ldx & min_prediction_trials_ldx);
+					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & predictable_confederate_ldx & cur_predicted_partner_ldx & blocked_confederate_ldx & min_prediction_trials_ldx);
+					cur_ephys_summary_table_struct.N_MUA = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported & predictable_confederate_ldx & cur_predicted_partner_ldx & blocked_confederate_ldx & min_prediction_trials_ldx);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
+					cur_ephys_summary_table_struct.N_LFP = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported & predictable_confederate_ldx & cur_predicted_partner_ldx & blocked_confederate_ldx & min_prediction_trials_ldx);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
 					ephys_summary_table_struct(end+1) = cur_ephys_summary_table_struct;
 
 					%predictable confederate - not predicted
@@ -326,10 +331,10 @@ for i_ephys_subject = 1 : length(ephys_subject_list)
 					cur_ephys_summary_table_struct.Side = cur_side;
 					cur_ephys_summary_table_struct.TrialType = cur_trial_subtype;
 					cur_ephys_summary_table_struct.Comment = 'PC not predicted'; % fill in later
-					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & predictable_confederate_ldx & ~cur_predicted_partner_ldx & blocked_confederate_ldx);
-					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & predictable_confederate_ldx & ~cur_predicted_partner_ldx & blocked_confederate_ldx);
-					cur_ephys_summary_table_struct.N_MUA = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported & predictable_confederate_ldx & ~cur_predicted_partner_ldx & blocked_confederate_ldx);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
-					cur_ephys_summary_table_struct.N_LFP = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported & predictable_confederate_ldx & ~cur_predicted_partner_ldx & blocked_confederate_ldx);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
+					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & predictable_confederate_ldx & ~cur_predicted_partner_ldx & blocked_confederate_ldx & min_prediction_trials_ldx);
+					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & predictable_confederate_ldx & ~cur_predicted_partner_ldx & blocked_confederate_ldx & min_prediction_trials_ldx);
+					cur_ephys_summary_table_struct.N_MUA = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported & predictable_confederate_ldx & ~cur_predicted_partner_ldx & blocked_confederate_ldx & min_prediction_trials_ldx);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
+					cur_ephys_summary_table_struct.N_LFP = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported & predictable_confederate_ldx & ~cur_predicted_partner_ldx & blocked_confederate_ldx & min_prediction_trials_ldx);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
 					ephys_summary_table_struct(end+1) = cur_ephys_summary_table_struct;
 
 					%unpredictable confederate - not predicted
@@ -337,10 +342,10 @@ for i_ephys_subject = 1 : length(ephys_subject_list)
 					cur_ephys_summary_table_struct.Side = cur_side;
 					cur_ephys_summary_table_struct.TrialType = cur_trial_subtype;
 					cur_ephys_summary_table_struct.Comment = 'UC not predicted'; % fill in later
-					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & ~predictable_confederate_ldx & ~cur_predicted_partner_ldx & shuffled_confederate_ldx);
-					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & ~predictable_confederate_ldx & ~cur_predicted_partner_ldx & shuffled_confederate_ldx);
-					cur_ephys_summary_table_struct.N_MUA = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported & ~predictable_confederate_ldx & ~cur_predicted_partner_ldx & shuffled_confederate_ldx);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
-					cur_ephys_summary_table_struct.N_LFP = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported & ~predictable_confederate_ldx & ~cur_predicted_partner_ldx & shuffled_confederate_ldx);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
+					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & ~predictable_confederate_ldx & ~cur_predicted_partner_ldx & shuffled_confederate_ldx & min_prediction_trials_ldx);
+					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & ~predictable_confederate_ldx & ~cur_predicted_partner_ldx & shuffled_confederate_ldx & min_prediction_trials_ldx);
+					cur_ephys_summary_table_struct.N_MUA = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported & ~predictable_confederate_ldx & ~cur_predicted_partner_ldx & shuffled_confederate_ldx & min_prediction_trials_ldx);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
+					cur_ephys_summary_table_struct.N_LFP = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported & ~predictable_confederate_ldx & ~cur_predicted_partner_ldx & shuffled_confederate_ldx & min_prediction_trials_ldx);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
 					ephys_summary_table_struct(end+1) = cur_ephys_summary_table_struct;
 
 					%unpredictable confederate - predicted
@@ -348,10 +353,10 @@ for i_ephys_subject = 1 : length(ephys_subject_list)
 					cur_ephys_summary_table_struct.Side = cur_side;
 					cur_ephys_summary_table_struct.TrialType = cur_trial_subtype;
 					cur_ephys_summary_table_struct.Comment = 'UC predicted'; % fill in later
-					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & ~predictable_confederate_ldx & cur_predicted_partner_ldx & shuffled_confederate_ldx);
-					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & ~predictable_confederate_ldx & cur_predicted_partner_ldx & shuffled_confederate_ldx);
-					cur_ephys_summary_table_struct.N_MUA = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported & ~predictable_confederate_ldx & cur_predicted_partner_ldx & shuffled_confederate_ldx);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
-					cur_ephys_summary_table_struct.N_LFP = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported & ~predictable_confederate_ldx & cur_predicted_partner_ldx & shuffled_confederate_ldx);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
+					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & ~predictable_confederate_ldx & cur_predicted_partner_ldx & shuffled_confederate_ldx & min_prediction_trials_ldx);
+					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys & ~predictable_confederate_ldx & cur_predicted_partner_ldx & shuffled_confederate_ldx & min_prediction_trials_ldx);
+					cur_ephys_summary_table_struct.N_MUA = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported & ~predictable_confederate_ldx & cur_predicted_partner_ldx & shuffled_confederate_ldx & min_prediction_trials_ldx);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
+					cur_ephys_summary_table_struct.N_LFP = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported & ~predictable_confederate_ldx & cur_predicted_partner_ldx & shuffled_confederate_ldx & min_prediction_trials_ldx);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
 					ephys_summary_table_struct(end+1) = cur_ephys_summary_table_struct;
 			end
 
@@ -433,7 +438,7 @@ if (merge_sides)
 			case 'SoloRewardAB_active'
 				cur_TrialType_Comment_string = '';
 			case 'SoloRewardAB_passive'
-				cur_TrialType_Comment_string = 'SoloObserveConfederateRewarded';
+				cur_TrialType_Comment_string = 'ObserveConfederateRewarded'; % SoloObserveConfederateRewarded
 			case 'Dyadic_dual NHP'
 				cur_TrialType_Comment_string = 'Dyadic monkeys';
 			case 'Dyadic_PC predicted'
