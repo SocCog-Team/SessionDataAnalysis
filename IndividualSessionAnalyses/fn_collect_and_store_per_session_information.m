@@ -22,7 +22,7 @@ function [ session_info_struct, session_info_struct_version ] = fn_collect_and_s
 summary_suffix = 'session_summary';
 % to allow automatic updates for newer versions with more fields or error
 % corrections add the version number...
-session_info_struct_version = '2';
+session_info_struct_version = '3';
 
 [logfile_path, logfile_name, log_file_ext] = fileparts(cur_session_logfile_fqn);
 % find the canonical session ID
@@ -179,12 +179,54 @@ session_struct.LFP_A_exported = ~isempty(dir(fullfile(logfile_path, 'TDT', 'LFP'
 session_struct.LFP_B_exported = ~isempty(dir(fullfile(logfile_path, 'TDT', 'LFP', ['LFP.', processed_session_id, '*', '.B.statistic_summary_table', '.mat'])));
 
 
+
+
 if isfolder(fullfile(logfile_path, 'TDT'))
+	% this is optimistic, we might override it with information from the
+	% TANK directory name
+	EphysSubject = '';
+	EphysSide = '';
+	if strcmp(session_info.species_A, 'NHP') && (strcmp(session_info.species_B, 'HP') || isempty(session_info.species_B))
+		EphysSubject = session_info.subject_A;
+		EphysSide = 'A';
+	end
+	if (strcmp(session_info.species_A, 'HP') || isempty(session_info.species_A)) && strcmp(session_info.species_B, 'NHP')
+		EphysSubject = session_info.subject_B;
+		EphysSide = 'B';
+	end
+
 	GoodChannelMapNum2String = '';
 	SCP_dir_struct = dir(fullfile(logfile_path, 'TDT', 'SCP_DAG*'));
 	%SCP_dir_struct = dir(fullfile(logfile_path, 'TDT'));
 	if ~isempty(SCP_dir_struct)
 		TankID_list = {SCP_dir_struct(:).name}';
+
+		if length(TankID_list) > 1
+			error([mfilename, ': only one Tank_directory expected: ', TankID_list]);
+		end
+
+		% assume single Tankdir, otherwise use the alternative approach...
+		% of appending a string, like the other tank stuff
+		if strcmp(session_info.species_A, 'NHP') && strcmp(session_info.species_B, 'NHP')
+			% in dual monkey sessions with recording, we expect the name of the
+			% NHP as part of the TDT_tank_ID
+			if ~isempty(regexp(TankID_list{1}, session_info.subject_A))
+				EphysSubject = session_info.subject_A;
+				EphysSide = 'A';
+			end
+			if ~isempty(regexp(TankID_list{1}, session_info.subject_B))
+				EphysSubject = session_info.subject_B;
+				EphysSide = 'B';
+			end
+			if isempty(regexp(TankID_list{1}, session_info.subject_A)) && isempty(regexp(TankID_list{1}, session_info.subject_B))
+				disp([mfilename, ': ERROR The TDT tankfile name for dual monkey sessions with recording needs to contain the name of the recorded monkey, please rename the current TDT_tank_folder.']);
+				disp([mfilename, ': TDT_tank_ID', TankID_list{1}]);
+				disp([mfilename, ': TDT_tank_FQN', fullfile(logfile_path, 'TDT', cur_Tank_ID)]);
+				error('FIX THIS.');
+			end
+		end
+
+
 
 		% since there can (but should not) be multiple tanks per TDT
 		% directory we want to report on all of those, so collect
@@ -222,13 +264,26 @@ if isfolder(fullfile(logfile_path, 'TDT'))
 			end
 			tmp_session_is_clustered_version_string = [tmp_session_is_clustered_version_string, ';', num2str(session_is_clustered_version)];
 
+			% % this is a rough approximation, that also gets sessions that
+			% % are not or not fully sorted...
+			% spike_sort_img_dir_struct = dir(fullfile(logfile_path, 'TDT', cur_Tank_ID, 'ch*dataspikes_*thr*.jpg'));
+			% if ~isempty(TBK_dir_struct) && ~isempty(SEV_dir_struct) && ~isempty(spike_sort_img_dir_struct)
+			% 	tmp_EPhysSpikeSorted_string = [tmp_EPhysSpikeSorted_string, ';', '1'];
+			% else
+			% 	tmp_EPhysSpikeSorted_string = [tmp_EPhysSpikeSorted_string, ';', '0'];
+			% end
 
-			spike_sort_img_dir_struct = dir(fullfile(logfile_path, 'TDT', cur_Tank_ID, 'ch*dataspikes_*thr*.jpg'));
-			if ~isempty(TBK_dir_struct) && ~isempty(SEV_dir_struct) && ~isempty(spike_sort_img_dir_struct)
+
+			% check the existence of the RECORDINGINFO file written when
+			% PETHdata is actually exorted...
+			if ~isempty(TBK_dir_struct) && ~isempty(SEV_dir_struct) && isfolder(fullfile(logfile_path, 'TDT', 'PETHdata')) && isfile(fullfile(logfile_path, 'TDT', 'PETHdata', [session_info.session_id, '.', cur_Tank_ID, '.RECORDINGINFO.mat']))
 				tmp_EPhysSpikeSorted_string = [tmp_EPhysSpikeSorted_string, ';', '1'];
 			else
 				tmp_EPhysSpikeSorted_string = [tmp_EPhysSpikeSorted_string, ';', '0'];
 			end
+
+
+
 
 			if (n_channels == 0)
 				disp([mfilename, ': TDT RS4 files are missing, exclude Tank folder by prefixing, ''EXCLUDE.'' ']);
@@ -269,6 +324,8 @@ if isfolder(fullfile(logfile_path, 'TDT'))
 		session_struct.PCAcleaned = tmp_session_is_PCA_cleaned_string(2:end);
 		session_struct.EPhysClustered = tmp_session_is_clustered_version_string(2:end);
 		session_struct.EPhysSpikeSorted = tmp_EPhysSpikeSorted_string(2:end);
+		session_struct.EphysSubject = EphysSubject;
+		session_struct.EphysSide = EphysSide;
 		session_struct.GoodChannelMap = GoodChannelMapNum2String;
 	else
 		% no TANK dir
@@ -277,6 +334,8 @@ if isfolder(fullfile(logfile_path, 'TDT'))
 		session_struct.PCAcleaned = '0';
 		session_struct.EPhysClustered = '0';
 		session_struct.EPhysSpikeSorted = '0';
+		session_struct.EphysSubject = EphysSubject;
+		session_struct.EphysSide = EphysSide;
 		session_struct.GoodChannelMap = '';
 	end
 else
@@ -286,6 +345,8 @@ else
 	session_struct.PCAcleaned = '0';
 	session_struct.EPhysClustered = '0';
 	session_struct.EPhysSpikeSorted = '0';
+	session_struct.EphysSubject = '';
+	session_struct.EphysSide = '';
 	session_struct.GoodChannelMap = '';
 end
 
