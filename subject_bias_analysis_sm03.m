@@ -410,7 +410,7 @@ end
 summarize_ephys_table = 1;
 if (summarize_ephys_table)
 	all_session_info_table_FQSTEM = fullfile(experimentFolder, [session_info_name_stem, '.V', num2str(session_info_struct_version, '%03d')]);
-	fn_summarize_ephys_info_table(all_session_info_table_FQSTEM, '.table.mat', {'Elmo', 'Curious'});
+	fn_summarize_ephys_info_table(all_session_info_table_FQSTEM, '.table.mat', {'Elmo', 'Curius'});
 end
 
 

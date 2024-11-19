@@ -22,7 +22,7 @@ function [ session_info_struct, session_info_struct_version ] = fn_collect_and_s
 summary_suffix = 'session_summary';
 % to allow automatic updates for newer versions with more fields or error
 % corrections add the version number...
-session_info_struct_version = '3';
+session_info_struct_version = '4';
 
 [logfile_path, logfile_name, log_file_ext] = fileparts(cur_session_logfile_fqn);
 % find the canonical session ID
@@ -459,12 +459,21 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 			cur_aborted_trials_A_idx = intersect(TrialSets.ByOutcome.SideA.ABORT, cur_trial_idx);
 			cue_randomization_combination_struct.HitTrials_A = length(cur_rewarded_trials_A_idx);
 			cue_randomization_combination_struct.AbortedTrials_A = length(cur_aborted_trials_A_idx);
+			cue_randomization_combination_struct.EarnedRewardPulses_A = sum(report_struct.data(cur_rewarded_trials_A_idx, report_struct.cn.A_NumberRewardPulsesDelivered_HIT));
+			cue_randomization_combination_struct.ManualRewardPulses_A = sum(report_struct.data(cur_rewarded_trials_A_idx, report_struct.cn.A_NumberRewardPulsesDelivered_MANUAL));
+
+
 			% Side B
 			cur_rewarded_trials_B_idx = intersect(TrialSets.ByOutcome.SideB.REWARD, cur_trial_idx);
 			cur_aborted_trials_B_idx = intersect(TrialSets.ByOutcome.SideB.ABORT, cur_trial_idx);
 			cue_randomization_combination_struct.HitTrials_B = length(cur_rewarded_trials_B_idx);
 			cue_randomization_combination_struct.AbortedTrials_B = length(cur_aborted_trials_B_idx);
-			
+			cue_randomization_combination_struct.EarnedRewardPulses_B = sum(report_struct.data(cur_rewarded_trials_B_idx, report_struct.cn.B_NumberRewardPulsesDelivered_HIT));
+			cue_randomization_combination_struct.ManualRewardPulses_B = sum(report_struct.data(cur_rewarded_trials_B_idx, report_struct.cn.B_NumberRewardPulsesDelivered_MANUAL));
+
+% if (cue_randomization_combination_struct.ManualRewardPulses_A > 0) || (cue_randomization_combination_struct.ManualRewardPulses_B > 0)
+% 	disp('Doh');
+% end
 			cur_rewarded_trials_AB_idx = intersect(intersect(TrialSets.ByOutcome.SideA.REWARD, cur_trial_idx), intersect(TrialSets.ByOutcome.SideB.REWARD, cur_trial_idx));
 
 			% get who is faster for purposes of prediction/X_follows_to_Y_Last_lowValue_pct
@@ -836,7 +845,7 @@ end
 
 % report these veridically
 total_string_fields = {'session_ID', 'sort_key_string', 'version', 'date', 'time', 'Analysed', 'TankID_list', 'EPhysRecorded', 'EPhysClustered', 'Session_dir'};
-total_aggregate_fields =     {'HitTrials', 'AbortedTrials', 'HitTrials_A', 'AbortedTrials_A', 'HitTrials_B', 'AbortedTrials_B'};
+total_aggregate_fields =     {'HitTrials', 'AbortedTrials', 'HitTrials_A', 'AbortedTrials_A', 'HitTrials_B', 'AbortedTrials_B', 'EarnedRewardPulses_A', 'EarnedRewardPulses_B'};
 
 session_info_struct_fieldlist = fieldnames(session_info_struct(end));
 total_session_info_struct = struct();

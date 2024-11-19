@@ -9,7 +9,7 @@ function [ ] = fn_summarize_ephys_info_table( all_session_info_table_FQSTEM, ext
 % split SoloXRewardAB in NHP pair-NHP-Confederate
 
 if ~exist('all_session_info_table_FQSTEM', 'var') || isempty(all_session_info_table_FQSTEM)
-	all_session_info_table_FQSTEM = fullfile('Y:', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS', 'All_session_summary_table.V2');
+	all_session_info_table_FQSTEM = fullfile('Y:', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS', 'All_session_summary_table.V3');
 end
 
 if ~exist('extension_string', 'var') || isempty(extension_string)
@@ -20,7 +20,7 @@ end
 if ~exist('ephys_subject_list', 'var') || isempty(ephys_subject_list)
 	ephys_subject_list = {'Elmo', 'Curius'};
 end
-version_number = 4;
+version_number = 6;
 output_stem = ['Ephys_summary_table.V', num2str(version_number)];
 
 
@@ -63,6 +63,13 @@ combination_ldx = ismember(data.record_type, {'COMBINATION'});
 ehpys_ldx = ~ismember(data.EPhysRecorded, {'0'});
 
 ephys_session_data = data(combination_ldx & ehpys_ldx, :);
+
+% remove duplicate sessions
+if sum(ismember({'20230623T124557.A_Curius.B_Elmo.SCP_01', '20230623T124557U.A_Curius.B_Elmo.SCP_01'}, ephys_session_data.session_ID)) == 2
+	duplicate_session_ldx = ismember(ephys_session_data.session_ID, {'20230623T124557.A_Curius.B_Elmo.SCP_01'});
+	ephys_session_data(duplicate_session_ldx, :) = [];
+end
+
 
 % find all unique trislsubtypes:
 [unique_trial_subtypes, ~, ephys_session_data_to_unique_trialsubtype_mapping] = unique(ephys_session_data.effective_trial_subtype);
@@ -203,14 +210,35 @@ spike_sorted_combinations_ldx = ismember(ephys_session_data.EPhysSpikeSorted, {'
 
 ephys_summary_table_struct = [];
 
+% % remove duplicate sessions REMOVE AT THE TOP before taking any idx/ldx
+% if sum(ismember({'20230623T124557.A_Curius.B_Elmo.SCP_01', '20230623T124557U.A_Curius.B_Elmo.SCP_01'}, ephys_session_data.session_ID)) == 2
+% 	duplicate_session_ldx = ismember(ephys_session_data.session_ID, {'20230623T124557.A_Curius.B_Elmo.SCP_01'});
+% 	ephys_session_data(duplicate_session_ldx, :) = [];
+% end
+
+
 % find the records per ephys_subject
 for i_ephys_subject = 1 : length(ephys_subject_list)
 	cur_ephys_subject = ephys_subject_list{i_ephys_subject};
 	disp([mfilename, ': ', cur_ephys_subject]);
+	% this is incorrect as it will include sessions with a non-recorded
+	% dyadic monkey partner
 	cur_ephys_subject_on_A_ldx = ismember(ephys_session_data.subject_A, cur_ephys_subject);
 	cur_ephys_subject_on_B_ldx = ismember(ephys_session_data.subject_B, cur_ephys_subject);
-	dual_NHP_session_with_cur_subject_ephys = dual_NHP_ephys_session_ldx & (fn_find_regexpmatch_entries_in_cell_list(ephys_session_data.TankID_list, ['_', cur_ephys_subject,'$'])');
+
+	% these are what we actually care for...
+	cur_ephys_subject_on_A_ldx = ismember(ephys_session_data.EphysSubject, cur_ephys_subject) & ismember(ephys_session_data.EphysSide, {'A'});
+	cur_ephys_subject_on_B_ldx = ismember(ephys_session_data.EphysSubject, cur_ephys_subject) & ismember(ephys_session_data.EphysSide, {'B'});
+
+	
+
+	% these are incorrect
+	%dual_NHP_session_with_cur_subject_ephys = dual_NHP_ephys_session_ldx & (fn_find_regexpmatch_entries_in_cell_list(ephys_session_data.TankID_list, ['_', cur_ephys_subject,'$'])');
+	%dual_NHP_session_without_cur_subject_ephys = dual_NHP_ephys_session_ldx & ~dual_NHP_session_with_cur_subject_ephys;
+
+	dual_NHP_session_with_cur_subject_ephys = dual_NHP_ephys_session_ldx & (cur_ephys_subject_on_A_ldx | cur_ephys_subject_on_B_ldx);
 	dual_NHP_session_without_cur_subject_ephys = dual_NHP_ephys_session_ldx & ~dual_NHP_session_with_cur_subject_ephys;
+
 	% get all combination lines for the current subject
 	cur_ephys_subject_combination_ldx = ((cur_ephys_subject_on_A_ldx | cur_ephys_subject_on_B_ldx) & single_NHP_ephys_session_ldx) | dual_NHP_session_with_cur_subject_ephys;
 
@@ -237,7 +265,8 @@ for i_ephys_subject = 1 : length(ephys_subject_list)
 					cur_ephys_session_data_LFP_X_exported = ephys_session_data.LFP_A_exported | ephys_session_data.LFP_B_exported;
 
 				case {'A', 'B'}
-					cur_ephys_subject_on_X_ldx = cur_trial_subtype_ldx & ismember(ephys_session_data.(['subject_', cur_side]), cur_ephys_subject);
+					%cur_ephys_subject_on_X_ldx = cur_trial_subtype_ldx & ismember(ephys_session_data.(['subject_', cur_side]), cur_ephys_subject);
+					cur_ephys_subject_on_X_ldx = cur_trial_subtype_ldx & ismember(ephys_session_data.EphysSubject, cur_ephys_subject) & ismember(ephys_session_data.EphysSide, {cur_side});
 					cur_ephys_session_data_MUA_X_exported = ephys_session_data.(['MUA_', cur_side, '_exported']);
 					cur_ephys_session_data_LFP_X_exported = ephys_session_data.(['LFP_', cur_side, '_exported']);
 			end
@@ -267,7 +296,23 @@ for i_ephys_subject = 1 : length(ephys_subject_list)
 				ephys_summary_table_struct(end+1) = cur_ephys_summary_table_struct;
 			end
 
+			disp(['Num sessions: ', num2str(sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx))]);
+			% for debugging show the session names...
+			%unique(ephys_session_data.session_ID(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx)')'
+
 			switch cur_trial_subtype
+				case {'SoloA'}
+					% these do not count... maybe treat as passive/active
+					if strcmp(cur_side, 'B')
+						ephys_summary_table_struct(end) = []; % these should arguably be of trial sub type SoloA_PresentB
+					end
+
+				case {'SoloB'}
+					% these do not count... maybe treat as passive/active
+					if strcmp(cur_side, 'A')
+						ephys_summary_table_struct(end) = []; % these should arguably be of trial sub type SoloB_PresentA
+					end
+
 				case 'SoloARewardAB' %{'SoloARewardAB', 'SoloA', 'SoloA_PresentB', 'SoloABlockedView', 'SoloAHighReward'}
 					switch cur_side
 						case 'A'
@@ -281,8 +326,22 @@ for i_ephys_subject = 1 : length(ephys_subject_list)
 					cur_ephys_summary_table_struct.Comment = ['dual NHP ', ephys_summary_table_struct(end).Comment]; % fill in later
 					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & dual_NHP_session_with_cur_subject_ephys);
 					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & dual_NHP_session_with_cur_subject_ephys);
+				%unique(ephys_session_data.session_ID(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx)')'
+				%unique(ephys_session_data.session_ID(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & dual_NHP_session_with_cur_subject_ephys)')'
 					cur_ephys_summary_table_struct.N_MUA = sum(dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
 					cur_ephys_summary_table_struct.N_LFP = sum(dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
+					ephys_summary_table_struct(end+1) = cur_ephys_summary_table_struct;
+
+					cur_ephys_summary_table_struct.Subject = cur_ephys_subject;
+					cur_ephys_summary_table_struct.Side = cur_side;
+					cur_ephys_summary_table_struct.TrialType = cur_trial_subtype;
+					cur_ephys_summary_table_struct.Comment = ['single NHP ', ephys_summary_table_struct(end-1).Comment]; % fill in later
+					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys);
+					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys);
+				%unique(ephys_session_data.session_ID(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx)')'
+				%unique(ephys_session_data.session_ID(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys)')'
+					cur_ephys_summary_table_struct.N_MUA = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
+					cur_ephys_summary_table_struct.N_LFP = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
 					ephys_summary_table_struct(end+1) = cur_ephys_summary_table_struct;
 
 				case 'SoloBRewardAB' %{'SoloBRewardAB', 'SoloB', 'SoloB_PresentA', 'SoloBBlockedView', 'SoloBHighReward'}
@@ -298,8 +357,22 @@ for i_ephys_subject = 1 : length(ephys_subject_list)
 					cur_ephys_summary_table_struct.Comment = ['dual NHP ', ephys_summary_table_struct(end).Comment]; % fill in later
 					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & dual_NHP_session_with_cur_subject_ephys);
 					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & dual_NHP_session_with_cur_subject_ephys);
+				%unique(ephys_session_data.session_ID(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx)')'
+				%unique(ephys_session_data.session_ID(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & dual_NHP_session_with_cur_subject_ephys)')'
 					cur_ephys_summary_table_struct.N_MUA = sum(dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
 					cur_ephys_summary_table_struct.N_LFP = sum(dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
+					ephys_summary_table_struct(end+1) = cur_ephys_summary_table_struct;
+
+					cur_ephys_summary_table_struct.Subject = cur_ephys_subject;
+					cur_ephys_summary_table_struct.Side = cur_side;
+					cur_ephys_summary_table_struct.TrialType = cur_trial_subtype;
+					cur_ephys_summary_table_struct.Comment = ['single NHP ', ephys_summary_table_struct(end-1).Comment]; % fill in later
+					cur_ephys_summary_table_struct.N_rec = sum(cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys);
+					cur_ephys_summary_table_struct.N_sorted = sum(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys);
+				%unique(ephys_session_data.session_ID(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx)')'
+				%unique(ephys_session_data.session_ID(spike_sorted_combinations_ldx & cur_ephys_subject_on_X_ldx & ~dual_NHP_session_with_cur_subject_ephys)')'
+					cur_ephys_summary_table_struct.N_MUA = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_MUA_X_exported);% sum(cur_selected_combinations_A_ldx & ephys_session_data.MUA_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.MUA_B_exported);
+					cur_ephys_summary_table_struct.N_LFP = sum(~dual_NHP_session_with_cur_subject_ephys & cur_ephys_subject_on_X_ldx & cur_ephys_session_data_LFP_X_exported);%sum(cur_selected_combinations_A_ldx & ephys_session_data.LFP_A_exported) + sum(cur_selected_combinations_B_ldx & ephys_session_data.LFP_B_exported);
 					ephys_summary_table_struct(end+1) = cur_ephys_summary_table_struct;
 
 				case {'Dyadic', 'DyadicBlockedView', 'SemiSolo'}
@@ -376,8 +449,12 @@ if (merge_sides)
 	% comments do not differ
 	trial_type_list = {ephys_summary_table_struct.TrialType};
 
+
 	mod_trial_type_list = regexprep(trial_type_list, '^SoloA', 'Solo');
 	mod_trial_type_list = regexprep(mod_trial_type_list, '^SoloB', 'Solo');
+	
+	mod_trial_type_list = regexprep(mod_trial_type_list, '^SololockedView', 'SoloBlockedView'); % these are not SoloB ...
+
 
 	key_list = strcat({ephys_summary_table_struct.Subject}, '_', mod_trial_type_list, '_', {ephys_summary_table_struct.Comment});
 
@@ -413,7 +490,7 @@ if (merge_sides)
 					cur_merged_ephys_summary_table_struct.(cur_col_name) = 'mAB';
 				case 'TrialType'
 					unique_col_value = unique(cur_trialtype_table);
-					if (length(unique_col_value))
+					if (length(unique_col_value) == 1)
 						cur_merged_ephys_summary_table_struct.(cur_col_name) = unique_col_value{1};
 					else
 						error('too many unique values, expected only one');
@@ -436,8 +513,12 @@ if (merge_sides)
 			case 'SoloRewardAB_dual NHP passive'
 				cur_TrialType_Comment_string = 'SoloObservedRewardBoth';
 			case 'SoloRewardAB_active'
-				cur_TrialType_Comment_string = '';
+				cur_TrialType_Comment_string = 'All partners';
 			case 'SoloRewardAB_passive'
+				cur_TrialType_Comment_string = 'All partners'; % SoloObserveConfederateRewarded
+			case 'SoloRewardAB_single NHP active'
+				cur_TrialType_Comment_string = '';
+			case 'SoloRewardAB_single NHP passive'
 				cur_TrialType_Comment_string = 'ObserveConfederateRewarded'; % SoloObserveConfederateRewarded
 			case 'Dyadic_dual NHP'
 				cur_TrialType_Comment_string = 'Dyadic monkeys';
