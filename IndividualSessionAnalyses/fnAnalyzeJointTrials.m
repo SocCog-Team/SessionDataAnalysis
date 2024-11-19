@@ -277,6 +277,18 @@ GoSignal_saturation_ms = 200;		% merge groups with a diff GoSignal larger than t
 split_diffGoSignal_eq_0_by_RT = 1;	% instead of reporting the 0 difference case as one class, split it into two, depending on the faster actor
 diffGoSignal_eq_0_by_RT_RT_type = 'IniTargRel_05MT_RT';
 
+% do the whole thing as plot_joint_choices_by_diffGoSignal but thake action
+% time as tie breaker, also split the equal go acse in three based on
+% visibility_threshold_ms
+plot_joint_choices_by_diffActionTime = 1;
+diffActionTime_visibility_threshold_ms = 100;	% anything in the range from -visibility_threshold_ms to +visibility_threshold_ms is cionsidered its own category
+diffActionTime_min_diffGO_delta_ms = 490;		% how much difference needs to be between at least between the differential GO signals
+diffActionTime_GoSignalQuantum_ms = 100;			% how many milliseconds jitter we allow and still consider GoSignalTimes equal, this needs to match the randomizer somewhat
+diffActionTime_GoSignal_saturation_ms = 200;		% merge groups with a diff GoSignal larger than this
+
+split_diffActionTime_eq_0_by_RT = 1;	% instead of reporting the 0 difference case as one class, split it into two, depending on the faster actor
+diffActionTime_eq_0_by_RT_RT_type = 'TrialActionTime';
+
 calc_extra_aggregate_measures = 0;
 project_line_width = 0.5;
 
@@ -1031,6 +1043,18 @@ for iGroup = 1 : length(GroupNameList)
 
 	AB_TrialStartTimeMS = DataStruct.data(:, DataStruct.cn.Timestamp);
 
+	% to allow direct comparison for unequal GO signal times
+	A_TrialActionTime = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms) +  0.5 * (A_TargetAcquisitionRT - A_InitialTargetReleaseRT);
+	B_TrialActionTime = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms) +  0.5 * (B_TargetAcquisitionRT - B_InitialTargetReleaseRT);
+	AB_TrialActionTime_diff = A_TrialActionTime - B_TrialActionTime;
+
+	A_TrialInitialTargetReleaseTime = DataStruct.data(:, DataStruct.cn.A_TargetTouchTime_ms);
+	B_TrialInitialTargetReleaseTime = DataStruct.data(:, DataStruct.cn.B_TargetTouchTime_ms);
+	AB_TrialInitialTargetReleaseTime_diff = A_TrialInitialTargetReleaseTime - B_TrialInitialTargetReleaseTime;
+
+	A_TrialTargetAcquisitionTime = DataStruct.data(:, DataStruct.cn.A_InitialFixationReleaseTime_ms);
+	B_TrialTargetAcquisitionTime = DataStruct.data(:, DataStruct.cn.B_InitialFixationReleaseTime_ms);
+	AB_TrialTargetAcquisitionTime_diff = A_TrialTargetAcquisitionTime - B_TrialTargetAcquisitionTime;
 
 
 
@@ -2271,6 +2295,175 @@ for iGroup = 1 : length(GroupNameList)
 		write_out_figure(fh_cur_side_contingency_table, outfile_fqn);
 
 	end
+
+
+	if (plot_joint_choices_by_diffActionTime )
+
+		% instead of playing games with quantisation, just threshold...
+		% find trials with specific Go signal timing differences... mark
+		% gunk trials as NaN...
+		quantized_AB_diffGoSignalTime = nan(size(AB_diffGoSignalTime));
+		quantized_AB_diffGoSignalTime(AB_diffGoSignalTime == 0) = 0;
+		quantized_AB_diffGoSignalTime(AB_diffGoSignalTime >= diffActionTime_min_diffGO_delta_ms) = +diffActionTime_min_diffGO_delta_ms;
+		quantized_AB_diffGoSignalTime(AB_diffGoSignalTime <= (-1 * diffActionTime_min_diffGO_delta_ms)) = -diffActionTime_min_diffGO_delta_ms;
+		unique_quantized_cur_ABdiffGoSignalTimes = unique(quantized_AB_diffGoSignalTime(~isnan(quantized_AB_diffGoSignalTime))); % we want to ignore the nans...
+
+
+		% split the equal GO signal cases by who was faster
+		if (split_diffActionTime_eq_0_by_RT)
+			zero_diff_idx = find(quantized_AB_diffGoSignalTime == 0);
+			AT_diff_list = eval(['AB_', diffActionTime_eq_0_by_RT_RT_type , '_diff']);
+			% find when A was faster
+			A_faster_idx = find(AT_diff_list <= (-1 * diffActionTime_visibility_threshold_ms));
+			tmp_A_idx = intersect(zero_diff_idx, A_faster_idx);
+			%tmp_A_idx = intersect(GoodTrialsIdx, tmp_A_idx);
+
+			quantized_AB_diffGoSignalTime(tmp_A_idx) = (-1 * diffActionTime_visibility_threshold_ms);
+
+			B_faster_idx = find(AT_diff_list > diffActionTime_visibility_threshold_ms);
+			tmp_B_idx = intersect(zero_diff_idx, B_faster_idx);
+			%tmp_B_idx = intersect(GoodTrialsIdx, tmp_B_idx);
+			quantized_AB_diffGoSignalTime(tmp_B_idx) = +diffActionTime_visibility_threshold_ms;
+
+			%quantized_AB_diffGoSignalTime = round(AB_diffGoSignalTime/GoSignalQuantum_ms) * GoSignalQuantum_ms;
+			%unique_quantized_cur_ABdiffGoSignalTimes = unique(quantized_AB_diffGoSignalTime(GoodTrialsIdx));
+			% insert the two new categories, even if one is empty
+			unique_quantized_cur_ABdiffGoSignalTimes = unique([unique_quantized_cur_ABdiffGoSignalTimes; -diffActionTime_visibility_threshold_ms; +diffActionTime_visibility_threshold_ms]);
+		end
+
+
+
+		% create ordinal vectors of joint choices to build contingency
+		% tables from
+		if ~(IsSoloGroup)
+
+			input_data_collection.by_AB_value.name = '';
+
+			value_choices = [SameTargetA(:) + (2 * SameTargetB(:)) + ...
+				(3 * DiffOwnTarget(:)) + + (4 * DiffOtherTarget(:))];
+			value_names = {'A_own_B_other', 'A_other_B_own', 'A_own_B_own', 'A_other_B_other'};
+			side_choices = [A_left_B_left(:) + (2 * A_right_B_right(:)) + ...
+				(3 * A_left_B_right(:)) + (4 * A_right_B_left(:))];
+			side_names = {'A_left_B_left', 'A_right_B_right', 'A_left_B_right', 'A_right_B_left'};
+
+			sameness_choices = [SameTargetA(:) + (1 * SameTargetB(:)) + ...
+				(2 * DiffOwnTarget(:)) + + (2 * DiffOtherTarget(:))];
+			sameness_names = {'Same', 'Different'};
+
+			%AbyB_value_choices =
+
+		else
+			% solo
+			A_selected = A_selects_A + B_selects_A;
+			B_selected = A_selects_B + B_selects_B;
+			left_selected = SubjectiveLeftTargetSelected_A + SubjectiveLeftTargetSelected_B;
+			right_selected = SubjectiveRightTargetSelected_A + SubjectiveRightTargetSelected_B;
+			value_choices = [A_selected(:) + (2 * B_selected(:))];
+			value_names = {'A', 'B'};
+			side_choices = [(1 * left_selected(:)) + (2 * right_selected(:))];
+			side_names = {'left', 'right'};
+			sameness_choices = [];
+			sameness_names = {};
+		end
+
+		num_joint_choice_combinations = length(value_names);
+		num_sameness_combinations = length(sameness_names);
+		choice_contingency_table.joint_value = zeros([num_joint_choice_combinations, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+		choice_contingency_table.joint_side = zeros([num_joint_choice_combinations, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+		choice_contingency_table.sameness = zeros([num_sameness_combinations, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+
+		column_names = cell([1, length(unique_quantized_cur_ABdiffGoSignalTimes)]);
+
+		% collect the choice types, build contingency tables
+		for i_quantized_diffGoSignalTimes = 1 : length(unique_quantized_cur_ABdiffGoSignalTimes)
+			cur_quantized_diffGoSignalTimes = unique_quantized_cur_ABdiffGoSignalTimes(i_quantized_diffGoSignalTimes);
+			column_names{i_quantized_diffGoSignalTimes} = num2str(cur_quantized_diffGoSignalTimes/1000);
+
+			% get the trials with the current diffGoSignalTime
+			cur_diffGoSIgnalTime_idx = find(quantized_AB_diffGoSignalTime == cur_quantized_diffGoSignalTimes);
+			% only look at the good trials in the current set
+			cur_diffGoSIgnalTime_idx = intersect(cur_diffGoSIgnalTime_idx, GoodTrialsIdx);
+
+
+			% collect the average reward per side for each group
+			mean(RewardByTrial_A(cur_diffGoSIgnalTime_idx))
+			mean(RewardByTrial_B(cur_diffGoSIgnalTime_idx))
+
+			% collect the joint choices and build contingency table
+			for i_joint_choice = 1 : num_joint_choice_combinations
+				tmp_value_idx = find(value_choices(cur_diffGoSIgnalTime_idx) == i_joint_choice);
+				tmp_side_idx = find(side_choices(cur_diffGoSIgnalTime_idx) == i_joint_choice);
+				choice_contingency_table.joint_value(i_joint_choice, i_quantized_diffGoSignalTimes) = length(tmp_value_idx);
+				choice_contingency_table.joint_side(i_joint_choice, i_quantized_diffGoSignalTimes) = length(tmp_side_idx);
+			end
+			if ~isempty(sameness_choices)
+				for i_sameness = 1 : num_sameness_combinations
+					tmp_sameness_idx = find(sameness_choices(cur_diffGoSIgnalTime_idx) == i_sameness);
+					choice_contingency_table.sameness(i_sameness, i_quantized_diffGoSignalTimes) = length(tmp_sameness_idx);
+				end
+			end
+		end
+
+
+		if ~isempty(sameness_choices)
+			[pairwise_P_matrix, pairwise_P_matrix_with_chance, P_data_not_chance_list] = get_pairwise_p_4_fisher_exact(choice_contingency_table.sameness', []);
+			[sym_list, p_list, cols_idx_per_symbol] = construct_symbol_list(pairwise_P_matrix, sameness_names, column_names, 'col', []);
+
+			%figure_visibility_string = 'on';
+			fh_cur_sameness_contingency_table = figure('Name', 'SamenessContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
+			fnFormatDefaultAxes(DefaultAxesType);
+			[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
+			set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
+			%subplot(2, 1, 1)
+			% plot the tables
+			row_names = sameness_names;
+			title_string = 'sameness';
+			[ah_cur_value_contingency_table, cur_group_names] = fnPlotContingencyTable_stacked(choice_contingency_table.sameness, row_names, column_names, 'column', title_string, 'subplot', sym_list, cols_idx_per_symbol, []);
+
+			CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+			outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SamenessContingencyTable.ByDiffGoTime.AT_5classes.', OutPutType]);
+			write_out_figure(fh_cur_sameness_contingency_table, outfile_fqn);
+		end
+
+
+	% figure_visibility_string = 'on';
+		fh_cur_value_contingency_table = figure('Name', 'ValueContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
+		fnFormatDefaultAxes(DefaultAxesType);
+		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
+		%subplot(2, 1, 1)
+		% plot the tables
+		row_names = value_names;
+		title_string = 'value';
+		[ah_cur_value_contingency_table, cur_group_names] = fnPlotContingencyTable_stacked(choice_contingency_table.joint_value, row_names, column_names, 'column', title_string, 'subplot', [], [], []);
+		CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.ValueContingencyTable.ByDiffGoTime.AT_5classes.', OutPutType]);
+		write_out_figure(fh_cur_value_contingency_table, outfile_fqn);
+
+	% outfile_fqn = fullfile('Y:', 'SCP_DATA', 'SCP-CTRL-01', 'SESSIONLOGS', 'ValueContingencyPlots_EHYS', [FileName, '.', CurrentTitleSetDescriptorString, '.ValueContingencyTable.ByDiffGoTime.AT_5classes.', OutPutType]);
+	% write_out_figure(fh_cur_value_contingency_table, outfile_fqn);
+	% figure_visibility_string = 'off';
+	% continue
+
+
+		%figure_visibility_string = 'on';
+		fh_cur_side_contingency_table = figure('Name', 'SideContingency by Differential GoSignalTime', 'visible', figure_visibility_string);
+		fnFormatDefaultAxes(DefaultAxesType);
+		[output_rect] = fnFormatPaperSize(DefaultPaperSizeType, gcf, output_rect_fraction, [], double_row_aspect_ratio);
+		set(gcf(), 'Units', paper_unit_string, 'Position', output_rect, 'PaperPosition', output_rect);
+		%subplot(2, 1, 2)
+		% plot the tables
+		row_names = side_names;
+		title_string = 'side';
+		[ah_cur_side_contingency_table, cur_group_names] = fnPlotContingencyTable_stacked(choice_contingency_table.joint_side, row_names, column_names, 'column', title_string, 'subplot', [], [], []);
+
+		CurrentTitleSetDescriptorString = TitleSetDescriptorString;
+		outfile_fqn = fullfile(OutputPath, [FileName, '.', CurrentTitleSetDescriptorString, '.SideContingencyTable.ByDiffGoTime.AT_5classes.', OutPutType]);
+		write_out_figure(fh_cur_side_contingency_table, outfile_fqn);
+
+	end
+
+
 
 
 	if (0)
