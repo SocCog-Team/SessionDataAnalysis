@@ -3417,7 +3417,7 @@ for iGroup = 1 : length(GroupNameList)
 					', t(', num2str(ttest2res.stats.df), '): ', num2str(ttest2res.stats.tstat), ', p: ', num2str(ttest2res.p)];
 
 				% SameA versus 0
-				if ~isempty(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx))
+				if ~isempty(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)) && length(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)) > 1
 					[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameA_idx)), ...
 						0,...
 						'Tail', 'both');
@@ -3430,7 +3430,7 @@ for iGroup = 1 : length(GroupNameList)
 					title_text2A = '';
 				end
 				% SameB versus 0
-				if ~isempty(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx))
+				if ~isempty(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)) && length(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)) > 1
 					[ttest2res.h, ttest2res.p, ttest2res.ci, ttest2res.stats] = ttest(cur_AB_RT_data_diff(intersect(CurrentGroupGoodTrialsIdx, CurSameB_idx)), ...
 						0,...
 						'Tail', 'both');
