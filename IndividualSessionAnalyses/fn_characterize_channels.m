@@ -1,9 +1,9 @@
 function [ ] = fn_characterize_channels( input_table, base_dir )
-%fn_characterize_channels try to assess quakity of channels...
+%fn_characterize_channels try to assess quality of channels...
 % For each animal and array state (to allow for array changes) show:
 %	The distribution which channels were clasified as bad channel how often
 %	neuronal data per channel? look at significance count for channels
-%		AB side compinations @ own OR other's action time
+%		AB side combinations @ own OR other's action time
 
 input_table_fqn = [];
 ci_alpha = 0.05;
