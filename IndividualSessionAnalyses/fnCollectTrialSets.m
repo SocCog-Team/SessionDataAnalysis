@@ -68,10 +68,20 @@ TrialSets.ByActivity.AllTrials = union(TrialSets.ByActivity.SideA.AllTrials, Tri
 
 % these are real joint trials when both subject work together
 % test for touching the initial target: (initiated trials)
-TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_InitialFixationTouchTime_ms) > 0);
+% ATTENTION we synthesize A_InitialFixationReleaseTime_ms., so these can
+% not be used to deduce activity
+%TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_InitialFixationTouchTime_ms) > 0 | LogStruct.data(:, LogStruct.cn.A_InitialFixationReleaseTime_ms) > 0);	% 202607 add A_InitialFixationReleaseTime_ms as we can have trials where the A_InitialFixationTouchTime_ms is not recorded (say without proximity sensors)
+%TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_InitialFixationTouchTime_ms) > 0 | LogStruct.data(:, LogStruct.cn.B_InitialFixationReleaseTime_ms) > 0);
+
+TmpJointTrialsA = find(LogStruct.data(:, LogStruct.cn.A_InitialFixationTouchTime_ms) > 0);	% 202607 add A_InitialFixationReleaseTime_ms as we can have trials where the A_InitialFixationTouchTime_ms is not recorded (say without proximity sensors)
 TmpJointTrialsB = find(LogStruct.data(:, LogStruct.cn.B_InitialFixationTouchTime_ms) > 0);
 
-% restrict this to the initiated trials...
+
+% restrict this to the initiated trials... and these might be ones where we
+% did not see A_InitialFixationTouchTime_ms within the trial, but we will
+% have to see A_InitialFixationReleaseTime_ms
+%TrialSets.ByActivity.SideA.AllTrials = intersect(TrialSets.ByActivity.SideA.AllTrials, find(LogStruct.data(:, LogStruct.cn.A_InitialFixationTouchTime_ms) > 0 | LogStruct.data(:, LogStruct.cn.A_InitialFixationReleaseTime_ms) > 0));
+%TrialSets.ByActivity.SideB.AllTrials = intersect(TrialSets.ByActivity.SideB.AllTrials, find(LogStruct.data(:, LogStruct.cn.B_InitialFixationTouchTime_ms) > 0 | LogStruct.data(:, LogStruct.cn.B_InitialFixationReleaseTime_ms) > 0));
 TrialSets.ByActivity.SideA.AllTrials = intersect(TrialSets.ByActivity.SideA.AllTrials, find(LogStruct.data(:, LogStruct.cn.A_InitialFixationTouchTime_ms) > 0));
 TrialSets.ByActivity.SideB.AllTrials = intersect(TrialSets.ByActivity.SideB.AllTrials, find(LogStruct.data(:, LogStruct.cn.B_InitialFixationTouchTime_ms) > 0));
 TrialSets.ByActivity.AllTrials = union(TrialSets.ByActivity.SideA.AllTrials, TrialSets.ByActivity.SideB.AllTrials);
