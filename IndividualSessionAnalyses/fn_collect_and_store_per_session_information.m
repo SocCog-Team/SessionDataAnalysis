@@ -22,7 +22,7 @@ function [ session_info_struct, session_info_struct_version ] = fn_collect_and_s
 summary_suffix = 'session_summary';
 % to allow automatic updates for newer versions with more fields or error
 % corrections add the version number...
-session_info_struct_version = '4';
+session_info_struct_version = '6'; % 20260907: was 4, update so we do not overwrite the existing table or its users...
 
 [logfile_path, logfile_name, log_file_ext] = fileparts(cur_session_logfile_fqn);
 % find the canonical session ID
@@ -460,8 +460,11 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 			cue_randomization_combination_struct.HitTrials_A = length(cur_rewarded_trials_A_idx);
 			cue_randomization_combination_struct.AbortedTrials_A = length(cur_aborted_trials_A_idx);
 			cue_randomization_combination_struct.EarnedRewardPulses_A = sum(report_struct.data(cur_rewarded_trials_A_idx, report_struct.cn.A_NumberRewardPulsesDelivered_HIT));
-			cue_randomization_combination_struct.ManualRewardPulses_A = sum(report_struct.data(cur_rewarded_trials_A_idx, report_struct.cn.A_NumberRewardPulsesDelivered_MANUAL));
-
+			if isfield(report_struct.cn, 'A_NumberRewardPulsesDelivered_MANUAL')
+				cue_randomization_combination_struct.ManualRewardPulses_A = sum(report_struct.data(cur_rewarded_trials_A_idx, report_struct.cn.A_NumberRewardPulsesDelivered_MANUAL));
+			else
+				cue_randomization_combination_struct.ManualRewardPulses_A = 0;
+			end
 
 			% Side B
 			cur_rewarded_trials_B_idx = intersect(TrialSets.ByOutcome.SideB.REWARD, cur_trial_idx);
@@ -469,8 +472,11 @@ for i_subject_side_combination = 1 : length(subject_side_combination_list)
 			cue_randomization_combination_struct.HitTrials_B = length(cur_rewarded_trials_B_idx);
 			cue_randomization_combination_struct.AbortedTrials_B = length(cur_aborted_trials_B_idx);
 			cue_randomization_combination_struct.EarnedRewardPulses_B = sum(report_struct.data(cur_rewarded_trials_B_idx, report_struct.cn.B_NumberRewardPulsesDelivered_HIT));
-			cue_randomization_combination_struct.ManualRewardPulses_B = sum(report_struct.data(cur_rewarded_trials_B_idx, report_struct.cn.B_NumberRewardPulsesDelivered_MANUAL));
-
+			if isfield(report_struct.cn, 'B_NumberRewardPulsesDelivered_MANUAL')
+				cue_randomization_combination_struct.ManualRewardPulses_B = sum(report_struct.data(cur_rewarded_trials_B_idx, report_struct.cn.B_NumberRewardPulsesDelivered_MANUAL));
+			else
+				cue_randomization_combination_struct.ManualRewardPulses_B = 0;
+			end
 % if (cue_randomization_combination_struct.ManualRewardPulses_A > 0) || (cue_randomization_combination_struct.ManualRewardPulses_B > 0)
 % 	disp('Doh');
 % end

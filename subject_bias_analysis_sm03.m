@@ -26,7 +26,7 @@ end
 
 ProcessNewestFirst = 0;	% sort order, natural order is oldest first
 copy_triallogs_to_outputdir = 0;				%
-RunSingleSessionAnalysis = 1;					% actually do the work...
+RunSingleSessionAnalysis = 0;					% actually do the work...
 ProcessFreshSessionsOnly = 0;					% only process sessions without signs of being already analysed
 fresh_definition_string = 'no_statistics_txt';	% which method to use to detect whether a session is already analysed
 session_group_name = '';						% a name to be defenied in fn_get_session_group as part of the include list
@@ -50,12 +50,25 @@ project_name = 'per_session_information';
 %TODO fix up the parser to deal with older well-formed report files, switch
 %to selective exclusion of individual days instead of whole months...
 % this will operate before IncludeWildcardList
+% ExcludeWildCardList = {...
+% 	'A_None.B_None', 'A_Test', 'B_Test', 'TestA', 'TestB', ...
+% 	'EXCLUDE.', 'Exclude.', 'exclude', '_PARKING', '_TESTVERSIONS', '.broken.', 'bak.', '.EXCLUDE', ...
+% 	'isOwnChoice_sideChoice.mat', 'DATA_', '.statistics.txt', '.pdf', '.png', '.fig', '.ProximitySensorChanges.log', ...
+% 	'201701', '20170201', 'A_SM-InactiveVirusScanner', ... % these might be recoverable...
+% 	'201702', '201703', ...	% for ephys probably exclude all of 2017, 2018, 2019... and 2024, 2025, 2026, ... for BoS
+% 	'2017', '2018', '2019', '2024', '2025', '2026', ...
+% 	};% first BoS ehys-session: 20201117, last BoS ephys-session: 20230707, first CCF session 20251219 last CCF ephys session: 20260501
+
+% use matlab regexp patterns
 ExcludeWildCardList = {...
-	'A_None.B_None', 'A_Test', 'B_Test', 'TestA', 'TestB', ...
-	'Exclude.', 'exclude', '_PARKING', '_TESTVERSIONS', '.broken.', 'bak.', '.EXCLUDE', ...
-	'isOwnChoice_sideChoice.mat', 'DATA_', '.statistics.txt', '.pdf', '.png', '.fig', '.ProximitySensorChanges.log', ...
-	'201701', '20170201', 'A_SM-InactiveVirusScanner', ... % these might be recoverable...
+	'A_None\.B_None', 'A_Test', 'B_Test', 'TestA', 'TestB', ...
+	'EXCLUDE\.', 'Exclude\.', 'exclude', '_PARKING', '_TESTVERSIONS', '\.broken\.', 'bak\.', '\.EXCLUDE', ...
+	'isOwnChoice_sideChoice\.mat', 'DATA_', '\.statistics\.txt', '\.pdf', '\.png', '\.fig', '\.ProximitySensorChanges\.log', ...
+	'201701[0-9]{2}T', '20170201T', 'A_SM-InactiveVirusScanner', ...
+	'201702[0-9]{2}T', '201703[0-9]{2}T', ...
+	'2017[0-9]{4}T', '2018[0-9]{4}T', '2019[0-9]{4}T', '2024[0-9]{4}T', '2025[0-9]{4}T', '2026[0-9]{4}T', ...
 	};
+
 
 % detect all valid and analysable triallog variants
 valid_triallog_suffix_regexp_list = {'.triallog.txt.gz$', '.triallog.txt.Fixed.txt$', '.triallog.txt.orig$', '.triallog.txt$', ...
@@ -64,10 +77,13 @@ valid_triallog_suffix_regexp_list = {'.triallog.txt.gz$', '.triallog.txt.Fixed.t
 % exclude all proto triallog files that do not match the suffix list above
 ignore_invalid_triallog_suffixes = 1;
 
-
+ 
 % allow to restrict to a set of sessions we are currently interested in
 % by using wildcard (preferably the unique session IDs)
-IncludeWildcardList = {};
+% use matlab regexp patterns
+% ATTENTION make sure to \ escape . in session ID names and other special
+% characters like literal \
+IncludeWildcardList = {}; % ATTENTION for now keep strfind style
 
 % special case for the paper set
 if strcmp(project_name, 'BoS_manuscript')
@@ -77,18 +93,22 @@ if strcmp(project_name, 'BoS_manuscript')
 	fresh_definition_string = 'no_coordination_check_mat';
 end
 
+force_session_information_recollection = 0;
+
 % special case for exporting per session aggregate information
 if strcmp(project_name, 'per_session_information')
 	ProcessFirstOnly = 0;
 	ProcessFreshSessionsOnly = 0;
 	RunSingleSessionAnalysis = 0;
 	session_group_name = '';
+	session_info_incremental_update = 1;					% only extract session_info for unprocessed sessions, otherwise re-extract all sessions.
+	force_session_information_recollection = 1;
 end
 
 
 
 % from the linux VM
-test_text_mode = 1;
+test_text_mode = 0;
 if (fnIsMatlabRunningInTextMode) || test_text_mode
 	session_group_name = '';
 	save_data_to_sessiondir = 1;
@@ -261,7 +281,8 @@ disp([mfilename, ' finding triallogs took: ', num2str(timestamps.search_triallog
 % use wild card search strings to exclude session log files from further
 % processing
 if ~isempty(ExcludeWildCardList)
-	experimentFile = fn_prune_list_by_wildcards(experimentFile, 'exclude', ExcludeWildCardList);
+	%experimentFile = fn_prune_list_by_wildcards(experimentFile, 'exclude', ExcludeWildCardList);
+	experimentFile = fn_prune_list_by_wildcards(experimentFile, 'exclude', ExcludeWildCardList, 'regexp');
 end
 
 % if specified include a named session_group
@@ -273,6 +294,9 @@ end
 % IncludeWildcardList substrings
 if ~isempty(IncludeWildcardList)
 	experimentFile = fn_prune_list_by_wildcards(experimentFile, 'include', IncludeWildcardList);
+	%  we need to sanitise the output of fn_get_session_group first before
+	%  we can use regexps here
+	%experimentFile = fn_prune_list_by_wildcards(experimentFile, 'include', IncludeWildcardList, 'regexp');
 end
 
 % the newest sessions might of most interest
@@ -361,7 +385,8 @@ for iSession = 1 : length(experimentFile)
 	% sessions
 
 	if ((skip_this_session) && ~(session_info_incremental_update)) ...% we do not want to analyse the session, but still re-export the session_info
-			|| (~(skip_this_session) && (session_info_incremental_update))
+			|| (~(skip_this_session) && (session_info_incremental_update)) ...
+			|| force_session_information_recollection
 
 		% store aggregate information into a table/database
 		if (session_info_save_table)
@@ -374,6 +399,10 @@ for iSession = 1 : length(experimentFile)
 				end
 			end
 		end
+	end
+
+	if ~exist('check_suffix', 'var')
+		check_suffix = 'check_suffix';
 	end
 
 	if (skip_this_session)
