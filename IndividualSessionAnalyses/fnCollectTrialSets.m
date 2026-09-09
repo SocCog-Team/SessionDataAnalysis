@@ -352,63 +352,131 @@ end
 
 
 
-% was there a separator between the players
-% since the separation might by direction (if using the OLED) A_invisible
-% does not require B_invisible at the same time.
-% this assumes that without [A|B]_invisible being set, everything was
-% visible through the transparent screen.
-if (isfield(LogStruct.cn, 'A_invisible'))
+% % was there a separator between the players
+% % since the separation might by direction (if using the OLED) A_invisible
+% % does not require B_invisible at the same time.
+% % this assumes that without [A|B]_invisible being set, everything was
+% % visible through the transparent screen.
+% if (isfield(LogStruct.cn, 'A_invisible'))
+% 	TrialSets.ByVisibility.SideA.A_invisible = find(LogStruct.data(:, LogStruct.cn.A_invisible) == 1);
+% else
+% 	TrialSets.ByVisibility.SideA.A_invisible = [];
+% end
+% if (isfield(LogStruct.cn, 'B_invisible'))
+% 	TrialSets.ByVisibility.SideB.B_invisible = find(LogStruct.data(:, LogStruct.cn.B_invisible) == 1);
+% else
+% 	TrialSets.ByVisibility.SideB.B_invisible = [];
+% end
+% % since A_invisible is not necessarily equal to B_invisible
+% TrialSets.ByVisibility.AB_invisible = intersect(TrialSets.ByVisibility.SideA.A_invisible, TrialSets.ByVisibility.SideB.B_invisible);
+% 
+% % create BlockedView trialSubTypes
+% if ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.Dyadic)) ...
+% 	|| ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloA)) ...
+% 	|| ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloB))
+% 	% missing BlockedView tTrialSubType
+% 
+% 	invisible_Dyadic_idx = intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.Dyadic);
+% 	if ~isempty(invisible_Dyadic_idx)
+% 		TrialSets.ByTrialSubType.Dyadic = setdiff(TrialSets.ByTrialSubType.Dyadic, invisible_Dyadic_idx);
+% 		TrialSets.ByTrialSubType.DyadicBlockedView = invisible_Dyadic_idx;
+% 		TrialSets.ByTrialSubType.SideA.Dyadic	= TrialSets.ByTrialSubType.Dyadic;
+% 		TrialSets.ByTrialSubType.SideA.DyadicBlockedView	= TrialSets.ByTrialSubType.DyadicBlockedView;
+% 		TrialSets.ByTrialSubType.SideB.Dyadic	= TrialSets.ByTrialSubType.Dyadic;		
+% 		TrialSets.ByTrialSubType.SideB.DyadicBlockedView	= TrialSets.ByTrialSubType.DyadicBlockedView;			
+% 	end
+% 
+% 	invisible_SoloA_idx = intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloA);
+% 	if ~isempty(invisible_SoloA_idx)
+% 		TrialSets.ByTrialSubType.SoloA = setdiff(TrialSets.ByTrialSubType.SoloA, invisible_SoloA_idx);
+% 		TrialSets.ByTrialSubType.SoloABlockedView = invisible_SoloA_idx;	
+% 		TrialSets.ByTrialSubType.SideA.SoloA = TrialSets.ByTrialSubType.SoloA;
+% 		TrialSets.ByTrialSubType.SideA.SoloABlockedView	= TrialSets.ByTrialSubType.SoloABlockedView;
+% 		TrialSets.ByTrialSubType.SideB.SoloA = [];		
+% 		TrialSets.ByTrialSubType.SideB.SoloABlockedView	= [];			
+% 	end	
+% 
+% 	invisible_SoloB_idx = intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloB);
+% 	if ~isempty(invisible_SoloB_idx)
+% 		TrialSets.ByTrialSubType.SoloB = setdiff(TrialSets.ByTrialSubType.SoloB, invisible_SoloB_idx);
+% 		TrialSets.ByTrialSubType.SoloBBlockedView = invisible_SoloB_idx;	
+% 		TrialSets.ByTrialSubType.SideA.SoloB = [];		
+% 		TrialSets.ByTrialSubType.SideA.SoloBBlockedView	= [];			
+% 		TrialSets.ByTrialSubType.SideB.SoloB = TrialSets.ByTrialSubType.SoloB;
+% 		TrialSets.ByTrialSubType.SideB.SoloBBlockedView	= TrialSets.ByTrialSubType.SoloBBlockedView;
+% 	end	
+% end
+
+% 
+% OLED can be one-way: A_invisible does not imply B_invisible.
+% Missing [A|B]_invisible => assume fully visible (same as parser).
+if isfield(LogStruct.cn, 'A_invisible')
 	TrialSets.ByVisibility.SideA.A_invisible = find(LogStruct.data(:, LogStruct.cn.A_invisible) == 1);
 else
 	TrialSets.ByVisibility.SideA.A_invisible = [];
 end
-if (isfield(LogStruct.cn, 'B_invisible'))
+if isfield(LogStruct.cn, 'B_invisible')
 	TrialSets.ByVisibility.SideB.B_invisible = find(LogStruct.data(:, LogStruct.cn.B_invisible) == 1);
 else
 	TrialSets.ByVisibility.SideB.B_invisible = [];
 end
-% since A_invisible is not necessarily equal to B_invisible
+% AND: both occluded (paper-between-AB). Keep for other consumers.
 TrialSets.ByVisibility.AB_invisible = intersect(TrialSets.ByVisibility.SideA.A_invisible, TrialSets.ByVisibility.SideB.B_invisible);
+% OR: any side occluded (parser BlockedView: OLED one-way + paper)
+TrialSets.ByVisibility.A_or_B_invisible = union(TrialSets.ByVisibility.SideA.A_invisible, TrialSets.ByVisibility.SideB.B_invisible);
 
-% create BlockedView trialSubTypes
-if ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.Dyadic)) ...
-	|| ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloA)) ...
-	|| ~isempty(intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloB))
-	% missing BlockedView tTrialSubType
-	
-	invisible_Dyadic_idx = intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.Dyadic);
-	if ~isempty(invisible_Dyadic_idx)
-		TrialSets.ByTrialSubType.Dyadic = setdiff(TrialSets.ByTrialSubType.Dyadic, invisible_Dyadic_idx);
-		TrialSets.ByTrialSubType.DyadicBlockedView = invisible_Dyadic_idx;
-		TrialSets.ByTrialSubType.SideA.Dyadic	= TrialSets.ByTrialSubType.Dyadic;
-		TrialSets.ByTrialSubType.SideA.DyadicBlockedView	= TrialSets.ByTrialSubType.DyadicBlockedView;
-		TrialSets.ByTrialSubType.SideB.Dyadic	= TrialSets.ByTrialSubType.Dyadic;		
-		TrialSets.ByTrialSubType.SideB.DyadicBlockedView	= TrialSets.ByTrialSubType.DyadicBlockedView;			
+% empty if no cols / all zero → demote all BlockedView
+occluded_idx = TrialSets.ByVisibility.A_or_B_invisible;
+
+% {visible name, BlockedView name, which side keeps the set}
+blockedview_pair_list = {
+	'Dyadic', 'DyadicBlockedView', 'both'
+	'SoloA',  'SoloABlockedView',  'A'
+	'SoloB',  'SoloBBlockedView',  'B'
+	};
+
+for i_bv = 1:size(blockedview_pair_list, 1)
+	src_name = blockedview_pair_list{i_bv, 1};
+	dst_name = blockedview_pair_list{i_bv, 2};
+	side_keep = blockedview_pair_list{i_bv, 3};
+
+	if ~isfield(TrialSets.ByTrialSubType, src_name)
+		TrialSets.ByTrialSubType.(src_name) = [];
 	end
-	
-	invisible_SoloA_idx = intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloA);
-	if ~isempty(invisible_SoloA_idx)
-		TrialSets.ByTrialSubType.SoloA = setdiff(TrialSets.ByTrialSubType.SoloA, invisible_SoloA_idx);
-		TrialSets.ByTrialSubType.SoloABlockedView = invisible_SoloA_idx;	
-		TrialSets.ByTrialSubType.SideA.SoloA = TrialSets.ByTrialSubType.SoloA;
-		TrialSets.ByTrialSubType.SideA.SoloABlockedView	= TrialSets.ByTrialSubType.SoloABlockedView;
-		TrialSets.ByTrialSubType.SideB.SoloA = [];		
-		TrialSets.ByTrialSubType.SideB.SoloABlockedView	= [];			
-	end	
+	if ~isfield(TrialSets.ByTrialSubType, dst_name)
+		TrialSets.ByTrialSubType.(dst_name) = [];
+	end
 
-	invisible_SoloB_idx = intersect(TrialSets.ByVisibility.AB_invisible, TrialSets.ByTrialSubType.SoloB);
-	if ~isempty(invisible_SoloA_idx)
-		TrialSets.ByTrialSubType.SoloB = setdiff(TrialSets.ByTrialSubType.SoloA, invisible_SoloB_idx);
-		TrialSets.ByTrialSubType.SoloBBlockedView = invisible_SoloB_idx;	
-		TrialSets.ByTrialSubType.SideA.SoloB = [];		
-		TrialSets.ByTrialSubType.SideA.SoloBBlockedView	= [];			
-		TrialSets.ByTrialSubType.SideB.SoloB = TrialSets.ByTrialSubType.SoloA;
-		TrialSets.ByTrialSubType.SideB.SoloBBlockedView	= TrialSets.ByTrialSubType.SoloBBlockedView;
-	end	
+	src_idx = TrialSets.ByTrialSubType.(src_name);
+	dst_idx = TrialSets.ByTrialSubType.(dst_name);
+
+	promote_idx = intersect(src_idx, occluded_idx);
+	demote_idx = setdiff(dst_idx, occluded_idx);	% BlockedView but not occluded
+
+	src_idx = union(setdiff(src_idx, promote_idx), demote_idx);
+	dst_idx = union(setdiff(dst_idx, demote_idx), promote_idx);
+
+	TrialSets.ByTrialSubType.(src_name) = src_idx;
+	TrialSets.ByTrialSubType.(dst_name) = dst_idx;
+
+	switch side_keep
+		case 'both'
+			TrialSets.ByTrialSubType.SideA.(src_name) = intersect(TrialSets.ByActivity.SideA.AllTrials, src_idx);
+			TrialSets.ByTrialSubType.SideB.(src_name) = intersect(TrialSets.ByActivity.SideB.AllTrials, src_idx);
+			TrialSets.ByTrialSubType.SideA.(dst_name) = intersect(TrialSets.ByActivity.SideA.AllTrials, dst_idx);
+			TrialSets.ByTrialSubType.SideB.(dst_name) = intersect(TrialSets.ByActivity.SideB.AllTrials, dst_idx);
+		case 'A'
+			TrialSets.ByTrialSubType.SideA.(src_name) = intersect(TrialSets.ByActivity.SideA.AllTrials, src_idx);
+			TrialSets.ByTrialSubType.SideB.(src_name) = [];
+			TrialSets.ByTrialSubType.SideA.(dst_name) = intersect(TrialSets.ByActivity.SideA.AllTrials, dst_idx);
+			TrialSets.ByTrialSubType.SideB.(dst_name) = [];
+		case 'B'
+			TrialSets.ByTrialSubType.SideA.(src_name) = [];
+			TrialSets.ByTrialSubType.SideB.(src_name) = intersect(TrialSets.ByActivity.SideB.AllTrials, src_idx);
+			TrialSets.ByTrialSubType.SideA.(dst_name) = [];
+			TrialSets.ByTrialSubType.SideB.(dst_name) = intersect(TrialSets.ByActivity.SideB.AllTrials, dst_idx);
+	end
 end
-
-% 
-
 
 
 
