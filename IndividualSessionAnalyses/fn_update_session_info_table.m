@@ -1,6 +1,15 @@
 function [ output_data_table ] = fn_update_session_info_table(existing_session_info_table_FQN, new_data_struct_array, sort_by_field_name)
 %FN_UPDATE_SESSION_INFO_TABLE Summary of this function goes here
 %   Detailed explanation goes here
+% TODO:
+%	Currently update replaces line by line if newer data exists for the
+%	same key, however the key is quite tight, and we can end up with
+%	erroneous rows that persist if that key does not exist anymore in
+%	correct analyses, we might be better off with updating per session,
+%	that is remove all old rows if we try to attach new rows for a session.
+%	Unsure whether we are set up tp do this, right now the easiesat work
+%	around is to force a full table rebuild by increasing the version
+%	number or by deleting the old tables of that version.
 
 
 if ~isempty(dir(existing_session_info_table_FQN))
